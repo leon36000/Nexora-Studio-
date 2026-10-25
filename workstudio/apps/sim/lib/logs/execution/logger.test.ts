@@ -29,6 +29,7 @@ import { recordUsage } from '@/lib/billing/core/usage-log'
 import { ExecutionLogger } from '@/lib/logs/execution/logger'
 import { SECRET_PROJECTION_VERSION } from '@/lib/logs/execution/trace-store'
 import type { WorkflowExecutionLog } from '@/lib/logs/types'
+import { recordRunTrace } from '@/lib/nexora/traces/from-run'
 import { emitExecutionCompletedEvent } from '@/lib/workspace-events/emitter'
 import type { SerializableExecutionState } from '@/executor/execution/types'
 
@@ -108,6 +109,11 @@ vi.mock('@/lib/core/security/redaction', () => ({
 // Mock display filters
 vi.mock('@/lib/core/utils/display-filters', () => ({
   filterForDisplay: vi.fn((data) => data),
+}))
+
+// Nexora edition: the trace of a finished run
+vi.mock('@/lib/nexora/traces/from-run', () => ({
+  recordRunTrace: vi.fn(() => Promise.resolve()),
 }))
 
 // Mock workspace event emission
@@ -250,6 +256,7 @@ describe('ExecutionLogger', () => {
       expect(completionGuard).toBeDefined()
       expect(result.executionData).toEqual(cancelledLog.executionData)
       expect(emitExecutionCompletedEvent).not.toHaveBeenCalled()
+      expect(recordRunTrace).not.toHaveBeenCalled()
     })
 
     const EMPTY_STATE = {
@@ -352,6 +359,22 @@ describe('ExecutionLogger', () => {
       })
 
       expect(written?.resolvedSecretTraceProvenance).toEqual(RUN_PROVENANCE)
+    })
+
+    test('hands the finished run to the trace recorder once its completion is persisted', async () => {
+      await completeAndReadWrite({})
+
+      expect(recordRunTrace).toHaveBeenCalledTimes(1)
+      expect(recordRunTrace).toHaveBeenCalledWith(
+        expect.objectContaining({
+          workspaceId: 'workspace-1',
+          status: 'completed',
+          log: expect.objectContaining({
+            id: 'log-1',
+            executionData: expect.objectContaining({ finalOutput: { completed: true } }),
+          }),
+        })
+      )
     })
 
     test('preserves completion-provided billing attribution when the start row is legacy', () => {

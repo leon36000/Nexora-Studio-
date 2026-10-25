@@ -230,6 +230,12 @@
         },
         "budgets": {
           "updated": "Monthly budgets updated"
+        },
+        "trace_settings": {
+          "updated": "Trace settings updated"
+        },
+        "traces": {
+          "purged": "Traces purged"
         }
       },
       "org_member": {

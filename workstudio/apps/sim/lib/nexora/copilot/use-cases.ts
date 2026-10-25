@@ -34,12 +34,18 @@ export const generateCopilotPlan = defineAuthorizedWorkspaceUseCase({
   resolveContext: ({ input }: { input: GenerateCopilotPlanInput }) =>
     resolveActiveWorkspaceApplicationContext(input.workspaceId),
   authorizationOptions: {},
-  execute: async ({ input, context, request }) =>
+  execute: async ({ input, context, principal, request }) =>
     generatePlan({
       description: input.description,
       currentPlan: input.currentPlan,
       context: await loadCopilotCompileContext(context.workspaceId),
       signal: request?.signal,
+      trace: {
+        source: 'copilot',
+        workspaceId: context.workspaceId,
+        userId: requirePrincipalSubjectUserId(principal),
+        name: 'Copilote',
+      },
     }),
 })
 

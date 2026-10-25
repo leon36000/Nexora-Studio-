@@ -14,13 +14,16 @@ from __future__ import annotations
 import argparse
 import base64
 import http.cookiejar
+import http.server
 import json
 import os
 from pathlib import Path
 import secrets
 import sys
+import threading
 import time
 import urllib.error
+import urllib.parse
 import urllib.request
 
 TEMPLATE_INPUTS = {
@@ -377,6 +380,7 @@ def main() -> int:
         data = body.get("data") or body
         kb_id = (data.get("knowledgeBase") or data).get("id")
         require(kb_id, f"no knowledge base id: {str(body)[:200]}")
+        state["kb"] = kb_id
         boundary = f"nexora{secrets.token_hex(8)}"
         text = "Horaires de livraison\n\nNexora livre ses clients le samedi de 8 h à 18 h, et en semaine de 7 h à 19 h.\n"
         form = (
@@ -900,6 +904,192 @@ def main() -> int:
         return (f"clé créée, « {model_answer.strip()[:30]} » ({model_usage.get('completion_tokens', '?')} jetons), "
                 f"agent « {agent['name']} » répond en flux, 403 hors liste, 401 révoquée, {row['requests']} requêtes en consommation")
 
+    def traces():
+        """K8: every model call becomes a trace. A question to a members-only agent that searches a
+        knowledge base shows up in Traces within 5 s as model → knowledge → model; an IBAN typed in
+        it is masked everywhere; « duration > 10 s » finds a slow run only; a purge one day on,
+        with a simulated clock, empties the workspace's traces; a test OTLP collector receives the
+        spans of a Playground call; a person outside the workspace reads none of them."""
+        ws = state["ws"]
+        if "kb" not in state:
+            knowledge_base()
+        admin_organization()
+        sub = lambda i, t, v: {"id": i, "type": t, "value": v}
+
+        def traces_of(client, **query):
+            params = "&".join(f"{k}={urllib.parse.quote(str(v))}" for k, v in {"workspaceId": ws, "limit": 100, **query}.items())
+            status, body = client.call("GET", f"/api/nexora/traces?{params}")
+            require(status == 200, f"traces returned HTTP {status}: {str(body)[:200]}")
+            return body["traces"]
+
+        def wait_for(predicate, seconds=5.0, **query):
+            deadline = time.monotonic() + seconds
+            while True:
+                found = [t for t in traces_of(s, **query) if predicate(t)]
+                if found or time.monotonic() > deadline:
+                    return found
+                time.sleep(0.4)
+
+        status, body = s.call("POST", "/api/workflows", {"name": "Agent de fumée traces", "workspaceId": ws})
+        require(status in (200, 201), f"workflow creation returned HTTP {status}")
+        agent_wf = body.get("id") or (body.get("workflow") or body.get("data") or {}).get("id")
+        start, agent_block = secrets.token_hex(8), secrets.token_hex(8)
+        knowledge_tool = {"type": "knowledge", "title": "Knowledge", "toolId": "knowledge_search", "operation": "search",
+                          "params": {"knowledgeBaseSelector": state["kb"]}, "isExpanded": False, "usageControl": "auto"}
+        instructions = ("Tu es l'assistant d'une PME. Pour toute question sur les livraisons, cherche d'abord dans la base de "
+                        "connaissances avec l'outil, puis réponds en une phrase en français.")
+        agent_state = {"blocks": {
+            start: {"id": start, "type": "start_trigger", "name": "Start", "position": {"x": 0, "y": 0}, "enabled": True,
+                    "subBlocks": {"inputFormat": sub("inputFormat", "input-format", [])}, "outputs": {}},
+            agent_block: {"id": agent_block, "type": "agent", "name": "Agent", "position": {"x": 420, "y": 0}, "enabled": True,
+                          "subBlocks": {"messages": sub("messages", "messages-input", [{"role": "system", "content": instructions}, {"role": "user", "content": "<start.input>"}]),
+                                        "model": sub("model", "combobox", "vllm/nexora-default"),
+                                        "tools": sub("tools", "tool-input", [knowledge_tool]),
+                                        "memoryType": sub("memoryType", "dropdown", "none")},
+                          "outputs": {}}},
+            "edges": [{"id": secrets.token_hex(8), "source": start, "target": agent_block, "sourceHandle": "source", "targetHandle": "target"}],
+            "loops": {}, "parallels": {}}
+        wait_wf = None
+        collector = None
+        try:
+            status, body = s.call("PUT", f"/api/workflows/{agent_wf}/state", agent_state)
+            require(status == 200, f"agent state save returned HTTP {status}: {str(body)[:200]}")
+            status, body = s.call("POST", f"/api/workflows/{agent_wf}/deploy", {})
+            require(status == 200, f"agent deploy returned HTTP {status}: {str(body)[:200]}")
+            identifier = f"traces-fumee-{secrets.token_hex(4)}"
+            status, body = s.call("POST", "/api/chat", {
+                "workflowId": agent_wf, "identifier": identifier, "title": "Agent traces", "authType": "workspace",
+                "customizations": {"primaryColor": "#1f2937", "welcomeMessage": "Bonjour"},
+                "outputConfigs": [{"blockId": agent_block, "path": "content"}]})
+            require(status in (200, 201), f"members-only chat publication returned HTTP {status}: {str(body)[:200]}")
+
+            # (a) a question that needs the knowledge base: its tree appears in under 5 s
+            traces_of(s)  # a first read warms the route, so the 5 s measure below is the trace's latency alone
+            question = "Quand livrez-vous le samedi ? Cherchez dans la base de connaissances."
+            status, text = s.call("POST", f"/api/chat/{identifier}", {"input": question, "conversationId": secrets.token_hex(8)}, raw=True, timeout=300)
+            require(status == 200 and '"event":"error"' not in text, f"chat returned HTTP {status}: {text[:200]}")
+            ended = time.monotonic()
+            found = wait_for(lambda t: t["name"] == "Agent de fumée traces" and t["source"] == "assistant")
+            appeared = time.monotonic() - ended
+            require(found, "the Assistant-style chat left no trace within 5 s")
+            trace = found[0]
+            require(appeared < 5.0, f"the trace took {appeared:.1f} s to appear")
+            _, detail = s.call("GET", f"/api/nexora/traces/{trace['id']}?workspaceId={ws}")
+            kinds = [sp["kind"] for sp in detail["spans"]]
+            require(trace["visibility"] == "private", "a members-only chat trace must be private")
+            require("knowledge" in kinds and kinds.count("model") >= 2, f"the tree misses model → knowledge → model: {kinds}")
+            order = [k for k in kinds if k in ("model", "knowledge")]
+            require(order[:3] == ["model", "knowledge", "model"], f"unexpected order of the steps: {order}")
+            require(trace["inputTokens"] > 0 and trace["durationMs"] > 0, f"no tokens or duration: {trace}")
+
+            # (b) an IBAN typed in a question is masked everywhere
+            iban = "FR76 3000 6000 0112 3456 7890 189"
+            status, text = s.call("POST", f"/api/chat/{identifier}", {"input": f"Mon IBAN est {iban} et mon e-mail jean.dupont@exemple.fr : confirme en une phrase que tu les as notés.", "conversationId": secrets.token_hex(8)}, raw=True, timeout=300)
+            require(status == 200, f"chat with an IBAN returned HTTP {status}")
+            found = wait_for(lambda t: "[IBAN]" in (t.get("inputPreview") or ""))
+            require(found, "the question with an IBAN left no trace")
+            _, detail = s.call("GET", f"/api/nexora/traces/{found[0]['id']}?workspaceId={ws}")
+            dump = json.dumps(detail)
+            require("3000 6000" not in dump and "7630006000" not in dump and "jean.dupont@exemple.fr" not in dump, "an IBAN or an e-mail address is readable in the stored trace")
+            require(found[0]["maskedCount"] >= 2, f"masking was not counted: {found[0]['maskedCount']}")
+            require(not traces_of(s, q="3000 6000"), "the text search finds the raw IBAN")
+
+            # (c) « duration > 10 s » keeps a slow run and drops the fast ones
+            status, body = s.call("POST", "/api/workflows", {"name": "Attente de fumée traces", "workspaceId": ws})
+            wait_wf = body.get("id") or (body.get("workflow") or body.get("data") or {}).get("id")
+            wstart, wblock = secrets.token_hex(8), secrets.token_hex(8)
+            wait_state = {"blocks": {
+                wstart: {"id": wstart, "type": "start_trigger", "name": "Start", "position": {"x": 0, "y": 0}, "enabled": True,
+                         "subBlocks": {"inputFormat": sub("inputFormat", "input-format", [])}, "outputs": {}},
+                wblock: {"id": wblock, "type": "wait", "name": "Attente", "position": {"x": 300, "y": 0}, "enabled": True,
+                         "subBlocks": {"timeValue": sub("timeValue", "short-input", "11"), "timeUnit": sub("timeUnit", "dropdown", "seconds")}, "outputs": {}}},
+                "edges": [{"id": secrets.token_hex(8), "source": wstart, "target": wblock, "sourceHandle": "source", "targetHandle": "target"}],
+                "loops": {}, "parallels": {}}
+            status, _ = s.call("PUT", f"/api/workflows/{wait_wf}/state", wait_state)
+            require(status == 200, f"wait state save returned HTTP {status}")
+            status, body = s.call("POST", f"/api/workflows/{wait_wf}/execute", {"useDraftState": True, "stream": False, "input": {}}, timeout=120)
+            require(status == 200 and body.get("success"), f"wait run returned HTTP {status}: {str(body)[:200]}")
+            fast_total = len(traces_of(s))
+            slow = wait_for(lambda t: t["durationMs"] >= 10_000, minDurationMs=10_000)
+            require(slow, "the 11 s run is missing from « duration > 10 s »")
+            over_ten = traces_of(s, minDurationMs=10_000)
+            require(all(t["durationMs"] >= 10_000 for t in over_ten) and len(over_ten) < fast_total,
+                    f"the duration filter keeps fast traces: {[t['durationMs'] for t in over_ten]}")
+
+            # (e) a test OTLP collector receives the spans of a Playground call
+            received: list[dict] = []
+
+            class Collector(http.server.BaseHTTPRequestHandler):
+                def do_POST(self):
+                    body = self.rfile.read(int(self.headers.get("Content-Length", 0)))
+                    received.append({"path": self.path, "auth": self.headers.get("X-Collector-Key"), "body": json.loads(body or b"{}")})
+                    self.send_response(200)
+                    self.send_header("Content-Type", "application/json")
+                    self.end_headers()
+                    self.wfile.write(b"{}")
+
+                def log_message(self, *args):
+                    pass
+
+            collector = http.server.ThreadingHTTPServer(("0.0.0.0", 0), Collector)
+            threading.Thread(target=collector.serve_forever, daemon=True).start()
+            collector_host = os.environ.get("NEXORA_SMOKE_COLLECTOR_HOST", "127.0.0.1")
+            endpoint = f"http://{collector_host}:{collector.server_address[1]}/v1/traces"
+            status, saved = admin.call("PUT", "/api/nexora/traces/settings", {"otlp": {"enabled": True, "endpoint": endpoint, "headers": [{"name": "X-Collector-Key", "value": "cle-de-fumee"}]}})
+            require(status == 200, f"OTLP settings returned HTTP {status}: {str(saved)[:200]}")
+            require("cle-de-fumee" not in json.dumps(saved), "an export header value came back from the settings")
+            status, tested = admin.call("POST", "/api/nexora/traces/settings/test-export", {})
+            require(status == 200 and tested.get("ok"), f"export test failed: {tested}")
+            marker = f"export-{secrets.token_hex(3)}"
+            status, text = s.call("POST", "/api/nexora/playground", {"workspaceId": ws, "model": "vllm/nexora-default", "temperature": 0.2, "maxTokens": 512,
+                                  "messages": [{"role": "user", "content": f"Réponds simplement « {marker} »."}]}, raw=True, timeout=300)
+            require(status == 200, f"playground returned HTTP {status}")
+            deadline = time.monotonic() + 10
+            spans: list[dict] = []
+            while time.monotonic() < deadline and not spans:
+                for item in received:
+                    for resource in item["body"].get("resourceSpans", []):
+                        for scope in resource.get("scopeSpans", []):
+                            spans += [sp for sp in scope.get("spans", []) if marker in json.dumps(sp)]
+                time.sleep(0.4)
+            require(spans, f"the collector got no span of the Playground call ({len(received)} request(s))")
+            require(any(r["auth"] == "cle-de-fumee" for r in received), "the collector did not get the configured header")
+            attrs = {a["key"] for sp in spans for a in sp["attributes"]}
+            require({"gen_ai.request.model", "gen_ai.usage.input_tokens"} <= attrs, f"missing gen_ai attributes: {sorted(attrs)}")
+            admin.call("PUT", "/api/nexora/traces/settings", {"otlp": {"enabled": False, "headers": []}})
+
+            # (f) a person outside the workspace reads nothing of it
+            outsider = Smoke(args.url, args.origin)
+            status, _ = outsider.call("POST", "/api/auth/sign-up/email", {"email": f"hors-espace-{secrets.token_hex(4)}@nexora.test", "password": secrets.token_hex(16), "name": "Hors espace"})
+            require(status == 200, f"outsider sign-up returned HTTP {status}")
+            status, _ = outsider.call("GET", f"/api/nexora/traces?workspaceId={ws}")
+            require(status in (403, 404), f"a non-member lists the traces (HTTP {status})")
+            status, _ = outsider.call("GET", f"/api/nexora/traces/{trace['id']}?workspaceId={ws}")
+            require(status in (403, 404), f"a non-member reads a trace (HTTP {status})")
+            status, _ = outsider.call("GET", "/api/nexora/traces/settings")
+            require(status == 403, f"a plain member reads the trace settings (HTTP {status})")
+
+            # (d) retention of one day, clock two days ahead: the workspace's traces are purged
+            status, _ = admin.call("PUT", "/api/nexora/traces/settings", {"retentionDays": 1})
+            require(status == 200, f"retention change returned HTTP {status}")
+            before = len(traces_of(s))
+            require(before >= 3, f"too few traces before the purge: {before}")
+            as_of = time.strftime("%Y-%m-%dT%H:%M:%S.000Z", time.gmtime(time.time() + 2 * 86400))
+            status, purged = admin.call("POST", "/api/nexora/traces/purge", {"workspaceId": ws, "asOf": as_of})
+            require(status == 200 and purged["deletedTraces"] >= before, f"purge returned HTTP {status}: {purged}")
+            require(not traces_of(s), "traces remain after the simulated purge")
+            return (f"arbre modèle → connaissances → modèle en {appeared:.1f} s, IBAN et e-mail masqués ({found[0]['maskedCount']} masquages), "
+                    f"« durée > 10 s » ⇒ {len(over_ten)} sur {fast_total}, collecteur OTLP : {len(spans)} span(s), "
+                    f"purge simulée : {purged['deletedTraces']} traces, extérieur refusé")
+        finally:
+            admin.call("PUT", "/api/nexora/traces/settings", {"retentionDays": 30, "otlp": {"enabled": False, "headers": []}})
+            if collector:
+                collector.shutdown()
+            s.call("DELETE", f"/api/workflows/{agent_wf}")
+            if wait_wf:
+                s.call("DELETE", f"/api/workflows/{wait_wf}")
+
+
     def agent():
         status, body = s.call("POST", "/api/workflows", {"name": "Agent de fumée", "workspaceId": state["ws"]})
         require(status in (200, 201), f"workflow creation returned HTTP {status}")
@@ -1046,6 +1236,7 @@ def main() -> int:
     s.check("Prompts : étiquette production déplacée sans republier, API v2", prompts)
     s.check("Assistant : conversation en flux, historique, cloisonnement", assistant)
     s.check("API développeur : clé, modèle et agent au format OpenAI, refus 401 et 403", developer_api)
+    s.check("Traces : arbre, IBAN masqué, durée > 10 s, collecteur OTLP, purge, cloisonnement", traces)
     if os.environ.get("NEXORA_SMOKE_WEB_SEARCH") == "1":
         s.check("Recherche web (SearXNG)", web_search)
     for name in TEMPLATE_INPUTS:

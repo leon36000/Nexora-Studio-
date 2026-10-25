@@ -106,4 +106,23 @@ describe('relayWithUsage', () => {
       estimated: true,
     })
   })
+
+  it('captures the streamed answer and reasoning for the trace, without changing the bytes', async () => {
+    const capture = { answer: '', reasoning: '' }
+    const reasoningChunk = `data: ${JSON.stringify({ choices: [{ delta: { reasoning_content: 'Je pense.' } }] })}\n\n`
+    const source = [reasoningChunk, chunk('Bon'), chunk('jour'), usageChunk, 'data: [DONE]\n\n']
+    const text = await drain(relayWithUsage(streamOf(source), vi.fn(), capture))
+    expect(text).toBe(source.join(''))
+    expect(capture).toEqual({ answer: 'Bonjour', reasoning: 'Je pense.' })
+  })
+
+  it('stops capturing past its limit instead of growing with a long answer', async () => {
+    const capture = { answer: '', reasoning: '' }
+    const long = 'x'.repeat(20_000)
+    await drain(
+      relayWithUsage(streamOf([chunk(long), chunk(long), 'data: [DONE]\n\n']), vi.fn(), capture)
+    )
+    expect(capture.answer.length).toBeGreaterThanOrEqual(12_000)
+    expect(capture.answer.length).toBeLessThanOrEqual(40_000)
+  })
 })

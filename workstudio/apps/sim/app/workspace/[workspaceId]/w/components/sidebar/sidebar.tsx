@@ -29,6 +29,7 @@ import {
   Connections,
   Dashboard,
   Database,
+  Eye,
   Files,
   FileText,
   Integration,
@@ -417,6 +418,7 @@ export const Sidebar = memo(function Sidebar({ organizationHref, desktopExecutor
   const t = useTranslations('shell.sidebar')
   const tCopilot = useTranslations('copilot.entry')
   const tDevelopers = useTranslations('developers.page')
+  const tTraces = useTranslations('traces')
   const navCopy = useSettingsNavCopy()
   const params = useParams()
   const workspaceId = params.workspaceId as string
@@ -835,6 +837,14 @@ export const Sidebar = memo(function Sidebar({ organizationHref, desktopExecutor
           hidden: chatEnabled,
         },
         {
+          // Nexora edition: the trace of every model call (agents, Assistant, Playground, keys).
+          id: 'traces',
+          label: tTraces('navLabel'),
+          icon: Eye,
+          href: `/workspace/${workspaceId}/traces`,
+          hidden: chatEnabled,
+        },
+        {
           id: 'home',
           label: chatEnabled ? t('nav.newChat') : t('nav.newWorkflow'),
           icon: chatEnabled ? Home : Plus,
@@ -876,6 +886,7 @@ export const Sidebar = memo(function Sidebar({ organizationHref, desktopExecutor
     [
       t,
       tDevelopers,
+      tTraces,
       workspaceId,
       createWorkflow,
       canEdit,

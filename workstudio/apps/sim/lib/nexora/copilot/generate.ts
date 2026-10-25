@@ -15,6 +15,7 @@ import {
   type CopilotTrigger,
   copilotPlanSchema,
 } from '@/lib/nexora/copilot/plan'
+import type { CallTraceContext } from '@/lib/nexora/traces/call'
 import {
   isNexoraWandAvailable,
   NexoraWandRejectedError,
@@ -306,10 +307,16 @@ function checkAnswer(answer: string, context: CompileContext): Attempt {
 
 async function completeWithNexora(
   messages: WandMessage[],
-  signal: AbortSignal | undefined
+  signal: AbortSignal | undefined,
+  trace: CallTraceContext | undefined
 ): Promise<string> {
   if (!isNexoraWandAvailable()) throw new NexoraWandUnavailableError('not configured')
-  const { text } = await nexoraWandComplete({ messages, responseFormat: 'json_object', signal })
+  const { text } = await nexoraWandComplete({
+    messages,
+    responseFormat: 'json_object',
+    signal,
+    trace,
+  })
   return text
 }
 
@@ -440,9 +447,12 @@ export async function generatePlan(input: {
   context: CompileContext
   complete?: CopilotModel
   signal?: AbortSignal
+  /** Who is asking: each call of the model is recorded as a trace. */
+  trace?: CallTraceContext
 }): Promise<GeneratedPlan> {
   const complete =
-    input.complete ?? ((messages: WandMessage[]) => completeWithNexora(messages, input.signal))
+    input.complete ??
+    ((messages: WandMessage[]) => completeWithNexora(messages, input.signal, input.trace))
   const messages: WandMessage[] = [
     { role: 'system', content: buildSystemPrompt(input.context) },
     { role: 'user', content: buildRequest(input.description, input.currentPlan) },

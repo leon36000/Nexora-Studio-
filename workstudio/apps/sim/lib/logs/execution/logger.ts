@@ -81,6 +81,7 @@ import type {
   WorkflowExecutionLog,
   WorkflowState,
 } from '@/lib/logs/types'
+import { recordRunTrace } from '@/lib/nexora/traces/from-run'
 import { emitExecutionCompletedEvent } from '@/lib/workspace-events/emitter'
 import { isLiveExecutionState } from '@/executor/execution/snapshot-serializer'
 import type { SerializableExecutionState } from '@/executor/execution/types'
@@ -1416,6 +1417,13 @@ export class ExecutionLogger {
     if (completionPersisted) {
       emitExecutionCompletedEvent(completedLog).catch((error) => {
         execLog.error('Failed to emit workspace execution event', { error })
+      })
+      // Nexora edition: the run becomes a trace; recordRunTrace never rejects.
+      void recordRunTrace({
+        log: completedLog,
+        workspaceId: updatedLog.workspaceId ?? existingLog?.workspaceId ?? null,
+        status,
+        actorUserId,
       })
     }
 

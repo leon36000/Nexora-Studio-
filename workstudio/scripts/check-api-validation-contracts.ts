@@ -122,6 +122,8 @@ const INDIRECT_ZOD_ROUTES = new Set([
   'apps/sim/app/api/cron/workspace-file-search-dispatch/route.ts',
   'apps/sim/app/api/cron/knowledge-projection/route.ts',
   'apps/sim/app/api/cron/fold-table-row-changes/route.ts',
+  // Nexora edition: trace retention sweep; cron secret only, no client-supplied input.
+  'apps/sim/app/api/cron/purge-nexora-traces/route.ts',
   'apps/sim/app/api/logs/cleanup/route.ts',
   'apps/sim/app/api/knowledge/connectors/sync/route.ts',
   'apps/sim/app/api/knowledge/connectors/member-sync/route.ts',

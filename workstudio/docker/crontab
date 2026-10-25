@@ -59,6 +59,9 @@ SHELL=/bin/sh
 # Fails runs whose worker died without a terminal state and prunes their history
 */30 * * * * curl -fsS -m 60 -o /dev/null -H "Authorization: Bearer $CRON_SECRET" "$SIM_URL/api/cron/cleanup-stale-executions"
 
+# Nexora edition: trace retention (and Assistant conversation retention when set)
+17 * * * * curl -fsS -m 300 -o /dev/null -H "Authorization: Bearer $CRON_SECRET" "$SIM_URL/api/cron/purge-nexora-traces"
+
 # Deletes OAuth token rows after the retention tail
 0 * * * * curl -fsS -m 120 -o /dev/null -H "Authorization: Bearer $CRON_SECRET" "$SIM_URL/api/cron/cleanup-oauth-tokens"
 

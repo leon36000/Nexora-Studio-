@@ -12,6 +12,10 @@ import {
   readDeltaReasoning,
   readMessageReasoning,
 } from '@/lib/nexora/reasoning'
+import { beginCallTrace, type CallTrace, type CallTraceContext } from '@/lib/nexora/traces/call'
+
+/** How much of an answer (and of its reasoning) a streamed call's trace keeps while it streams. */
+const TRACE_TEXT_LIMIT = 12_000
 
 /** Model alias Nexora API resolves to the deployment's default chat model. */
 const NEXORA_DEFAULT_MODEL_ALIAS = 'nexora-default'
@@ -104,6 +108,8 @@ interface CompletionSettings {
   responseFormat?: 'json_object'
   /** Sent as `reasoning_effort`, and dropped when the model refuses it. */
   reasoningEffort?: ReasoningEffort
+  /** Who is asking, to record the call as a trace (Playground, Copilot, « Generate with AI »). */
+  trace?: CallTraceContext
 }
 
 interface CompletionResponse {
@@ -160,6 +166,19 @@ async function requestCompletion(
   return { response, effortIgnored: false }
 }
 
+/** The short reason a failed generation is recorded under on its trace. */
+function failureReason(error: unknown): string {
+  if (error instanceof NexoraWandRejectedError) return `Refusé par le modèle : ${error.reason}`
+  if (error instanceof NexoraWandUnavailableError) return 'Nexora API indisponible'
+  return getErrorMessage(error, 'Échec de la génération')
+}
+
+function beginTrace(settings: CompletionSettings, messages: WandMessage[]): CallTrace | null {
+  return settings.trace
+    ? beginCallTrace(settings.trace, settings.model ?? NEXORA_DEFAULT_MODEL_ALIAS, messages)
+    : null
+}
+
 function toUsage(raw: unknown): WandUsage | null {
   const usage = raw as { prompt_tokens?: number; completion_tokens?: number } | null | undefined
   if (!usage || typeof usage.prompt_tokens !== 'number') return null
@@ -171,17 +190,32 @@ export async function nexoraWandComplete(input: {
   messages: WandMessage[]
   signal?: AbortSignal
   responseFormat?: CompletionSettings['responseFormat']
+  trace?: CallTraceContext
 }): Promise<{ text: string; usage: WandUsage }> {
-  const { response } = await requestCompletion(input.messages, false, input.signal, {
-    responseFormat: input.responseFormat,
-  })
-  const body = (await response.json()) as {
-    choices?: { message?: unknown }[]
-    usage?: unknown
-  }
-  return {
-    text: readMessageReasoning(body.choices?.[0]?.message).content.trim(),
-    usage: toUsage(body.usage) ?? { promptTokens: 0, completionTokens: 0 },
+  const trace = beginTrace(input, input.messages)
+  try {
+    const { response } = await requestCompletion(input.messages, false, input.signal, {
+      responseFormat: input.responseFormat,
+    })
+    const body = (await response.json()) as {
+      choices?: { message?: unknown }[]
+      usage?: unknown
+    }
+    const reading = readMessageReasoning(body.choices?.[0]?.message)
+    const result = {
+      text: reading.content.trim(),
+      usage: toUsage(body.usage) ?? { promptTokens: 0, completionTokens: 0 },
+    }
+    trace?.finish({
+      answer: result.text,
+      usage: toUsage(body.usage),
+      error: null,
+      reasoning: reading.reasoning || null,
+    })
+    return result
+  } catch (error) {
+    trace?.finish({ answer: null, usage: null, error: failureReason(error) })
+    throw error
   }
 }
 
@@ -203,13 +237,26 @@ export async function nexoraWandStream(
     includeThinking?: boolean
   } & CompletionSettings
 ): Promise<ReadableStream<Uint8Array>> {
-  const { response, effortIgnored } = await requestCompletion(
-    input.messages,
-    true,
-    input.signal,
-    input
-  )
+  const trace = beginTrace(input, input.messages)
+  let outcome: CompletionResponse
+  try {
+    outcome = await requestCompletion(input.messages, true, input.signal, input)
+  } catch (error) {
+    trace?.finish({ answer: null, usage: null, error: failureReason(error) })
+    throw error
+  }
+  const { response, effortIgnored } = outcome
   const source = response.body
+  let answer = ''
+  let reasoningText = ''
+  const finishTrace = (extra: { error?: string; interrupted?: boolean } = {}) =>
+    trace?.finish({
+      answer: answer || null,
+      usage: lastUsage,
+      error: extra.error ?? null,
+      reasoning: reasoningText || null,
+      interrupted: extra.interrupted,
+    })
   const encoder = new TextEncoder()
   const decoder = new TextDecoder()
   let emitted = 0
@@ -231,6 +278,11 @@ export async function nexoraWandStream(
     keepAlive: { sent: boolean }
   ) => {
     for (const piece of pieces) {
+      if (piece.kind === 'content') {
+        if (answer.length < TRACE_TEXT_LIMIT) answer += piece.text
+      } else if (reasoningText.length < TRACE_TEXT_LIMIT) {
+        reasoningText += piece.text
+      }
       if (piece.kind === 'content') emit(controller, { chunk: piece.text })
       else if (input.includeThinking) emit(controller, { thinking: piece.text })
       else if (!keepAlive.sent) {
@@ -245,6 +297,7 @@ export async function nexoraWandStream(
     return new ReadableStream<Uint8Array>({
       start(controller) {
         emit(controller, finalEvent())
+        finishTrace()
         controller.close()
       },
     })
@@ -262,6 +315,7 @@ export async function nexoraWandStream(
     if (done) {
       emitPieces(controller, splitter.flush(), keepAlive)
       emit(controller, finalEvent())
+      finishTrace()
       return false
     }
     buffer += decoder.decode(value, { stream: true })
@@ -300,12 +354,14 @@ export async function nexoraWandStream(
       } catch {
         if (cancelled) return
         emit(controller, { error: 'Streaming failed', done: true })
+        finishTrace({ error: 'Flux interrompu par une erreur' })
         more = false
       }
       if (!more && !cancelled) controller.close()
     },
     async cancel(reason) {
       cancelled = true
+      finishTrace({ interrupted: true })
       await reader.cancel(reason).catch(() => undefined)
     },
   })

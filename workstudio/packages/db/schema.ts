@@ -8792,3 +8792,80 @@ export const nexoraPromptLabel = pgTable(
   },
   (t) => [primaryKey({ columns: [t.promptId, t.label] })]
 )
+
+/**
+ * Nexora edition: one row per trace of a model call (a Playground answer, an agent or Assistant
+ * run, a key-called model, a workflow run), with what the Traces screen filters on. Content is
+ * masked before it is written. `visibility = 'private'` traces are read only by their `userId` and
+ * the workspace's administrators. Indexed rather than partitioned: filters are all covered by the
+ * indexes below and the retention purge deletes by `started_at` in batches.
+ */
+export const nexoraTrace = pgTable(
+  'nexora_trace',
+  {
+    id: text('id').primaryKey(),
+    workspaceId: text('workspace_id').references(() => workspace.id, { onDelete: 'cascade' }),
+    userId: text('user_id').references(() => user.id, { onDelete: 'set null' }),
+    apiKeyId: text('api_key_id').references(() => nexoraApiKey.id, { onDelete: 'set null' }),
+    source: text('source').notNull(),
+    visibility: text('visibility').notNull().default('workspace'),
+    name: text('name').notNull(),
+    agentId: text('agent_id'),
+    agentName: text('agent_name'),
+    model: text('model'),
+    models: text('models').array().notNull().default(sql`'{}'::text[]`),
+    status: text('status').notNull(),
+    error: text('error'),
+    startedAt: timestamp('started_at').notNull(),
+    durationMs: integer('duration_ms').notNull(),
+    inputTokens: integer('input_tokens').notNull().default(0),
+    outputTokens: integer('output_tokens').notNull().default(0),
+    kgCo2eq: doublePrecision('kg_co2eq'),
+    spanCount: integer('span_count').notNull().default(0),
+    toolCount: integer('tool_count').notNull().default(0),
+    truncated: boolean('truncated').notNull().default(false),
+    maskedCount: integer('masked_count').notNull().default(0),
+    executionId: text('execution_id'),
+    inputPreview: text('input_preview'),
+    outputPreview: text('output_preview'),
+    searchText: text('search_text'),
+    createdAt: timestamp('created_at').notNull().defaultNow(),
+  },
+  (t) => [
+    index('nexora_trace_workspace_started_idx').on(t.workspaceId, t.startedAt.desc(), t.id.desc()),
+    index('nexora_trace_started_idx').on(t.startedAt),
+    index('nexora_trace_user_started_idx').on(t.userId, t.startedAt),
+    index('nexora_trace_api_key_started_idx').on(t.apiKeyId, t.startedAt),
+    uniqueIndex('nexora_trace_execution_idx').on(t.executionId),
+    check('nexora_trace_visibility_check', sql`${t.visibility} IN ('workspace', 'private')`),
+  ]
+)
+
+/** Nexora edition: the spans of a {@link nexoraTrace}, in tree order (`position`); deleted with it. */
+export const nexoraTraceSpan = pgTable(
+  'nexora_trace_span',
+  {
+    traceId: text('trace_id')
+      .notNull()
+      .references(() => nexoraTrace.id, { onDelete: 'cascade' }),
+    id: text('id').notNull(),
+    parentId: text('parent_id'),
+    position: integer('position').notNull(),
+    kind: text('kind').notNull(),
+    name: text('name').notNull(),
+    model: text('model'),
+    startedAt: timestamp('started_at').notNull(),
+    durationMs: integer('duration_ms').notNull(),
+    status: text('status').notNull(),
+    inputTokens: integer('input_tokens').notNull().default(0),
+    outputTokens: integer('output_tokens').notNull().default(0),
+    kgCo2eq: doublePrecision('kg_co2eq'),
+    input: text('input'),
+    output: text('output'),
+    attributes: jsonb('attributes').notNull().default(sql`'{}'::jsonb`),
+  },
+  (t) => [
+    primaryKey({ columns: [t.traceId, t.id] }),
+    index('nexora_trace_span_order_idx').on(t.traceId, t.position),
+  ]
+)
