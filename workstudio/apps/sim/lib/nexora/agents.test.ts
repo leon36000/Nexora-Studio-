@@ -8,6 +8,7 @@ import {
   hasUnsavedAgentChanges,
   persistedAgentConfig,
   readAgentWorkflow,
+  withAssistantTools,
 } from '@/lib/nexora/agents'
 import { parseWorkflowJson } from '@/lib/workflows/operations/import-export'
 
@@ -446,5 +447,41 @@ describe('saving an agent over what the database stores', () => {
       buildAgentWorkflow({ ...configured, instructions: 'Tutoyez.' }, written)
     )
     expect(agentChangedSince(baseline, elsewhere)).toBe(true)
+  })
+})
+
+describe('withAssistantTools', () => {
+  const legacy = {
+    subBlocks: {
+      model: { id: 'model', type: 'combobox', value: 'vllm/nexora-default' },
+      tools: { id: 'tools', type: 'tool-input', value: [mcpTool] },
+    },
+    data: { canonicalModes: { files: 'advanced' } },
+  }
+
+  it('gives an assistant published before the interpreter the tool and a revision mark, keeping its other tools and settings', () => {
+    const upgraded = withAssistantTools(legacy)
+    expect(upgraded).not.toBeNull()
+    const tools = (upgraded?.subBlocks.tools as { value: Array<Record<string, unknown>> }).value
+    expect(tools).toHaveLength(2)
+    expect(tools[0]).toMatchObject({ toolId: 'mcp-1' })
+    expect(tools[1]).toMatchObject({ toolId: 'function_execute', params: { language: 'python' } })
+    expect(upgraded?.subBlocks.model).toEqual(legacy.subBlocks.model)
+    expect(upgraded?.data).toEqual({
+      canonicalModes: { files: 'advanced' },
+      nexoraAssistantRevision: 2,
+    })
+  })
+
+  it('leaves an assistant that has the tool, and one an administrator edited after the upgrade, alone', () => {
+    const withTool = buildAgentWorkflow({ ...base, codeInterpreter: true })
+    const agent = agentBlock(withTool)
+    expect(withAssistantTools({ subBlocks: agent.subBlocks, data: agent.data })).toBeNull()
+    expect(withAssistantTools({ ...legacy, data: { nexoraAssistantRevision: 2 } })).toBeNull()
+  })
+
+  it('starts from nothing when the agent had no tools field', () => {
+    const upgraded = withAssistantTools({ subBlocks: {}, data: null })
+    expect((upgraded?.subBlocks.tools as { value: unknown[] }).value).toHaveLength(1)
   })
 })

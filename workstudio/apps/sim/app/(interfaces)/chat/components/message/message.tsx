@@ -114,6 +114,22 @@ function openAttachmentPreview(name: string, dataUrl: string): void {
   setTimeout(() => URL.revokeObjectURL(blobUrl), 60_000)
 }
 
+/**
+ * Whether an assistant message has anything to show yet: text, files, thinking, tool chips, or a
+ * confirmation card (an agent waiting for « Autoriser » has said nothing else).
+ */
+export function hasAssistantOutput(message: ChatMessage): boolean {
+  const hasContent =
+    typeof message.content === 'object' || Boolean((message.content as string).trim())
+  return (
+    hasContent ||
+    Boolean(message.files?.length) ||
+    Boolean(message.thinking?.length) ||
+    Boolean(message.toolCalls?.length) ||
+    Boolean(message.confirmations?.length)
+  )
+}
+
 interface ClientChatMessageProps {
   message: ChatMessage
 }
@@ -131,11 +147,8 @@ export const ClientChatMessage = memo(function ClientChatMessage({
   const hasThinking = typeof message.thinking === 'string' && message.thinking.length > 0
   const hasToolCalls = Array.isArray(message.toolCalls) && message.toolCalls.length > 0
   const hasContent = isJsonObject || Boolean((message.content as string).trim())
-  const hasFiles = Boolean(message.files?.length)
 
-  if (message.type === 'assistant' && !hasContent && !hasFiles && !hasThinking && !hasToolCalls) {
-    return null
-  }
+  if (message.type === 'assistant' && !hasAssistantOutput(message)) return null
 
   const content =
     message.type === 'user' ? (

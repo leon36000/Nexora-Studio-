@@ -251,6 +251,33 @@ export function withMessageFiles(block: {
   }
 }
 
+const ASSISTANT_REVISION_KEY = 'nexoraAssistantRevision'
+const ASSISTANT_REVISION = 2
+
+/**
+ * A stored Agent block of the general Assistant made to have the Python interpreter, for an
+ * Assistant published before it did; `null` when it has the tool already, or carries the revision
+ * mark (an administrator who removed the tool after the upgrade chose so).
+ */
+export function withAssistantTools(block: {
+  subBlocks: unknown
+  data: unknown
+}): { subBlocks: Record<string, unknown>; data: Record<string, unknown> } | null {
+  const data = toRecord(block.data)
+  const revision = data[ASSISTANT_REVISION_KEY]
+  if (typeof revision === 'number' && revision >= ASSISTANT_REVISION) return null
+  const subBlocks = toRecord(block.subBlocks)
+  const tools = toArray(toRecord(subBlocks.tools).value)
+  if (tools.filter(isStoredTool).some(isCodeInterpreterTool)) return null
+  return {
+    subBlocks: {
+      ...subBlocks,
+      tools: { id: 'tools', type: 'tool-input', value: [...tools, codeInterpreterTool()] },
+    },
+    data: { ...data, [ASSISTANT_REVISION_KEY]: ASSISTANT_REVISION },
+  }
+}
+
 /**
  * The workflow an agent is: Start → Agent, in the shape the importer reads. Start is the unified
  * entry point: a deployed chat sends its message as `<start.input>`. Rewriting a `previous` state

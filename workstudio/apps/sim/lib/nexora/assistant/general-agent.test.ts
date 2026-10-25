@@ -78,19 +78,24 @@ function queueLookup(rows: { folder?: unknown[]; workflow?: unknown[]; chat?: un
 }
 
 /** The active deployed version, whose Agent block has these sub-blocks. */
-function queueActiveVersion(agentSubBlocks: Record<string, unknown>) {
+function queueActiveVersion(
+  agentSubBlocks: Record<string, unknown>,
+  data: Record<string, unknown> = CURRENT_REVISION
+) {
   queueTableRows(schemaMock.workflowDeploymentVersion, [
     {
       state: {
         blocks: {
           start: { id: 'start', type: 'start_trigger', subBlocks: {} },
-          'agent-block': { id: 'agent-block', type: 'agent', subBlocks: agentSubBlocks },
+          'agent-block': { id: 'agent-block', type: 'agent', subBlocks: agentSubBlocks, data },
         },
       },
     },
   ])
 }
 
+/** The mark of an Assistant already offered the interpreter: files upgrades are tested apart from it. */
+const CURRENT_REVISION = { nexoraAssistantRevision: 2 }
 const LEGACY_SUB_BLOCKS = { model: { id: 'model', type: 'combobox', value: 'vllm/nexora-default' } }
 const MESSAGE_FILES_SUB_BLOCK = { id: 'files', type: 'short-input', value: '<start.files>' }
 
@@ -168,6 +173,8 @@ describe('ensureGeneralAssistantAgent', () => {
       model: 'vllm/nexora-default',
       tools: [],
       knowledgeBaseIds: ['kb-rh', 'kb-ventes'],
+      codeInterpreter: true,
+      webSearch: false,
       memory: true,
       welcomeMessage: GENERAL_ASSISTANT_WELCOME,
     })
@@ -181,7 +188,11 @@ describe('ensureGeneralAssistantAgent', () => {
       title: GENERAL_ASSISTANT_NAME,
       authType: 'workspace',
       customizations: { welcomeMessage: GENERAL_ASSISTANT_WELCOME },
-      outputConfigs: [{ blockId: 'imported-agent', path: 'content' }],
+      outputConfigs: [
+        { blockId: 'imported-agent', path: 'content' },
+        { blockId: 'imported-agent', path: 'files' },
+        { blockId: 'imported-agent', path: 'sources' },
+      ],
       includeThinking: false,
       workspaceId: WORKSPACE_ID,
       actor: { kind: 'session', userId: 'member' },
@@ -263,7 +274,7 @@ describe('ensureGeneralAssistantAgent', () => {
     const legacyBlock = {
       id: 'agent-block',
       subBlocks: LEGACY_SUB_BLOCKS,
-      data: { canonicalModes: { tools: 'basic' } },
+      data: { canonicalModes: { tools: 'basic' }, ...CURRENT_REVISION },
     }
     queueLookup(publishedRows)
     queueActiveVersion(LEGACY_SUB_BLOCKS)
@@ -276,7 +287,10 @@ describe('ensureGeneralAssistantAgent', () => {
     expect(dbChainMockFns.update).toHaveBeenCalledWith(schemaMock.workflowBlocks)
     const [stored] = dbChainMockFns.set.mock.calls.map(([values]) => values)
     expect(stored.subBlocks).toEqual({ ...LEGACY_SUB_BLOCKS, files: MESSAGE_FILES_SUB_BLOCK })
-    expect(stored.data).toEqual({ canonicalModes: { tools: 'basic', files: 'advanced' } })
+    expect(stored.data).toEqual({
+      canonicalModes: { tools: 'basic', files: 'advanced' },
+      ...CURRENT_REVISION,
+    })
     expect(deployChat).toHaveBeenCalledTimes(1)
     const [deployParams] = deployChat.mock.calls[0]
     expect(deployParams).toMatchObject({
@@ -300,8 +314,49 @@ describe('ensureGeneralAssistantAgent', () => {
     expect(releaseLock).toHaveBeenCalledTimes(1)
   })
 
+  it('offers the interpreter to an assistant published before it, and publishes its files and sources', async () => {
+    const readsFiles = { ...LEGACY_SUB_BLOCKS, files: MESSAGE_FILES_SUB_BLOCK }
+    const block = { id: 'agent-block', subBlocks: readsFiles, data: { canonicalModes: {} } }
+    queueLookup(publishedRows)
+    queueActiveVersion(readsFiles, {})
+    queueLookup(publishedRows)
+    queueActiveVersion(readsFiles, {})
+    queueTableRows(schemaMock.workflowBlocks, [block])
+
+    const result = await ensure()
+
+    const [stored] = dbChainMockFns.set.mock.calls.map(([values]) => values)
+    const tools = stored.subBlocks.tools.value as Array<Record<string, unknown>>
+    expect(tools).toHaveLength(1)
+    expect(tools[0]).toMatchObject({ toolId: 'function_execute', params: { language: 'python' } })
+    expect(stored.data).toEqual({ canonicalModes: {}, ...CURRENT_REVISION })
+    const [deployParams] = deployChat.mock.calls[0]
+    expect(deployParams).toMatchObject({
+      identifier: 'assistant-1a2b3c4d',
+      title: 'Assistant RH',
+      outputConfigs: [
+        { blockId: 'agent-block', path: 'content' },
+        { blockId: 'agent-block', path: 'files' },
+        { blockId: 'agent-block', path: 'sources' },
+      ],
+    })
+    expect(deployParams).not.toHaveProperty('authType')
+    expect(result).toMatchObject({ publishedChat: true })
+  })
+
+  it('does not offer the interpreter again to an assistant whose administrator removed it', async () => {
+    const readsFiles = { ...LEGACY_SUB_BLOCKS, files: MESSAGE_FILES_SUB_BLOCK }
+    queueLookup(publishedRows)
+    queueActiveVersion(readsFiles, CURRENT_REVISION)
+
+    await ensure()
+
+    expect(deployChat).not.toHaveBeenCalled()
+    expect(dbChainMockFns.update).not.toHaveBeenCalled()
+  })
+
   it('redeploys an upgrade that was saved but whose deployment failed', async () => {
-    const legacyBlock = { id: 'agent-block', subBlocks: LEGACY_SUB_BLOCKS, data: {} }
+    const legacyBlock = { id: 'agent-block', subBlocks: LEGACY_SUB_BLOCKS, data: CURRENT_REVISION }
     queueLookup(publishedRows)
     queueActiveVersion(LEGACY_SUB_BLOCKS)
     queueLookup(publishedRows)
@@ -315,7 +370,7 @@ describe('ensureGeneralAssistantAgent', () => {
     const upgradedDraft = {
       id: 'agent-block',
       subBlocks: { ...LEGACY_SUB_BLOCKS, files: MESSAGE_FILES_SUB_BLOCK },
-      data: { canonicalModes: { files: 'advanced' } },
+      data: { canonicalModes: { files: 'advanced' }, ...CURRENT_REVISION },
     }
     queueLookup(publishedRows)
     queueActiveVersion(LEGACY_SUB_BLOCKS)
@@ -339,7 +394,7 @@ describe('ensureGeneralAssistantAgent', () => {
       {
         id: 'agent-block',
         subBlocks: { ...LEGACY_SUB_BLOCKS, files: { ...MESSAGE_FILES_SUB_BLOCK, value: '' } },
-        data: {},
+        data: CURRENT_REVISION,
       },
     ])
 
@@ -368,7 +423,11 @@ describe('ensureGeneralAssistantAgent', () => {
       expect.objectContaining({
         workflowId: 'general-workflow',
         authType: 'workspace',
-        outputConfigs: [{ blockId: 'agent-block', path: 'content' }],
+        outputConfigs: [
+          { blockId: 'agent-block', path: 'content' },
+          { blockId: 'agent-block', path: 'files' },
+          { blockId: 'agent-block', path: 'sources' },
+        ],
       })
     )
     expect(result).toMatchObject({ createdWorkflow: false, publishedChat: true })

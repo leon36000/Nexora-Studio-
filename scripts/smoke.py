@@ -1045,10 +1045,20 @@ def main() -> int:
             with s.opener.open(urllib.request.Request(f"{s.url}{link.path}" + (f"?{link.query}" if link.query else "")), timeout=60) as download:
                 picture = download.read()
             require(picture[:8] == b"\x89PNG\r\n\x1a\n", f"the chart is not a PNG image ({len(picture)} bytes)")
+            # The Assistant itself (the employees' general agent) does the same with the attached workbook.
+            _, listing = s.call("GET", f"/api/nexora/assistant/agents?workspaceId={state['ws']}", timeout=300)
+            general = (listing.get("agents") or [None])[0]
+            require(general, "the workspace has no general Assistant")
+            assistant_answer, _, assistant_files = ask(
+                general["chatIdentifier"], "Voici nos ventes (fichier Excel) : fais un graphique par mois et donne le total des ventes.", [attachment])
+            assistant_digits = assistant_answer.replace("\u202f", "").replace("\u00a0", "").replace(" ", "").replace(",", ".")
+            require(f"{total:g}" in assistant_digits or f"{total:.2f}" in assistant_digits,
+                    f"the Assistant does not give the exact total {total}: {assistant_answer[:300]}")
+            require(any(str(f.get("type", "")).startswith("image/") for f in assistant_files), f"the Assistant returned no chart: {assistant_files}")
             admin.call("PUT", "/api/nexora/code-execution", {"enabled": False})
             refused, _, nothing = ask(identifier, "Refais le graphique des ventes.", [attachment])
             require(not nothing, "a chart was produced while code execution is off")
-            return f"graphique {images[0]['name']} et total {total:g} exacts ; sans autorisation, plus de graphique"
+            return f"graphique {images[0]['name']} et total {total:g} exacts (agent et Assistant) ; sans autorisation, plus de graphique"
         finally:
             admin.call("PUT", "/api/nexora/code-execution", {"enabled": was_enabled})
             if wf:
