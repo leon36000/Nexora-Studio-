@@ -8,6 +8,7 @@ import {
   hasAgentStreamPolicy,
   isChatChunkFrame,
   isChatChunkResetFrame,
+  isChatDelegationFrame,
   isChatOutputFrame,
   isChatToolFrame,
   shouldEmitAgentStreamEvents,
@@ -161,5 +162,35 @@ describe('hasAgentStreamPolicy', () => {
     expect(hasAgentStreamPolicy({ includeThinking: false, includeToolCalls: true })).toBe(true)
     expect(hasAgentStreamPolicy({ includeThinking: false, includeToolCalls: false })).toBe(false)
     expect(hasAgentStreamPolicy({ includeThinking: undefined, includeToolCalls: null })).toBe(false)
+  })
+})
+
+describe('delegation frames', () => {
+  const frame = {
+    event: 'delegation',
+    data: { id: 'd-1', agentId: 'wf-tarifs', agent: 'Agent tarifs', mode: 'reply', phase: 'start' },
+  }
+
+  it('recognises the start and the end of a delegation', () => {
+    expect(isChatDelegationFrame(frame)).toBe(true)
+    expect(
+      isChatDelegationFrame({
+        ...frame,
+        data: { ...frame.data, phase: 'end', ok: false, message: 'Boucle de délégation' },
+      })
+    ).toBe(true)
+  })
+
+  it('rejects a frame with an unknown mode, phase or no agent name', () => {
+    expect(isChatDelegationFrame({ ...frame, data: { ...frame.data, mode: 'broadcast' } })).toBe(
+      false
+    )
+    expect(isChatDelegationFrame({ ...frame, data: { ...frame.data, phase: 'middle' } })).toBe(
+      false
+    )
+    expect(isChatDelegationFrame({ ...frame, data: { ...frame.data, agent: undefined } })).toBe(
+      false
+    )
+    expect(isChatDelegationFrame({ event: 'tool', data: frame.data })).toBe(false)
   })
 })

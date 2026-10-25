@@ -94,6 +94,7 @@ import {
   recordServiceCost,
   recordServiceMeteringFailure,
 } from '@/lib/mothership/billing/service-observer'
+import { DELEGATE_TOOL_ID } from '@/lib/nexora/delegation/tool'
 import { CredentialRevokedError } from '@/lib/oauth/credential-revoked'
 import type { CredentialTokenPayload } from '@/lib/oauth/token-resolution'
 import { resolveWorkspaceFileReference } from '@/lib/uploads/contexts/workspace/file-manager'
@@ -1788,6 +1789,30 @@ async function executeToolImplementation(
       return {
         success: true,
         output: { content },
+      }
+    }
+
+    // Nexora edition: an agent hands a request to another published agent of its workspace.
+    if (normalizedToolId === DELEGATE_TOOL_ID) {
+      // Dynamic import: the executor stays out of the client-reachable tool registry graph.
+      const { executeDelegation } = await import('@/lib/nexora/delegation/execute')
+      const delegated = await executeDelegation(params, scope, {
+        abortSignal: effectiveSignal,
+        resolvedSecretTraceRegistry,
+        executorDelegationOrigin: executionContext?.executorDelegationOrigin,
+        principal: executionContext?.principal,
+        unrecordedModelCost: executionContext?.unrecordedModelCost,
+        environmentVariables: executionContext?.environmentVariables,
+        piiBlockOutputRedaction: executionContext?.piiBlockOutputRedaction,
+      })
+      const endTime = new Date()
+      return {
+        ...delegated,
+        timing: {
+          startTime: startTimeISO,
+          endTime: endTime.toISOString(),
+          duration: endTime.getTime() - startTime.getTime(),
+        },
       }
     }
 

@@ -9,9 +9,11 @@ import { type AgentConfig, hasUnsavedAgentChanges } from '@/lib/nexora/agents'
 import { REASONING_EFFORTS } from '@/lib/nexora/reasoning'
 import { AgentPageHeader } from '@/app/workspace/[workspaceId]/agents/[workflowId]/components/agent-page-header'
 import { BuiltinToolSwitches } from '@/app/workspace/[workspaceId]/agents/[workflowId]/components/builtin-tool-switches'
+import { HandoffsField } from '@/app/workspace/[workspaceId]/agents/[workflowId]/components/handoffs-field'
 import { InstructionsField } from '@/app/workspace/[workspaceId]/agents/[workflowId]/components/instructions-field'
 import { KnowledgeField } from '@/app/workspace/[workspaceId]/agents/[workflowId]/components/knowledge-field'
 import { PublishSection } from '@/app/workspace/[workspaceId]/agents/[workflowId]/components/publish-section'
+import { SkillsField } from '@/app/workspace/[workspaceId]/agents/[workflowId]/components/skills-field'
 import { TestPanel } from '@/app/workspace/[workspaceId]/agents/[workflowId]/components/test-panel'
 import { ToolsField } from '@/app/workspace/[workspaceId]/agents/[workflowId]/components/tools-field'
 import { VersionsSection } from '@/app/workspace/[workspaceId]/agents/[workflowId]/components/versions-section'
@@ -208,6 +210,24 @@ export function AgentForm({
                 value={draft.knowledgeBaseIds}
                 disabled={readOnly}
                 onChange={(ids) => update('knowledgeBaseIds', ids)}
+              />
+            </FormField>
+            <FormField label={t('fields.skills')}>
+              <SkillsField
+                workspaceId={workspaceId}
+                value={draft.skills}
+                disabled={readOnly}
+                onChange={(skills) => update('skills', skills)}
+              />
+            </FormField>
+            <FormField label={t('fields.handoffs')}>
+              <HandoffsField
+                workspaceId={workspaceId}
+                workflowId={workflowId}
+                value={draft.handoffs}
+                memory={draft.memory}
+                disabled={readOnly}
+                onChange={(handoffs) => update('handoffs', handoffs)}
               />
             </FormField>
             <div className='flex items-center justify-between gap-4 pl-0.5'>

@@ -114,6 +114,26 @@ export interface ChatStreamConfirmationEndFrame {
   data: { id: string; decision: 'allow' | 'deny' | 'expired' }
 }
 
+/**
+ * Nexora edition: an agent hands a request to another agent (« Agent tarifs répond… »). One frame
+ * when the called agent starts, one when it ends. Sent to clients that negotiated agent-events-v1.
+ */
+export interface ChatStreamDelegationFrame {
+  event: 'delegation'
+  data: {
+    /** Ties the end frame to its start frame. */
+    id: string
+    agentId: string
+    agent: string
+    mode: 'reply' | 'transfer'
+    phase: 'start' | 'end'
+    /** Set on `end`: the called agent answered (`true`) or the delegation was stopped or failed. */
+    ok?: boolean
+    /** Set on a failed `end`: why, in French. */
+    message?: string
+  }
+}
+
 /** Terminal success envelope, followed by `[DONE]`. */
 export interface ChatStreamFinalFrame {
   event: 'final'
@@ -147,6 +167,7 @@ export type ChatStreamFrame =
   | ChatStreamToolFrame
   | ChatStreamConfirmationFrame
   | ChatStreamConfirmationEndFrame
+  | ChatStreamDelegationFrame
   | ChatStreamFinalFrame
   | ChatStreamErrorFrame
   | ChatStreamStreamErrorFrame
@@ -226,6 +247,20 @@ export function isChatConfirmationEndFrame(
     (value.data.decision === 'allow' ||
       value.data.decision === 'deny' ||
       value.data.decision === 'expired')
+  )
+}
+
+export function isChatDelegationFrame(value: unknown): value is ChatStreamDelegationFrame {
+  if (!isRecordLike(value) || value.event !== 'delegation' || !isRecordLike(value.data)) {
+    return false
+  }
+  const { data } = value
+  return (
+    typeof data.id === 'string' &&
+    typeof data.agentId === 'string' &&
+    typeof data.agent === 'string' &&
+    (data.mode === 'reply' || data.mode === 'transfer') &&
+    (data.phase === 'start' || data.phase === 'end')
   )
 }
 

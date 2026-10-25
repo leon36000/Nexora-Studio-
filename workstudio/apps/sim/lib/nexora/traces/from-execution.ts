@@ -2,6 +2,7 @@ import { toRecord, toRecordOrNull } from '@sim/utils/object'
 import { generateRandomHex } from '@sim/utils/random'
 import type { TraceSpan } from '@/lib/logs/types'
 import type { ProtectionNote } from '@/lib/nexora/data-protection/notes'
+import { DELEGATE_TOOL_ID } from '@/lib/nexora/delegation/tool'
 import { lastUserText, messagesToText, modelLabel, valueToText } from '@/lib/nexora/traces/text'
 import type {
   RunOriginHint,
@@ -35,12 +36,18 @@ interface ExecutionInput {
 
 const KNOWLEDGE_TOOL = /^knowledge_/
 
+/** An agent's call of the delegation tool (a later one carries a provider suffix after the id). */
+function isDelegationTool(span: TraceSpan): boolean {
+  return span.type === 'tool' && span.name.startsWith(DELEGATE_TOOL_ID)
+}
+
 function isRootWorkflowSpan(span: TraceSpan): boolean {
   return span.type === 'workflow' && !span.blockId
 }
 
 function spanKind(span: TraceSpan): SpanKind {
   if (span.type === 'model') return 'model'
+  if (isDelegationTool(span)) return 'delegation'
   if (span.type === 'tool') return KNOWLEDGE_TOOL.test(span.name) ? 'knowledge' : 'tool'
   if (span.type === 'workflow' || span.type === 'workflow_input' || span.childWorkflowId) {
     return 'delegation'
@@ -60,6 +67,19 @@ function parseDate(value: unknown, fallback: Date): Date {
 function outputText(output: unknown): string | null {
   const record = toRecord(output)
   return typeof record.content === 'string' ? record.content || null : valueToText(output)
+}
+
+/** « Délégation → Agent tarifs » for a delegation call; plain « Délégation » when it never reached an agent. */
+function delegationName(span: TraceSpan): string | null {
+  if (!isDelegationTool(span)) return null
+  const agent = toRecord(span.output).agent
+  return typeof agent === 'string' && agent ? `Délégation → ${agent}` : 'Délégation'
+}
+
+/** What the called agent answered, or why the delegation did not happen. */
+function delegationAnswer(span: TraceSpan): string | null {
+  const answer = toRecord(span.output).answer
+  return typeof answer === 'string' && answer ? answer : outputText(span.output)
 }
 
 interface WalkState {
@@ -97,14 +117,14 @@ function walk(span: TraceSpan, parentId: string | null, parentStart: Date, state
     output = outputText(span.output)
   } else {
     input = valueToText(span.input)
-    output = outputText(span.output)
+    output = isDelegationTool(span) ? delegationAnswer(span) : outputText(span.output)
   }
 
   state.spans.push({
     id,
     parentId,
     kind,
-    name: model ?? span.name,
+    name: model ?? delegationName(span) ?? span.name,
     model,
     startedAt,
     durationMs: count(span.duration),

@@ -37,6 +37,8 @@ export function useNewAgent(workspaceId: string) {
         memory: true,
         reasoningEffort: 'auto',
         instructionsPrompt: null,
+        handoffs: [],
+        skills: [],
         welcomeMessage: t('welcomeMessage'),
         ...overrides,
       }

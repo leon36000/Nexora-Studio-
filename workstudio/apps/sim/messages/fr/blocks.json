@@ -116,6 +116,9 @@
       "skills": {
         "title": "Compétences"
       },
+      "handoffs": {
+        "title": "Peut confier à"
+      },
       "memoryType": {
         "title": "Mémoire",
         "placeholder": "Sélectionnez une mémoire…",

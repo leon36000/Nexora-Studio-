@@ -1,10 +1,12 @@
 'use client'
 
-import { useRef } from 'react'
+import { useRef, useState } from 'react'
 import { Button, Chip, ChipTextarea, Tooltip } from '@sim/emcn'
 import { Mic, Paperclip, Send, Square, X } from '@sim/emcn/icons'
 import { useTranslations } from 'next-intl'
+import { activeMention, completeMention, type MentionableSkill } from '@/lib/nexora/skills-mention'
 import { CHAT_ACCEPT_ATTRIBUTE } from '@/lib/uploads/utils/validation'
+import { SkillMentionList } from '@/app/workspace/[workspaceId]/assistant/components/skill-mention-list'
 import { useDictation } from '@/app/workspace/[workspaceId]/assistant/hooks/use-dictation'
 
 /** A file waiting to be sent with the next message. */
@@ -27,7 +29,12 @@ interface ComposerProps {
   canAttach: boolean
   /** The microphone, offered when the instance has a Transcription model. */
   dictation?: { workspaceId: string; language: string; onText: (text: string) => void }
+  /** Skills of the workspace a message can invoke with `@`. */
+  skills?: readonly MentionableSkill[]
 }
+
+const MAX_SUGGESTIONS = 5
+const NO_SKILLS: readonly MentionableSkill[] = []
 
 interface DictationButtonProps {
   workspaceId: string
@@ -93,10 +100,40 @@ export function Composer({
   isBusy,
   canAttach,
   dictation,
+  skills = NO_SKILLS,
 }: ComposerProps) {
   const t = useTranslations('assistant.composer')
   const fileInputRef = useRef<HTMLInputElement>(null)
+  const textareaRef = useRef<HTMLTextAreaElement>(null)
+  const [caret, setCaret] = useState(0)
+  const [highlight, setHighlight] = useState(0)
+  const [dismissedAt, setDismissedAt] = useState<number | null>(null)
   const canSend = !isBusy && value.trim().length > 0
+
+  const mention = skills.length > 0 ? activeMention(value, caret) : null
+  const suggestions =
+    mention && mention.start !== dismissedAt
+      ? skills
+          .filter((skill) => skill.name.toLowerCase().startsWith(mention.query.toLowerCase()))
+          .slice(0, MAX_SUGGESTIONS)
+      : []
+  const selected = Math.min(highlight, Math.max(suggestions.length - 1, 0))
+
+  const pickSkill = (name: string) => {
+    if (!mention) return
+    const completed = completeMention(value, mention, name)
+    onChange(completed.text)
+    setCaret(completed.caret)
+    requestAnimationFrame(() =>
+      textareaRef.current?.setSelectionRange(completed.caret, completed.caret)
+    )
+  }
+
+  const followCaret = (element: HTMLTextAreaElement) => {
+    setCaret(element.selectionStart)
+    setHighlight(0)
+    setDismissedAt(null)
+  }
 
   return (
     <div className='flex flex-col gap-2'>
@@ -123,10 +160,41 @@ export function Composer({
           ))}
         </ul>
       )}
+      {suggestions.length > 0 && (
+        <SkillMentionList
+          skills={suggestions}
+          highlighted={selected}
+          onPick={pickSkill}
+          onHighlight={setHighlight}
+        />
+      )}
       <ChipTextarea
+        ref={textareaRef}
         value={value}
-        onChange={(event) => onChange(event.target.value)}
+        onChange={(event) => {
+          onChange(event.target.value)
+          followCaret(event.target)
+        }}
+        onSelect={(event) => setCaret(event.currentTarget.selectionStart)}
         onKeyDown={(event) => {
+          if (suggestions.length > 0 && !event.nativeEvent.isComposing) {
+            if (event.key === 'ArrowDown' || event.key === 'ArrowUp') {
+              event.preventDefault()
+              const step = event.key === 'ArrowDown' ? 1 : suggestions.length - 1
+              setHighlight((selected + step) % suggestions.length)
+              return
+            }
+            if (event.key === 'Enter' || event.key === 'Tab') {
+              event.preventDefault()
+              pickSkill(suggestions[selected].name)
+              return
+            }
+            if (event.key === 'Escape' && mention) {
+              event.preventDefault()
+              setDismissedAt(mention.start)
+              return
+            }
+          }
           if (event.key !== 'Enter' || event.shiftKey || event.nativeEvent.isComposing) return
           event.preventDefault()
           if (canSend) onSend()

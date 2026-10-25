@@ -85,7 +85,9 @@
       "welcomeMessage": "Welcome message",
       "instructionsPrompt": "Instructions prompt",
       "codeInterpreter": "Code interpreter",
-      "webSearch": "Web search"
+      "webSearch": "Web search",
+      "handoffs": "Can delegate to",
+      "skills": "Skills"
     },
     "welcomeHint": "Saved with the public chat, when publishing.",
     "tools": {
@@ -99,6 +101,21 @@
       "search": "Search...",
       "confirm": "Ask before acting with {name}",
       "confirmHint": "Asks you to allow or refuse each use of this tool before it runs."
+    },
+    "handoffs": {
+      "add": "Add agents",
+      "none": "No other published agent",
+      "search": "Search for an agent…",
+      "mode": "Mode for {name}",
+      "modeReply": "Replies, I take over",
+      "modeTransfer": "Hands over",
+      "hint": "“Replies, I take over”: the called agent answers, then this agent resumes. “Hands over”: the called agent carries on the conversation alone.",
+      "memoryNeeded": "To hand a conversation over, turn on conversation memory: without it, the called agent only answers this request."
+    },
+    "skills": {
+      "add": "Add skills",
+      "none": "No skills in this workspace",
+      "search": "Search for a skill…"
     },
     "knowledge": {
       "add": "Add knowledge bases",

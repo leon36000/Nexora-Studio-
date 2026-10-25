@@ -10,7 +10,11 @@ import { SettingsSection } from '@/app/workspace/[workspaceId]/settings/componen
 import { useActivateDeploymentVersion, useDeploymentVersions } from '@/hooks/queries/deployments'
 import { useKnowledgeBasesQuery } from '@/hooks/queries/kb/knowledge'
 import { useNexoraPrompts } from '@/hooks/queries/nexora-prompts'
-import { useDeploymentVersionState, useRevertToVersion } from '@/hooks/queries/workflows'
+import {
+  useDeploymentVersionState,
+  useRevertToVersion,
+  useWorkflows,
+} from '@/hooks/queries/workflows'
 
 const logger = createLogger('NexoraAgentVersions')
 
@@ -170,6 +174,11 @@ function VersionDiff({ workspaceId, workflowId, from, to }: VersionDiffProps) {
     () => new Map((bases ?? []).map((base) => [base.id, base.name])),
     [bases]
   )
+  const { data: workflows } = useWorkflows(workspaceId)
+  const agentNames = useMemo(
+    () => new Map((workflows ?? []).map((workflow) => [workflow.id, workflow.name])),
+    [workflows]
+  )
   const { data: prompts } = useNexoraPrompts(workspaceId)
   const promptNames = useMemo(
     () => new Map((prompts ?? []).map((prompt) => [prompt.id, prompt.name])),
@@ -217,6 +226,24 @@ function VersionDiff({ workspaceId, workflowId, from, to }: VersionDiffProps) {
       case 'reasoningEffort':
         return t(
           `playground.efforts.${config.reasoningEffort === 'auto' ? 'default' : config.reasoningEffort}`
+        )
+      case 'handoffs':
+        return (
+          config.handoffs
+            .map(
+              (handoff) =>
+                `${agentNames.get(handoff.agentId) ?? handoff.agentId} (${t(
+                  handoff.mode === 'reply'
+                    ? 'editor.handoffs.modeReply'
+                    : 'editor.handoffs.modeTransfer'
+                )})`
+            )
+            .join(', ') || t('editor.handoffs.none')
+        )
+      case 'skills':
+        return (
+          config.skills.map((skill) => skill.name || skill.skillId).join(', ') ||
+          t('editor.skills.none')
         )
       case 'instructionsPrompt':
         return config.instructionsPrompt
