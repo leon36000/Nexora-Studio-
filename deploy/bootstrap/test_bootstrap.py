@@ -404,7 +404,7 @@ class BootstrapTest(unittest.TestCase):
         (provider,) = self.providers_of(router)
         self.assertEqual(
             (provider["type"], provider["url"], provider["model_name"], provider["key"], provider["timeout"]),
-            ("openai", self.url.lower() + "/", "Systran/faster-whisper-small", "none", 600),
+            ("openai", self.url.lower() + "/", "Systran/faster-whisper-small", "none", 3600),
         )
         self.assertEqual(FakeApi.state["downloads"], ["Systran/faster-whisper-small"])
         (role,) = FakeApi.state["roles"].values()
@@ -429,6 +429,30 @@ class BootstrapTest(unittest.TestCase):
         self.assertEqual(self.transcription_routers(), [])
 
     VOICE = "speaches-ai/piper-fr_FR-siwis-medium"
+
+    def transcription_provider(self):
+        (router,) = self.transcription_routers()
+        (provider,) = self.providers_of(router)
+        return provider
+
+    def test_a_local_whisper_registered_with_a_short_timeout_gets_time_to_transcribe_a_meeting(self):
+        # A meeting of an hour takes tens of minutes on a CPU: the 600 s of the first installs is raised.
+        self.run_bootstrap(voice=self.voice())
+        self.transcription_provider().update({"timeout": 600})
+        self.run_bootstrap(voice=self.voice())
+        self.assertEqual(self.transcription_provider()["timeout"], bootstrap.TRANSCRIPTION_PROVIDER_TIMEOUT)
+
+    def test_a_longer_timeout_set_by_hand_is_kept(self):
+        self.run_bootstrap(voice=self.voice())
+        self.transcription_provider().update({"timeout": 7200})
+        self.run_bootstrap(voice=self.voice())
+        self.assertEqual(self.transcription_provider()["timeout"], 7200)
+
+    def test_a_transcription_provider_elsewhere_is_not_touched(self):
+        self.run_bootstrap(voice=self.voice())
+        self.transcription_provider().update({"timeout": 120, "url": "https://api.mistral.ai/"})
+        self.run_bootstrap(voice=self.voice())
+        self.assertEqual(self.transcription_provider()["timeout"], 120)
 
     def speech_routers(self):
         return [r for r in FakeApi.state["routers"].values() if r["type"] == "text-to-speech"]

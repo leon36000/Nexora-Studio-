@@ -125,7 +125,7 @@ function hostingZone(source: NexoraModelSource): string {
 const PROVIDER_TIMEOUT_SECONDS: Record<NexoraModelUsage, number> = {
   chat: 600,
   vision: 600,
-  transcription: 600,
+  transcription: 3600,
   speech: 600,
 }
 /** What « Tester » has a speech model say. */

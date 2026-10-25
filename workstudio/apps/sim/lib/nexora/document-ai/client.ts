@@ -49,6 +49,8 @@ export interface NexoraApiOptions {
   config?: NexoraApiConfig
   fetchFn?: typeof fetch
   signal?: AbortSignal
+  /** How long one request may last; a meeting transcribed whole needs more than the default. */
+  timeoutMs?: number
 }
 
 /** A CPU vision or transcription model takes minutes; Nexora API itself waits up to 600 s. */
@@ -75,7 +77,7 @@ export async function callNexoraApi(
   options: NexoraApiOptions = {}
 ): Promise<{ status: number; data: Record<string, unknown> }> {
   const { config, fetchFn } = resolve(options)
-  const timeout = AbortSignal.timeout(REQUEST_TIMEOUT_MS)
+  const timeout = AbortSignal.timeout(options.timeoutMs ?? REQUEST_TIMEOUT_MS)
   let response: Response
   try {
     // boundary-raw-fetch: Nexora API is a separate service, not a same-origin route

@@ -9,6 +9,7 @@ import {
   nexoraTranscribe,
   resolveUsageModel,
 } from '@/lib/nexora/document-ai/client'
+import { createLongFetch } from '@/lib/nexora/long-fetch.server'
 import { nexoraTranscribeDiarized } from '@/lib/nexora/voice/client'
 import { buildTranscriptionPrompt } from '@/lib/nexora/voice/lexicon'
 import { readVoiceLexicon } from '@/lib/nexora/voice/lexicon-store'
@@ -217,6 +218,13 @@ export async function transcribeWithNexora(
   return { ...result, model }
 }
 
+/**
+ * A meeting goes in one request that lasts as long as Whisper and the diarization need: tens of
+ * minutes for an hour on a CPU. The default of twenty minutes would cut it.
+ */
+const MEETING_REQUEST_MS = 75 * 60 * 1000
+const meetingFetch = createLongFetch(MEETING_REQUEST_MS)
+
 export interface TranscribeMeetingWithNexoraInput extends MeetingInput {
   model?: string | null
 }
@@ -246,12 +254,17 @@ export async function transcribeMeetingWithNexora(
 ): Promise<MeetingTranscript & { model: string }> {
   const model = await resolveUsageModel('transcription', input.model, options)
   const prompt = buildTranscriptionPrompt(await readVoiceLexicon(), input.prompt)
+  const longOptions: NexoraApiOptions = {
+    ...options,
+    timeoutMs: MEETING_REQUEST_MS,
+    fetchFn: options.fetchFn ?? meetingFetch,
+  }
   const result = await transcribeMeeting(
     { ...input, prompt },
     {
       measure: (audio) => measureWithFfprobe(audio, options.signal),
       prepare: (audio) => prepareMeetingAudio(audio, options.signal),
-      diarized: (piece) => nexoraTranscribeDiarized({ ...piece, model }, options),
+      diarized: (piece) => nexoraTranscribeDiarized({ ...piece, model }, longOptions),
       plain: (piece) =>
         nexoraTranscribe(
           {
@@ -262,7 +275,7 @@ export async function transcribeMeetingWithNexora(
             language: piece.language,
             prompt: piece.prompt,
           },
-          options
+          longOptions
         ),
     }
   )

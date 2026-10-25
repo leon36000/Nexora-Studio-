@@ -306,7 +306,10 @@ TRANSCRIPTION_TYPE = "automatic-speech-recognition"
 SPEECH_TYPE = "text-to-speech"
 # The first start downloads the model (about 500 MB for `small`); a CPU transcription takes minutes.
 WHISPER_DOWNLOAD_TIMEOUT = 1800
-WHISPER_PROVIDER_TIMEOUT = 600
+# A meeting of an hour is transcribed in one request (the speakers of two requests cannot be matched):
+# tens of minutes on a CPU. A voice is said in seconds.
+TRANSCRIPTION_PROVIDER_TIMEOUT = 3600
+SPEECH_PROVIDER_TIMEOUT = 600
 
 
 def transcription_router_name(model: str) -> str:
@@ -339,18 +342,39 @@ def _sync_transcription_model(base_url: str, admin_token: str, voice: dict) -> N
     url = voice["url"].strip().rstrip("/")
     _wait_until_healthy(url, int(voice.get("wait_seconds", 600)), service="The transcription service")
     model = voice["model"].strip()
-    _register_local_model(base_url, admin_token, url, model, TRANSCRIPTION_TYPE, transcription_router_name(model), "transcription")
+    _register_local_model(
+        base_url, admin_token, url, model, TRANSCRIPTION_TYPE, transcription_router_name(model), "transcription", TRANSCRIPTION_PROVIDER_TIMEOUT
+    )
+    _raise_voice_timeout(base_url, admin_token, url)
     speech_model = (voice.get("tts_model") or "").strip()
     if speech_model:
         try:
-            _register_local_model(base_url, admin_token, url, speech_model, SPEECH_TYPE, speech_router_name(speech_model), "speech")
+            _register_local_model(
+                base_url, admin_token, url, speech_model, SPEECH_TYPE, speech_router_name(speech_model), "speech", SPEECH_PROVIDER_TIMEOUT
+            )
         except SessionExpiredError:
             raise
         except BootstrapError as error:
             print(f"bootstrap: local speech synthesis skipped: {error}", file=sys.stderr)
 
 
-def _register_local_model(base_url: str, admin_token: str, url: str, model: str, router_type: str, name: str, label: str) -> None:
+def _raise_voice_timeout(base_url: str, admin_token: str, url: str) -> None:
+    """Gives the local transcription service's providers TRANSCRIPTION_PROVIDER_TIMEOUT at least (never less than set by hand)."""
+    api = f"{base_url}/v1/admin"
+    for router in _call("GET", f"{api}/routers?limit=100", admin_token).get("data", []):
+        if router.get("type") != TRANSCRIPTION_TYPE:
+            continue
+        for provider in _providers(api, admin_token, router):
+            if (provider.get("url") or "").rstrip("/").lower() != url.lower() or (provider.get("timeout") or 0) >= TRANSCRIPTION_PROVIDER_TIMEOUT:
+                continue
+            body = {field: provider.get(field) for field in PROVIDER_UPDATE_FIELDS}
+            body.update({"router_id": router["id"], "timeout": TRANSCRIPTION_PROVIDER_TIMEOUT})
+            _call("PATCH", f"{api}/providers/{provider['id']}", admin_token, body)
+
+
+def _register_local_model(
+    base_url: str, admin_token: str, url: str, model: str, router_type: str, name: str, label: str, timeout: int
+) -> None:
     if not _has_local_model(url, model):
         try:
             status, _ = _request("POST", f"{url}/v1/models/{model}", timeout=WHISPER_DOWNLOAD_TIMEOUT)
@@ -371,7 +395,7 @@ def _register_local_model(base_url: str, admin_token: str, url: str, model: str,
         "url": url,
         "key": "none",
         "model_name": model,
-        "timeout": WHISPER_PROVIDER_TIMEOUT,
+        "timeout": timeout,
     }, timeout=120)
     if status not in (200, 201):
         _request("DELETE", f"{api}/routers/{created['id']}", token=admin_token)
