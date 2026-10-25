@@ -270,7 +270,7 @@ export class ActionPolicySnapshot {
         return {
           allowed: false,
           code: "connection_not_allowed",
-          message: `${connection.connectionName} connection is reserved to the token made for it.`,
+          message: `${connection?.connectionName} connection is reserved to the token made for it.`,
           checks: [{ source: "token", outcome: "allow_miss" }],
         };
       }
