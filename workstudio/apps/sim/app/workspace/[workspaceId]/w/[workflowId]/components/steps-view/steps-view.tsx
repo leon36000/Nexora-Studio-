@@ -9,6 +9,7 @@ import { catalogEntryOf, isTriggerType } from '@/lib/nexora/steps/catalog'
 import type { InsertPoint } from '@/lib/nexora/steps/edit'
 import type { StepNode, StepsReading, StepsRefusal } from '@/lib/nexora/steps/read'
 import { stepResultsFrom } from '@/lib/nexora/steps/results'
+import { ErrorExplanation } from '@/app/workspace/[workspaceId]/w/[workflowId]/components/steps-view/error-explanation'
 import { useStepsActions } from '@/app/workspace/[workspaceId]/w/[workflowId]/components/steps-view/hooks/use-steps-actions'
 import { StepCard } from '@/app/workspace/[workspaceId]/w/[workflowId]/components/steps-view/step-card'
 import { StepConnector } from '@/app/workspace/[workspaceId]/w/[workflowId]/components/steps-view/step-connector'
@@ -59,6 +60,10 @@ export function StepsView({
   })
 
   const editable = canEdit && reading.recognized
+  /** An error no card owns: the run was refused before any step started (a step left incomplete). */
+  const runError = [...results.entries()].find(
+    ([blockId, result]) => result.status === 'error' && !blocks[blockId]
+  )?.[1]
   const insertAt = (point: InsertPoint) => (entry: { id: string }) =>
     actions.insert(point, entry.id)
 
@@ -211,6 +216,11 @@ export function StepsView({
           </Button>
         )}
       </div>
+      {runError && (
+        <div className='mb-4'>
+          <ErrorExplanation message={runError.error ?? ''} />
+        </div>
+      )}
       {!reading.recognized && (
         <div className='mb-4 flex flex-col gap-2 rounded-lg border border-[var(--border)] p-3'>
           <Banner

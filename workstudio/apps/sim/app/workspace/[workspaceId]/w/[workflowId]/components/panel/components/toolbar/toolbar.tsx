@@ -801,15 +801,15 @@ export const Toolbar = memo(
 
         const allSections: SectionList[] = [
           {
-            key: 'triggers',
-            items: sectionExpanded.triggers
-              ? triggerItemRefs.current.filter((el): el is HTMLDivElement => el !== null)
-              : [],
-          },
-          {
             key: 'essentials',
             items: sectionExpanded.essentials
               ? essentialItemRefs.current.filter((el): el is HTMLDivElement => el !== null)
+              : [],
+          },
+          {
+            key: 'triggers',
+            items: sectionExpanded.triggers
+              ? triggerItemRefs.current.filter((el): el is HTMLDivElement => el !== null)
               : [],
           },
           {
@@ -973,21 +973,6 @@ export const Toolbar = memo(
         {/* Single scroll container with three collapsible sections */}
         <div className='flex flex-1 flex-col overflow-y-auto overflow-x-hidden overscroll-none pb-3'>
           <ToolbarSection
-            label={t('triggers')}
-            tooltip={t('triggersTooltip')}
-            sectionKey='triggers'
-            items={filteredTriggers}
-            isTrigger={true}
-            expanded={sectionExpanded.triggers}
-            searching={isSearching}
-            animate={animationsEnabled}
-            onToggle={handleSectionToggle}
-            getItemRef={getTriggerRefCallback}
-            onDragStart={handleDragStart}
-            onItemClick={handleItemClick}
-            onContextMenu={handleItemContextMenu}
-          />
-          <ToolbarSection
             label={tSteps('essentials')}
             tooltip={tSteps('essentialsTooltip')}
             sectionKey='essentials'
@@ -998,6 +983,21 @@ export const Toolbar = memo(
             animate={animationsEnabled}
             onToggle={handleSectionToggle}
             getItemRef={getEssentialRefCallback}
+            onDragStart={handleDragStart}
+            onItemClick={handleItemClick}
+            onContextMenu={handleItemContextMenu}
+          />
+          <ToolbarSection
+            label={t('triggers')}
+            tooltip={t('triggersTooltip')}
+            sectionKey='triggers'
+            items={filteredTriggers}
+            isTrigger={true}
+            expanded={sectionExpanded.triggers}
+            searching={isSearching}
+            animate={animationsEnabled}
+            onToggle={handleSectionToggle}
+            getItemRef={getTriggerRefCallback}
             onDragStart={handleDragStart}
             onItemClick={handleItemClick}
             onContextMenu={handleItemContextMenu}

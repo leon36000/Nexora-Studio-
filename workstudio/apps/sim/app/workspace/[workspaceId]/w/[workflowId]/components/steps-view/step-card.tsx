@@ -13,10 +13,12 @@ import {
 } from '@sim/emcn'
 import { ArrowDown, ArrowUp, Check, Loader, MoreHorizontal, Play, Trash, X } from '@sim/emcn/icons'
 import { useTranslations } from 'next-intl'
-import { explainStepError } from '@/lib/nexora/steps/errors'
 import type { StepResult } from '@/lib/nexora/steps/results'
 import { summarizeStep } from '@/lib/nexora/steps/summary'
+import { ErrorExplanation } from '@/app/workspace/[workspaceId]/w/[workflowId]/components/steps-view/error-explanation'
 import { BlockTile } from '@/blocks/block-tile'
+import { getBlock } from '@/blocks/registry'
+import { useBlockDisplay } from '@/hooks/use-translated-block-config'
 
 const RESULT_MAX_CHARS = 3000
 
@@ -70,29 +72,6 @@ function StatusMark({ result }: { result: StepResult | undefined }) {
   )
 }
 
-function ErrorExplanation({ message }: { message: string }) {
-  const t = useTranslations('steps')
-  const explanation = explainStepError(message)
-  return (
-    <div
-      role='alert'
-      className='mt-2 flex flex-col gap-1 rounded-md border border-[var(--border)] bg-[var(--surface-4)] p-3'
-    >
-      <span className='text-[var(--text-primary)] text-small'>{t('test.errorTitle')}</span>
-      <span className='text-[var(--text-body)] text-small'>
-        {t(`errors.${explanation.key}`, explanation.values)}
-      </span>
-      <span className='text-[var(--text-muted)] text-caption'>{t('test.fixHint')}</span>
-      {message.trim() && (
-        <details className='text-[var(--text-muted)] text-caption'>
-          <summary className='cursor-pointer'>{t('test.originalMessage')}</summary>
-          <pre className='mt-1 whitespace-pre-wrap break-words'>{message}</pre>
-        </details>
-      )}
-    </div>
-  )
-}
-
 /** One step of the workflow: what it is, what it does in a sentence, how its last test went. */
 export const StepCard = memo(function StepCard({
   blockId,
@@ -115,6 +94,7 @@ export const StepCard = memo(function StepCard({
 }: StepCardProps) {
   const t = useTranslations('steps')
   const [showResult, setShowResult] = useState(false)
+  const { name: shownName } = useBlockDisplay(getBlock(blockType) ?? null, name)
   const summary = summarizeStep(block)
   const summaryValues = summary
     ? summary.key === 'wait'
@@ -125,7 +105,7 @@ export const StepCard = memo(function StepCard({
 
   return (
     <article
-      aria-label={name}
+      aria-label={shownName}
       data-step-card={blockId}
       className={cn(
         'rounded-lg border bg-[var(--surface-5)] p-3 transition-colors',
@@ -137,7 +117,7 @@ export const StepCard = memo(function StepCard({
         <button
           type='button'
           onClick={() => onSelect(blockId)}
-          aria-label={`${t('view.open')} — ${name}`}
+          aria-label={`${t('view.open')} — ${shownName}`}
           className='flex min-w-0 flex-1 items-center gap-3 text-left'
         >
           <BlockTile blockType={blockType} size='lg' />
@@ -150,7 +130,7 @@ export const StepCard = memo(function StepCard({
               )}
               <span className='text-[var(--text-muted)] text-caption'>{label}</span>
             </span>
-            <OverflowText label={name} className='text-[var(--text-primary)] text-small' />
+            <OverflowText label={shownName} className='text-[var(--text-primary)] text-small' />
             {summary && summaryValues && (
               <OverflowText
                 label={t(`summary.${summary.key}`, summaryValues)}
@@ -163,7 +143,7 @@ export const StepCard = memo(function StepCard({
         {canEdit && (
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
-              <Button variant='quiet' size='icon' aria-label={`${t('view.open')} — ${name}`}>
+              <Button variant='quiet' size='icon' aria-label={`${t('view.open')} — ${shownName}`}>
                 <MoreHorizontal className='size-[14px]' />
               </Button>
             </DropdownMenuTrigger>

@@ -16,8 +16,8 @@ interface ToolbarState {
 
 const initialState: Pick<ToolbarState, 'expandedSections'> = {
   expandedSections: {
-    triggers: true,
     essentials: true,
+    triggers: false,
     blocks: true,
     connect: true,
     customBlocks: true,

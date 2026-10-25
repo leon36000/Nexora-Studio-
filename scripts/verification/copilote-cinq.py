@@ -8,6 +8,8 @@ compte comme réussie (elle attend la personne).
 Usage : python3 -I scripts/verification/copilote-cinq.py [URL] [ORIGINE]
   URL     adresse de WorkStudio (défaut http://localhost:3200)
   ORIGINE adresse publique que WorkStudio reconnaît, si différente de URL
+Variable COPILOTE_CINQ_DUMP : dossier où écrire l'état de chaque workflow créé (cinq fichiers JSON),
+pour les rejouer dans les tests de la vue Étapes (K7).
 Sortie : une ligne par description, puis « N/5 » ; code de retour 0 si 5/5.
 """
 
@@ -15,6 +17,7 @@ from __future__ import annotations
 
 import importlib.util
 import json
+import os
 import secrets
 import sys
 import time
@@ -71,6 +74,14 @@ def main() -> int:
             status, created = s.call("POST", "/api/nexora/copilot/create", {"workspaceId": ws, "plan": plan})
             if status != 200 or not created.get("workflowId"):
                 raise RuntimeError(f"création HTTP {status}: {str(created)[:200]}")
+            dump = os.environ.get("COPILOTE_CINQ_DUMP")
+            if dump:
+                status, loaded = s.call("GET", f"/api/workflows/{created['workflowId']}")
+                if status != 200:
+                    raise RuntimeError(f"état HTTP {status}")
+                Path(dump).mkdir(parents=True, exist_ok=True)
+                saved = (loaded.get("data") or loaded)["state"]
+                (Path(dump) / f"cinq-{index}.json").write_text(json.dumps({"description": description, "plan": plan, "state": saved}, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
             fields = [f["name"] for f in (plan.get("trigger") or {}).get("fields") or []]
             run_input = {name: sample_for(name) for name in fields} if fields else SAMPLE
             status, run = s.call("POST", f"/api/workflows/{created['workflowId']}/execute",
