@@ -1525,6 +1525,17 @@ cronjobs:
       successfulJobsHistoryLimit: 3
       failedJobsHistoryLimit: 1
 
+    # Nexora edition: trace retention, and Assistant conversation retention when the
+    # administrator set one.
+    purgeNexoraTraces:
+      enabled: true
+      name: purge-nexora-traces
+      schedule: "17 * * * *"
+      path: "/api/cron/purge-nexora-traces"
+      concurrencyPolicy: Forbid
+      successfulJobsHistoryLimit: 3
+      failedJobsHistoryLimit: 1
+
     # Deletes OAuth token rows after the retention tail, including historical
     # rows after the provider is disabled.
     cleanupOAuthTokens:

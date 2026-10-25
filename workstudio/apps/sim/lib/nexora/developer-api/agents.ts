@@ -28,6 +28,7 @@ import {
   agentReference,
   estimateCallTokens,
 } from '@/lib/nexora/developer-api/policy'
+import { noteRunOrigin } from '@/lib/nexora/traces/run-origin'
 import { loadDeployedWorkflowState } from '@/lib/workflows/persistence/utils'
 import { formatOutputSelector } from '@/lib/workflows/streaming/output-selector'
 import type { ExecutionResult } from '@/executor/types'
@@ -174,6 +175,7 @@ async function startAgentRun(
 
   const requestId = generateRequestId()
   const executionId = generateId()
+  noteRunOrigin(executionId, { source: 'api_key', apiKeyId: call.key.id })
   const loggingSession = new LoggingSession(agent.workflowId, executionId, 'api', requestId)
   const preprocess = await preprocessExecution({
     workflowId: agent.workflowId,
