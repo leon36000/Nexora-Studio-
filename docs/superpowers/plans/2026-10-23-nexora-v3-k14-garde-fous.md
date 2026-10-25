@@ -134,10 +134,10 @@
   - `noteExecutionProtection(executionId, note)` / `takeExecutionProtection(executionId): ProtectionNote[]` (LRU borné, 30 min).
   - Messages d'erreur français : « Cette demande contient des données personnelles (IBAN, e-mail) : la politique de cet espace interdit de les envoyer à un modèle hors instance. », « Le service de protection des données personnelles ne répond pas : la demande n'a pas été envoyée au modèle. »
 
-- [ ] **Étape 1 : tests rouges** (un par risque du « Review Focus » 1, 2, 3, 4, 5, 6) : modèle local intact et service non appelé ; alias de GLM masqué ; modèle introuvable traité hors instance ; service muet ⇒ `PersonalDataServiceError` quand `PII_URL` est posé, motifs seuls sinon ; même texte analysé une fois sur cinq tours ; contenu en tableau avec image conservé ; « Paris, le 12 mars, 1 000,50 € » non masqué ; IBAN invalide (clé fausse) non masqué.
-- [ ] **Étape 2 : voir échouer.**
-- [ ] **Étape 3 : implémenter** (signatures ci-dessus) ; `isOffInstanceModel` s'appuie sur un cache LRU de 30 s des modèles et des fiches (clé unique), jamais sur un état par requête.
-- [ ] **Étape 4 : tests verts**, puis mutations « garde retirée ⇒ rouge » pour : contrôle de localisation, cache, refus avant masquage, conservation de la forme.
+- [x] **Étape 1 : tests rouges** (un par risque du « Review Focus » 1, 2, 3, 4, 5, 6) : modèle local intact et service non appelé ; alias de GLM masqué ; modèle introuvable traité hors instance ; service muet ⇒ `PersonalDataServiceError` quand `PII_URL` est posé, motifs seuls sinon ; même texte analysé une fois sur cinq tours ; contenu en tableau avec image conservé ; « Paris, le 12 mars, 1 000,50 € » non masqué ; IBAN invalide (clé fausse) non masqué.
+- [x] **Étape 2 : voir échouer.**
+- [x] **Étape 3 : implémenter** (signatures ci-dessus) ; `isOffInstanceModel` s'appuie sur un cache LRU de 30 s des modèles et des fiches (clé unique), jamais sur un état par requête.
+- [x] **Étape 4 : tests verts**, puis mutations « garde retirée ⇒ rouge » pour : contrôle de localisation, cache, refus avant masquage, conservation de la forme.
 - [ ] **Étape 5 : commit** `feat(k14): barrière de sortie des données personnelles (localisation, masquage, refus)`.
 
 ## Tâche 6 : Branchement aux six surfaces
