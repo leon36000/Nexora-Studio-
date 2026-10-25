@@ -56,6 +56,12 @@ import { ssoOpenApiRoutes } from '@/lib/api/contracts/v2/openapi/sso'
 import { workspaceInvitationOpenApiRoutes } from '@/lib/api/contracts/v2/openapi/workspace-invitations'
 import { workspacePermissionOpenApiRoutes } from '@/lib/api/contracts/v2/openapi/workspace-permissions'
 import {
+  v2CreatePromptContract,
+  v2CreatePromptVersionContract,
+  v2GetPromptContract,
+  v2ListPromptsContract,
+} from '@/lib/api/contracts/v2/prompts'
+import {
   v2CreateSandboxContract,
   v2DeleteSandboxContract,
   v2GetSandboxContract,
@@ -102,6 +108,7 @@ import { catalogOperations } from '@/lib/catalog/application/operations'
 import { credentialOperations } from '@/lib/credentials/application/operations'
 import { customToolOperations } from '@/lib/custom-tools/application/operations'
 import { mcpServerOperations } from '@/lib/mcp/application/operations'
+import { nexoraPromptOperations } from '@/lib/nexora/prompts/application/operations'
 import { sandboxOperations } from '@/lib/sandboxes/application/operations'
 import { secretOperations } from '@/lib/secrets/application/operations'
 import { skillOperations } from '@/lib/skills/application/operations'
@@ -386,7 +393,8 @@ const WORKFLOW_MCP_TOOL_EXAMPLE = {
   toolName: 'triage_ticket',
   toolDescription: 'Execute Ticket triage workflow',
   mcpServerUrl: WORKFLOW_MCP_SERVER_EXAMPLE.mcpServerUrl,
-  apiEndpoint: 'https://workstudio.example.com/api/v2/workflows/3b1f7c92-8d4e-4a6b-9c0d-5e2f8a714b36/execute',
+  apiEndpoint:
+    'https://workstudio.example.com/api/v2/workflows/3b1f7c92-8d4e-4a6b-9c0d-5e2f8a714b36/execute',
   updated: false,
   createdAt: '2026-06-12T10:30:00.000Z',
   updatedAt: '2026-06-12T10:30:00.000Z',
@@ -478,6 +486,30 @@ const SKILL_SUMMARY_EXAMPLE = {
 const SKILL_EXAMPLE = {
   ...SKILL_SUMMARY_EXAMPLE,
   content: '# Refund policy\n\nAlways check the order date first.',
+} as const
+
+const PROMPT_SUMMARY_EXAMPLE = {
+  id: 'b3e1f0a2-7c4d-4e9a-8f21-5d6c7e8f9a01',
+  name: 'Support client',
+  description: 'Tone and structure of customer support replies',
+  labels: { production: 2, test: 3 },
+  latestVersion: 3,
+  createdAt: '2026-06-01T09:14:00.000Z',
+  updatedAt: '2026-06-20T14:02:11.000Z',
+} as const
+
+const PROMPT_EXAMPLE = {
+  ...PROMPT_SUMMARY_EXAMPLE,
+  version: {
+    number: 2,
+    content: 'You answer {{customer}} politely, in at most {{sentences}} sentences.',
+    variables: [
+      { name: 'customer', type: 'text', defaultValue: 'our customer' },
+      { name: 'sentences', type: 'number', defaultValue: '3' },
+    ],
+    note: 'Shorter replies',
+    createdAt: '2026-06-10T08:00:00.000Z',
+  },
 } as const
 
 const SKILL_EDITOR_EXAMPLE = {
@@ -627,6 +659,7 @@ type ResourceTag =
   | 'Workspaces'
   | 'MCP Servers'
   | 'Skills'
+  | 'Prompts'
   | 'Custom Tools'
   | 'Sandboxes'
   | 'Credentials'
@@ -1215,6 +1248,167 @@ const declaredRoutes = [
         'Revoke skill editor response',
         'Acknowledgement that the explicit editor grant was revoked.',
         [{ data: { email: SKILL_EDITOR_EXAMPLE.email, revoked: true } }]
+      ),
+    }
+  ),
+  defineOpenApiRoute(
+    v2ListPromptsContract,
+    resourceOperation('Prompts', {
+      applicationOperation: nexoraPromptOperations.list,
+      operationId: 'listPrompts',
+      summary: 'List prompts',
+      description:
+        'List the prompts of a workspace with cursor pagination, with where each label points. Prompt texts are omitted; use Get prompt to read one. Requires workspace read access.',
+      errors: RESOURCE_ERRORS,
+      success: { description: 'Prompts of the workspace.' },
+    }),
+    {
+      query: documentedSchema(
+        v2ListPromptsContract.query,
+        'ListPromptsQuery',
+        'List prompts query',
+        'Workspace, search, and sorting controls for prompts.'
+      ),
+      response: documentedSchema(
+        v2ListPromptsContract.response.schema,
+        'ListPromptsResponse',
+        'List prompts response',
+        'Prompt summaries of the workspace.',
+        [{ data: [PROMPT_SUMMARY_EXAMPLE], nextCursor: null }]
+      ),
+    }
+  ),
+  defineOpenApiRoute(
+    v2CreatePromptContract,
+    resourceOperation('Prompts', {
+      applicationOperation: nexoraPromptOperations.create,
+      operationId: 'createPrompt',
+      summary: 'Create prompt',
+      description:
+        'Create a prompt with its version 1, which both the `production` and `test` labels point at. The name is unique within the workspace regardless of case. Requires workspace write access.',
+      errors: RESOURCE_CONFLICT_ERRORS,
+      success: { description: 'The prompt was created.' },
+    }),
+    {
+      query: v2CreatePromptContract.query,
+      body: documentedSchema(
+        v2CreatePromptContract.body,
+        'CreatePromptRequest',
+        'Create prompt request',
+        'Name, description and text of version 1.',
+        [
+          {
+            workspaceId: WORKSPACE_ID,
+            name: PROMPT_EXAMPLE.name,
+            description: PROMPT_EXAMPLE.description,
+            content: PROMPT_EXAMPLE.version.content,
+            note: 'First version',
+          },
+        ]
+      ),
+      response: documentedSchema(
+        v2CreatePromptContract.response.schema,
+        'CreatePromptResponse',
+        'Create prompt response',
+        'The created prompt with version 1.',
+        [
+          {
+            data: {
+              ...PROMPT_EXAMPLE,
+              labels: { production: 1, test: 1 },
+              latestVersion: 1,
+              version: { ...PROMPT_EXAMPLE.version, number: 1, note: 'First version' },
+            },
+          },
+        ]
+      ),
+    }
+  ),
+  defineOpenApiRoute(
+    v2GetPromptContract,
+    resourceOperation('Prompts', {
+      applicationOperation: nexoraPromptOperations.read,
+      operationId: 'getPrompt',
+      summary: 'Get prompt',
+      description:
+        'Get a prompt, by id or name, with the text of the version a label points at (`production` when neither `label` nor `version` is given) or of a given version. Moving a label in the interface changes what this returns. Requires workspace read access.',
+      errors: RESOURCE_ERRORS,
+      success: { description: 'The prompt with the selected version.' },
+    }),
+    {
+      params: documentedSchema(
+        v2GetPromptContract.params,
+        'GetPromptParams',
+        'Get prompt path parameters',
+        'Prompt selected for retrieval.'
+      ),
+      query: documentedSchema(
+        v2GetPromptContract.query,
+        'GetPromptQuery',
+        'Get prompt query',
+        'Workspace scope and the version to return.'
+      ),
+      response: documentedSchema(
+        v2GetPromptContract.response.schema,
+        'GetPromptResponse',
+        'Get prompt response',
+        'One prompt with the text of the selected version.',
+        [{ data: PROMPT_EXAMPLE }]
+      ),
+    }
+  ),
+  defineOpenApiRoute(
+    v2CreatePromptVersionContract,
+    resourceOperation('Prompts', {
+      applicationOperation: nexoraPromptOperations.createVersion,
+      operationId: 'createPromptVersion',
+      summary: 'Create prompt version',
+      description:
+        'Save the next version of a prompt, by id or name. Labels stay where they were: agents keep their version until a label is moved in the interface. Requires workspace write access.',
+      errors: RESOURCE_ERRORS,
+      success: { description: 'The new version was saved.' },
+    }),
+    {
+      params: documentedSchema(
+        v2CreatePromptVersionContract.params,
+        'CreatePromptVersionParams',
+        'Create prompt version path parameters',
+        'Prompt that receives the new version.'
+      ),
+      query: v2CreatePromptVersionContract.query,
+      body: documentedSchema(
+        v2CreatePromptVersionContract.body,
+        'CreatePromptVersionRequest',
+        'Create prompt version request',
+        'Text, variables and note of the new version.',
+        [
+          {
+            workspaceId: WORKSPACE_ID,
+            content: 'You answer {{customer}} politely, in one sentence.',
+            note: 'One sentence',
+          },
+        ]
+      ),
+      response: documentedSchema(
+        v2CreatePromptVersionContract.response.schema,
+        'CreatePromptVersionResponse',
+        'Create prompt version response',
+        'The prompt with the version just saved.',
+        [
+          {
+            data: {
+              ...PROMPT_EXAMPLE,
+              latestVersion: 4,
+              version: {
+                number: 4,
+                content: 'You answer {{customer}} politely, in one sentence.',
+                variables: [{ name: 'customer', type: 'text', defaultValue: 'our customer' }],
+                note: 'One sentence',
+                createdAt: '2026-06-21T10:30:00.000Z',
+              },
+            },
+          },
+        ]
       ),
     }
   ),
@@ -2361,6 +2555,10 @@ export const resourcesOpenApiDocument = defineOpenApiDocument({
     {
       name: 'Skills',
       description: 'Create and manage reusable instruction documents for agents.',
+    },
+    {
+      name: 'Prompts',
+      description: 'Read and version the prompts agents use, with production and test labels.',
     },
     {
       name: 'Custom Tools',

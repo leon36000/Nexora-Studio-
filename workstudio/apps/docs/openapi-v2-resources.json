@@ -50,6 +50,10 @@
       "description": "Create and manage reusable instruction documents for agents."
     },
     {
+      "name": "Prompts",
+      "description": "Read and version the prompts agents use, with production and test labels."
+    },
+    {
       "name": "Custom Tools",
       "description": "Create and manage code-backed tools that agents can call."
     },
@@ -2142,6 +2146,574 @@
           },
           "404": {
             "$ref": "#/components/responses/NotFound"
+          },
+          "429": {
+            "$ref": "#/components/responses/RateLimited"
+          },
+          "500": {
+            "$ref": "#/components/responses/InternalError"
+          },
+          "503": {
+            "$ref": "#/components/responses/ServiceUnavailable"
+          }
+        }
+      }
+    },
+    "/api/v2/prompts": {
+      "get": {
+        "operationId": "listPrompts",
+        "summary": "List prompts",
+        "description": "List the prompts of a workspace with cursor pagination, with where each label points. Prompt texts are omitted; use Get prompt to read one. Requires workspace read access.\n\nOAuth scope: `api:read`.",
+        "x-sim-operation": "nexora_prompts.list",
+        "x-oauth-scope": "api:read",
+        "tags": ["Prompts"],
+        "security": [
+          {
+            "apiKey": []
+          },
+          {
+            "oauthBearer": ["api:read"]
+          }
+        ],
+        "parameters": [
+          {
+            "name": "workspaceId",
+            "in": "query",
+            "required": true,
+            "description": "Workspace that owns the prompts.",
+            "schema": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 128,
+              "description": "Workspace that owns the prompts."
+            }
+          },
+          {
+            "name": "search",
+            "in": "query",
+            "required": false,
+            "description": "Case-insensitive substring match against the prompt name.",
+            "schema": {
+              "description": "Case-insensitive substring match against the prompt name.",
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 200
+            }
+          },
+          {
+            "name": "sortBy",
+            "in": "query",
+            "required": false,
+            "description": "Field used to sort the result. Do not rely on case-insensitive ordering when sorting by `name`.",
+            "schema": {
+              "default": "name",
+              "description": "Field used to sort the result. Do not rely on case-insensitive ordering when sorting by `name`.",
+              "type": "string",
+              "enum": ["name", "createdAt", "updatedAt"]
+            }
+          },
+          {
+            "name": "sortOrder",
+            "in": "query",
+            "required": false,
+            "description": "Sort direction.",
+            "schema": {
+              "default": "asc",
+              "description": "Sort direction.",
+              "type": "string",
+              "enum": ["asc", "desc"]
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "required": false,
+            "description": "Maximum prompts to return per page. Must be a whole number from 1 to 100. Defaults to 50.",
+            "schema": {
+              "default": 50,
+              "description": "Maximum prompts to return per page. Must be a whole number from 1 to 100. Defaults to 50.",
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 100
+            }
+          },
+          {
+            "name": "cursor",
+            "in": "query",
+            "required": false,
+            "description": "Opaque cursor from the previous page. Send it back with the same sort and filters; only `limit` may change. Change anything else and pagination must restart without a cursor.",
+            "schema": {
+              "description": "Opaque cursor from the previous page. Send it back with the same sort and filters; only `limit` may change. Change anything else and pagination must restart without a cursor.",
+              "type": "string",
+              "minLength": 1
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Prompts of the workspace.",
+            "headers": {
+              "X-RateLimit-Limit": {
+                "$ref": "#/components/headers/X-RateLimit-Limit"
+              },
+              "X-RateLimit-Remaining": {
+                "$ref": "#/components/headers/X-RateLimit-Remaining"
+              },
+              "X-RateLimit-Reset": {
+                "$ref": "#/components/headers/X-RateLimit-Reset"
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ListPromptsResponse"
+                },
+                "examples": {
+                  "example1": {
+                    "summary": "Response example 1",
+                    "value": {
+                      "data": [
+                        {
+                          "id": "b3e1f0a2-7c4d-4e9a-8f21-5d6c7e8f9a01",
+                          "name": "Support client",
+                          "description": "Tone and structure of customer support replies",
+                          "labels": {
+                            "production": 2,
+                            "test": 3
+                          },
+                          "latestVersion": 3,
+                          "createdAt": "2026-06-01T09:14:00.000Z",
+                          "updatedAt": "2026-06-20T14:02:11.000Z"
+                        }
+                      ],
+                      "nextCursor": null
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          },
+          "429": {
+            "$ref": "#/components/responses/RateLimited"
+          },
+          "500": {
+            "$ref": "#/components/responses/InternalError"
+          },
+          "503": {
+            "$ref": "#/components/responses/ServiceUnavailable"
+          }
+        }
+      },
+      "post": {
+        "operationId": "createPrompt",
+        "summary": "Create prompt",
+        "description": "Create a prompt with its version 1, which both the `production` and `test` labels point at. The name is unique within the workspace regardless of case. Requires workspace write access.\n\nOAuth scope: `api:write`.",
+        "x-sim-operation": "nexora_prompts.create",
+        "x-oauth-scope": "api:write",
+        "tags": ["Prompts"],
+        "security": [
+          {
+            "apiKey": []
+          },
+          {
+            "oauthBearer": ["api:write"]
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "description": "Name, description and text of version 1.",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreatePromptRequest"
+              },
+              "examples": {
+                "example1": {
+                  "summary": "Request example 1",
+                  "value": {
+                    "workspaceId": "a91c4b2e-6d3f-4e8a-b5c7-0d9e2f1a8c64",
+                    "name": "Support client",
+                    "description": "Tone and structure of customer support replies",
+                    "content": "You answer {{customer}} politely, in at most {{sentences}} sentences.",
+                    "note": "First version"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "The prompt was created.",
+            "headers": {
+              "X-RateLimit-Limit": {
+                "$ref": "#/components/headers/X-RateLimit-Limit"
+              },
+              "X-RateLimit-Remaining": {
+                "$ref": "#/components/headers/X-RateLimit-Remaining"
+              },
+              "X-RateLimit-Reset": {
+                "$ref": "#/components/headers/X-RateLimit-Reset"
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CreatePromptResponse"
+                },
+                "examples": {
+                  "example1": {
+                    "summary": "Response example 1",
+                    "value": {
+                      "data": {
+                        "id": "b3e1f0a2-7c4d-4e9a-8f21-5d6c7e8f9a01",
+                        "name": "Support client",
+                        "description": "Tone and structure of customer support replies",
+                        "labels": {
+                          "production": 1,
+                          "test": 1
+                        },
+                        "latestVersion": 1,
+                        "createdAt": "2026-06-01T09:14:00.000Z",
+                        "updatedAt": "2026-06-20T14:02:11.000Z",
+                        "version": {
+                          "number": 1,
+                          "content": "You answer {{customer}} politely, in at most {{sentences}} sentences.",
+                          "variables": [
+                            {
+                              "name": "customer",
+                              "type": "text",
+                              "defaultValue": "our customer"
+                            },
+                            {
+                              "name": "sentences",
+                              "type": "number",
+                              "defaultValue": "3"
+                            }
+                          ],
+                          "note": "First version",
+                          "createdAt": "2026-06-10T08:00:00.000Z"
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          },
+          "409": {
+            "$ref": "#/components/responses/Conflict"
+          },
+          "413": {
+            "$ref": "#/components/responses/PayloadTooLarge"
+          },
+          "415": {
+            "$ref": "#/components/responses/UnsupportedMediaType"
+          },
+          "429": {
+            "$ref": "#/components/responses/RateLimited"
+          },
+          "500": {
+            "$ref": "#/components/responses/InternalError"
+          },
+          "503": {
+            "$ref": "#/components/responses/ServiceUnavailable"
+          }
+        }
+      }
+    },
+    "/api/v2/prompts/{promptId}": {
+      "get": {
+        "operationId": "getPrompt",
+        "summary": "Get prompt",
+        "description": "Get a prompt, by id or name, with the text of the version a label points at (`production` when neither `label` nor `version` is given) or of a given version. Moving a label in the interface changes what this returns. Requires workspace read access.\n\nOAuth scope: `api:read`.",
+        "x-sim-operation": "nexora_prompts.read",
+        "x-oauth-scope": "api:read",
+        "tags": ["Prompts"],
+        "security": [
+          {
+            "apiKey": []
+          },
+          {
+            "oauthBearer": ["api:read"]
+          }
+        ],
+        "parameters": [
+          {
+            "name": "promptId",
+            "in": "path",
+            "required": true,
+            "description": "Prompt identifier, or its name.",
+            "schema": {
+              "type": "string",
+              "minLength": 1,
+              "description": "Prompt identifier, or its name."
+            }
+          },
+          {
+            "name": "workspaceId",
+            "in": "query",
+            "required": true,
+            "description": "Workspace that owns the prompt.",
+            "schema": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 128,
+              "description": "Workspace that owns the prompt."
+            }
+          },
+          {
+            "name": "label",
+            "in": "query",
+            "required": false,
+            "description": "Return the version this label points at. Defaults to `production`.",
+            "schema": {
+              "description": "Return the version this label points at. Defaults to `production`.",
+              "type": "string",
+              "enum": ["production", "test"]
+            }
+          },
+          {
+            "name": "version",
+            "in": "query",
+            "required": false,
+            "description": "Return this version number instead of a labelled one.",
+            "schema": {
+              "description": "Return this version number instead of a labelled one.",
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 9007199254740991
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The prompt with the selected version.",
+            "headers": {
+              "X-RateLimit-Limit": {
+                "$ref": "#/components/headers/X-RateLimit-Limit"
+              },
+              "X-RateLimit-Remaining": {
+                "$ref": "#/components/headers/X-RateLimit-Remaining"
+              },
+              "X-RateLimit-Reset": {
+                "$ref": "#/components/headers/X-RateLimit-Reset"
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GetPromptResponse"
+                },
+                "examples": {
+                  "example1": {
+                    "summary": "Response example 1",
+                    "value": {
+                      "data": {
+                        "id": "b3e1f0a2-7c4d-4e9a-8f21-5d6c7e8f9a01",
+                        "name": "Support client",
+                        "description": "Tone and structure of customer support replies",
+                        "labels": {
+                          "production": 2,
+                          "test": 3
+                        },
+                        "latestVersion": 3,
+                        "createdAt": "2026-06-01T09:14:00.000Z",
+                        "updatedAt": "2026-06-20T14:02:11.000Z",
+                        "version": {
+                          "number": 2,
+                          "content": "You answer {{customer}} politely, in at most {{sentences}} sentences.",
+                          "variables": [
+                            {
+                              "name": "customer",
+                              "type": "text",
+                              "defaultValue": "our customer"
+                            },
+                            {
+                              "name": "sentences",
+                              "type": "number",
+                              "defaultValue": "3"
+                            }
+                          ],
+                          "note": "Shorter replies",
+                          "createdAt": "2026-06-10T08:00:00.000Z"
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          },
+          "429": {
+            "$ref": "#/components/responses/RateLimited"
+          },
+          "500": {
+            "$ref": "#/components/responses/InternalError"
+          },
+          "503": {
+            "$ref": "#/components/responses/ServiceUnavailable"
+          }
+        }
+      }
+    },
+    "/api/v2/prompts/{promptId}/versions": {
+      "post": {
+        "operationId": "createPromptVersion",
+        "summary": "Create prompt version",
+        "description": "Save the next version of a prompt, by id or name. Labels stay where they were: agents keep their version until a label is moved in the interface. Requires workspace write access.\n\nOAuth scope: `api:write`.",
+        "x-sim-operation": "nexora_prompts.versions.create",
+        "x-oauth-scope": "api:write",
+        "tags": ["Prompts"],
+        "security": [
+          {
+            "apiKey": []
+          },
+          {
+            "oauthBearer": ["api:write"]
+          }
+        ],
+        "parameters": [
+          {
+            "name": "promptId",
+            "in": "path",
+            "required": true,
+            "description": "Prompt identifier, or its name.",
+            "schema": {
+              "type": "string",
+              "minLength": 1,
+              "description": "Prompt identifier, or its name."
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "description": "Text, variables and note of the new version.",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreatePromptVersionRequest"
+              },
+              "examples": {
+                "example1": {
+                  "summary": "Request example 1",
+                  "value": {
+                    "workspaceId": "a91c4b2e-6d3f-4e8a-b5c7-0d9e2f1a8c64",
+                    "content": "You answer {{customer}} politely, in one sentence.",
+                    "note": "One sentence"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "The new version was saved.",
+            "headers": {
+              "X-RateLimit-Limit": {
+                "$ref": "#/components/headers/X-RateLimit-Limit"
+              },
+              "X-RateLimit-Remaining": {
+                "$ref": "#/components/headers/X-RateLimit-Remaining"
+              },
+              "X-RateLimit-Reset": {
+                "$ref": "#/components/headers/X-RateLimit-Reset"
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CreatePromptVersionResponse"
+                },
+                "examples": {
+                  "example1": {
+                    "summary": "Response example 1",
+                    "value": {
+                      "data": {
+                        "id": "b3e1f0a2-7c4d-4e9a-8f21-5d6c7e8f9a01",
+                        "name": "Support client",
+                        "description": "Tone and structure of customer support replies",
+                        "labels": {
+                          "production": 2,
+                          "test": 3
+                        },
+                        "latestVersion": 4,
+                        "createdAt": "2026-06-01T09:14:00.000Z",
+                        "updatedAt": "2026-06-20T14:02:11.000Z",
+                        "version": {
+                          "number": 4,
+                          "content": "You answer {{customer}} politely, in one sentence.",
+                          "variables": [
+                            {
+                              "name": "customer",
+                              "type": "text",
+                              "defaultValue": "our customer"
+                            }
+                          ],
+                          "note": "One sentence",
+                          "createdAt": "2026-06-21T10:30:00.000Z"
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          },
+          "413": {
+            "$ref": "#/components/responses/PayloadTooLarge"
+          },
+          "415": {
+            "$ref": "#/components/responses/UnsupportedMediaType"
           },
           "429": {
             "$ref": "#/components/responses/RateLimited"
@@ -15726,6 +16298,560 @@
               "email": "jane@example.com",
               "revoked": true
             }
+          }
+        ]
+      },
+      "V2PromptSummary": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "description": "Unique prompt identifier."
+          },
+          "name": {
+            "type": "string",
+            "description": "Name, unique within the workspace regardless of case."
+          },
+          "description": {
+            "type": "string",
+            "description": "What the prompt is for."
+          },
+          "labels": {
+            "type": "object",
+            "properties": {
+              "production": {
+                "anyOf": [
+                  {
+                    "type": "integer",
+                    "minimum": -9007199254740991,
+                    "maximum": 9007199254740991
+                  },
+                  {
+                    "type": "null"
+                  }
+                ],
+                "description": "Version the `production` label points at, or `null`."
+              },
+              "test": {
+                "anyOf": [
+                  {
+                    "type": "integer",
+                    "minimum": -9007199254740991,
+                    "maximum": 9007199254740991
+                  },
+                  {
+                    "type": "null"
+                  }
+                ],
+                "description": "Version the `test` label points at, or `null`."
+              }
+            },
+            "required": ["production", "test"],
+            "additionalProperties": false,
+            "description": "Where each label points."
+          },
+          "latestVersion": {
+            "type": "integer",
+            "minimum": -9007199254740991,
+            "maximum": 9007199254740991,
+            "description": "Number of the most recent version."
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time",
+            "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d(?::[0-5]\\d(?:\\.\\d+)?)?(?:Z))$",
+            "description": "ISO 8601 timestamp when the prompt was created."
+          },
+          "updatedAt": {
+            "type": "string",
+            "format": "date-time",
+            "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d(?::[0-5]\\d(?:\\.\\d+)?)?(?:Z))$",
+            "description": "ISO 8601 timestamp of the last new version or label move."
+          }
+        },
+        "required": [
+          "id",
+          "name",
+          "description",
+          "labels",
+          "latestVersion",
+          "createdAt",
+          "updatedAt"
+        ],
+        "additionalProperties": false,
+        "title": "Prompt summary",
+        "description": "A versioned workspace prompt, without its text."
+      },
+      "ListPromptsResponse": {
+        "type": "object",
+        "properties": {
+          "data": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/V2PromptSummary"
+            },
+            "description": "Items in the current page."
+          },
+          "nextCursor": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Opaque cursor for the next page. Send it back as `cursor`; `null` means there are no more pages. Do not construct a cursor yourself."
+          }
+        },
+        "required": ["data", "nextCursor"],
+        "additionalProperties": false,
+        "title": "List prompts response",
+        "description": "Prompt summaries of the workspace.",
+        "examples": [
+          {
+            "data": [
+              {
+                "id": "b3e1f0a2-7c4d-4e9a-8f21-5d6c7e8f9a01",
+                "name": "Support client",
+                "description": "Tone and structure of customer support replies",
+                "labels": {
+                  "production": 2,
+                  "test": 3
+                },
+                "latestVersion": 3,
+                "createdAt": "2026-06-01T09:14:00.000Z",
+                "updatedAt": "2026-06-20T14:02:11.000Z"
+              }
+            ],
+            "nextCursor": null
+          }
+        ]
+      },
+      "V2Prompt": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "description": "Unique prompt identifier."
+          },
+          "name": {
+            "type": "string",
+            "description": "Name, unique within the workspace regardless of case."
+          },
+          "description": {
+            "type": "string",
+            "description": "What the prompt is for."
+          },
+          "labels": {
+            "type": "object",
+            "properties": {
+              "production": {
+                "anyOf": [
+                  {
+                    "type": "integer",
+                    "minimum": -9007199254740991,
+                    "maximum": 9007199254740991
+                  },
+                  {
+                    "type": "null"
+                  }
+                ],
+                "description": "Version the `production` label points at, or `null`."
+              },
+              "test": {
+                "anyOf": [
+                  {
+                    "type": "integer",
+                    "minimum": -9007199254740991,
+                    "maximum": 9007199254740991
+                  },
+                  {
+                    "type": "null"
+                  }
+                ],
+                "description": "Version the `test` label points at, or `null`."
+              }
+            },
+            "required": ["production", "test"],
+            "additionalProperties": false,
+            "description": "Where each label points."
+          },
+          "latestVersion": {
+            "type": "integer",
+            "minimum": -9007199254740991,
+            "maximum": 9007199254740991,
+            "description": "Number of the most recent version."
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time",
+            "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d(?::[0-5]\\d(?:\\.\\d+)?)?(?:Z))$",
+            "description": "ISO 8601 timestamp when the prompt was created."
+          },
+          "updatedAt": {
+            "type": "string",
+            "format": "date-time",
+            "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d(?::[0-5]\\d(?:\\.\\d+)?)?(?:Z))$",
+            "description": "ISO 8601 timestamp of the last new version or label move."
+          },
+          "version": {
+            "type": "object",
+            "properties": {
+              "number": {
+                "type": "integer",
+                "minimum": -9007199254740991,
+                "maximum": 9007199254740991,
+                "description": "Version number, from 1."
+              },
+              "content": {
+                "type": "string",
+                "description": "Text of the version, with its `{{variables}}`."
+              },
+              "variables": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "properties": {
+                    "name": {
+                      "type": "string",
+                      "maxLength": 64,
+                      "pattern": "^[A-Za-z_][A-Za-z0-9_]*$",
+                      "description": "Name used in the text as `{{name}}`."
+                    },
+                    "type": {
+                      "type": "string",
+                      "enum": ["text", "number", "boolean"],
+                      "description": "Expected value: `text`, `number` (a decimal comma is accepted) or `boolean` (written `oui` or `non`)."
+                    },
+                    "description": {
+                      "description": "What the value is for.",
+                      "type": "string",
+                      "maxLength": 300
+                    },
+                    "defaultValue": {
+                      "description": "Value used when an agent gives none.",
+                      "type": "string",
+                      "maxLength": 2000
+                    }
+                  },
+                  "required": ["name", "type"],
+                  "additionalProperties": false,
+                  "description": "A `{{name}}` placeholder of the text."
+                },
+                "description": "Variables the text uses."
+              },
+              "note": {
+                "type": "string",
+                "description": "What changed in this version."
+              },
+              "createdAt": {
+                "type": "string",
+                "format": "date-time",
+                "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d(?::[0-5]\\d(?:\\.\\d+)?)?(?:Z))$",
+                "description": "ISO 8601 timestamp when the version was saved."
+              }
+            },
+            "required": ["number", "content", "variables", "note", "createdAt"],
+            "additionalProperties": false,
+            "description": "The version selected by the request."
+          }
+        },
+        "required": [
+          "id",
+          "name",
+          "description",
+          "labels",
+          "latestVersion",
+          "createdAt",
+          "updatedAt",
+          "version"
+        ],
+        "additionalProperties": false,
+        "title": "Prompt",
+        "description": "A versioned workspace prompt with the text of one of its versions."
+      },
+      "CreatePromptResponse": {
+        "type": "object",
+        "properties": {
+          "data": {
+            "description": "Response data.",
+            "$ref": "#/components/schemas/V2Prompt"
+          }
+        },
+        "required": ["data"],
+        "additionalProperties": false,
+        "title": "Create prompt response",
+        "description": "The created prompt with version 1.",
+        "examples": [
+          {
+            "data": {
+              "id": "b3e1f0a2-7c4d-4e9a-8f21-5d6c7e8f9a01",
+              "name": "Support client",
+              "description": "Tone and structure of customer support replies",
+              "labels": {
+                "production": 1,
+                "test": 1
+              },
+              "latestVersion": 1,
+              "createdAt": "2026-06-01T09:14:00.000Z",
+              "updatedAt": "2026-06-20T14:02:11.000Z",
+              "version": {
+                "number": 1,
+                "content": "You answer {{customer}} politely, in at most {{sentences}} sentences.",
+                "variables": [
+                  {
+                    "name": "customer",
+                    "type": "text",
+                    "defaultValue": "our customer"
+                  },
+                  {
+                    "name": "sentences",
+                    "type": "number",
+                    "defaultValue": "3"
+                  }
+                ],
+                "note": "First version",
+                "createdAt": "2026-06-10T08:00:00.000Z"
+              }
+            }
+          }
+        ]
+      },
+      "CreatePromptRequest": {
+        "type": "object",
+        "properties": {
+          "workspaceId": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 128,
+            "description": "Workspace in which to create the prompt."
+          },
+          "name": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 100,
+            "description": "Name, unique within the workspace regardless of case."
+          },
+          "description": {
+            "default": "",
+            "description": "What the prompt is for.",
+            "type": "string",
+            "maxLength": 500
+          },
+          "content": {
+            "type": "string",
+            "description": "Text of version 1, with `{{variables}}`."
+          },
+          "variables": {
+            "default": [],
+            "description": "Declarations of the variables. A placeholder without one is a `text` variable; a declaration without a placeholder is dropped.",
+            "maxItems": 50,
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "name": {
+                  "type": "string",
+                  "maxLength": 64,
+                  "pattern": "^[A-Za-z_][A-Za-z0-9_]*$",
+                  "description": "Name used in the text as `{{name}}`."
+                },
+                "type": {
+                  "type": "string",
+                  "enum": ["text", "number", "boolean"],
+                  "description": "Expected value: `text`, `number` (a decimal comma is accepted) or `boolean` (written `oui` or `non`)."
+                },
+                "description": {
+                  "description": "What the value is for.",
+                  "type": "string",
+                  "maxLength": 300
+                },
+                "defaultValue": {
+                  "description": "Value used when an agent gives none.",
+                  "type": "string",
+                  "maxLength": 2000
+                }
+              },
+              "required": ["name", "type"],
+              "additionalProperties": false,
+              "description": "A `{{name}}` placeholder of the text."
+            }
+          },
+          "note": {
+            "default": "",
+            "description": "Note of version 1.",
+            "type": "string",
+            "maxLength": 500
+          }
+        },
+        "required": ["workspaceId", "name", "content"],
+        "additionalProperties": false,
+        "title": "Create prompt request",
+        "description": "Name, description and text of version 1.",
+        "examples": [
+          {
+            "workspaceId": "a91c4b2e-6d3f-4e8a-b5c7-0d9e2f1a8c64",
+            "name": "Support client",
+            "description": "Tone and structure of customer support replies",
+            "content": "You answer {{customer}} politely, in at most {{sentences}} sentences.",
+            "note": "First version"
+          }
+        ]
+      },
+      "GetPromptResponse": {
+        "type": "object",
+        "properties": {
+          "data": {
+            "description": "Response data.",
+            "$ref": "#/components/schemas/V2Prompt"
+          }
+        },
+        "required": ["data"],
+        "additionalProperties": false,
+        "title": "Get prompt response",
+        "description": "One prompt with the text of the selected version.",
+        "examples": [
+          {
+            "data": {
+              "id": "b3e1f0a2-7c4d-4e9a-8f21-5d6c7e8f9a01",
+              "name": "Support client",
+              "description": "Tone and structure of customer support replies",
+              "labels": {
+                "production": 2,
+                "test": 3
+              },
+              "latestVersion": 3,
+              "createdAt": "2026-06-01T09:14:00.000Z",
+              "updatedAt": "2026-06-20T14:02:11.000Z",
+              "version": {
+                "number": 2,
+                "content": "You answer {{customer}} politely, in at most {{sentences}} sentences.",
+                "variables": [
+                  {
+                    "name": "customer",
+                    "type": "text",
+                    "defaultValue": "our customer"
+                  },
+                  {
+                    "name": "sentences",
+                    "type": "number",
+                    "defaultValue": "3"
+                  }
+                ],
+                "note": "Shorter replies",
+                "createdAt": "2026-06-10T08:00:00.000Z"
+              }
+            }
+          }
+        ]
+      },
+      "CreatePromptVersionResponse": {
+        "type": "object",
+        "properties": {
+          "data": {
+            "description": "Response data.",
+            "$ref": "#/components/schemas/V2Prompt"
+          }
+        },
+        "required": ["data"],
+        "additionalProperties": false,
+        "title": "Create prompt version response",
+        "description": "The prompt with the version just saved.",
+        "examples": [
+          {
+            "data": {
+              "id": "b3e1f0a2-7c4d-4e9a-8f21-5d6c7e8f9a01",
+              "name": "Support client",
+              "description": "Tone and structure of customer support replies",
+              "labels": {
+                "production": 2,
+                "test": 3
+              },
+              "latestVersion": 4,
+              "createdAt": "2026-06-01T09:14:00.000Z",
+              "updatedAt": "2026-06-20T14:02:11.000Z",
+              "version": {
+                "number": 4,
+                "content": "You answer {{customer}} politely, in one sentence.",
+                "variables": [
+                  {
+                    "name": "customer",
+                    "type": "text",
+                    "defaultValue": "our customer"
+                  }
+                ],
+                "note": "One sentence",
+                "createdAt": "2026-06-21T10:30:00.000Z"
+              }
+            }
+          }
+        ]
+      },
+      "CreatePromptVersionRequest": {
+        "type": "object",
+        "properties": {
+          "workspaceId": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 128,
+            "description": "Workspace that owns the prompt."
+          },
+          "content": {
+            "type": "string",
+            "description": "Text of the new version, with `{{variables}}`."
+          },
+          "variables": {
+            "default": [],
+            "description": "Declarations of the variables. A placeholder without one is a `text` variable; a declaration without a placeholder is dropped.",
+            "maxItems": 50,
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "name": {
+                  "type": "string",
+                  "maxLength": 64,
+                  "pattern": "^[A-Za-z_][A-Za-z0-9_]*$",
+                  "description": "Name used in the text as `{{name}}`."
+                },
+                "type": {
+                  "type": "string",
+                  "enum": ["text", "number", "boolean"],
+                  "description": "Expected value: `text`, `number` (a decimal comma is accepted) or `boolean` (written `oui` or `non`)."
+                },
+                "description": {
+                  "description": "What the value is for.",
+                  "type": "string",
+                  "maxLength": 300
+                },
+                "defaultValue": {
+                  "description": "Value used when an agent gives none.",
+                  "type": "string",
+                  "maxLength": 2000
+                }
+              },
+              "required": ["name", "type"],
+              "additionalProperties": false,
+              "description": "A `{{name}}` placeholder of the text."
+            }
+          },
+          "note": {
+            "default": "",
+            "description": "What changed in this version.",
+            "type": "string",
+            "maxLength": 500
+          }
+        },
+        "required": ["workspaceId", "content"],
+        "additionalProperties": false,
+        "title": "Create prompt version request",
+        "description": "Text, variables and note of the new version.",
+        "examples": [
+          {
+            "workspaceId": "a91c4b2e-6d3f-4e8a-b5c7-0d9e2f1a8c64",
+            "content": "You answer {{customer}} politely, in one sentence.",
+            "note": "One sentence"
           }
         ]
       },

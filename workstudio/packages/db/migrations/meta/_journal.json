@@ -3088,6 +3088,13 @@
       "when": 1792800234877,
       "tag": "0441_nexora_chat_reasoning_off",
       "breakpoints": true
+    },
+    {
+      "idx": 442,
+      "version": "7",
+      "when": 1792892387227,
+      "tag": "0442_nexora_prompts",
+      "breakpoints": true
     }
   ]
 }

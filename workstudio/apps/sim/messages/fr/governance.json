@@ -361,6 +361,12 @@
       "scim_group_mapping": {
         "upserted": "Correspondance de groupe SCIM enregistrée",
         "deleted": "Correspondance de groupe SCIM supprimée"
+      },
+      "prompt": {
+        "created": "Prompt créé",
+        "version_created": "Nouvelle version de prompt",
+        "label_moved": "Étiquette de prompt déplacée",
+        "deleted": "Prompt supprimé"
       }
     },
     "resourceTypes": {
@@ -402,7 +408,8 @@
       "user": "Utilisateur",
       "webhook": "Webhook",
       "workflow": "Workflow",
-      "workspace": "Espace"
+      "workspace": "Espace",
+      "prompt": "Prompt"
     }
   },
   "consumption": {

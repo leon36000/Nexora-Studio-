@@ -494,6 +494,7 @@ export const selectorManifest = {
   }),
   'workspace.secretNames': internalSelector(),
   'workspace.rawSecretNames': internalSelector(),
+  'workspace.prompts': internalSelector([], { detail: true }),
   'workspace.sandboxes': internalSelector(['language'], { detail: true }),
   'providers.ollamaEmbeddingModels': internalSelector(),
   'providers.openrouterEmbeddingModels': internalSelector(),

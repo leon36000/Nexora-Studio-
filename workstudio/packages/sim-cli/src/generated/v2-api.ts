@@ -2834,6 +2834,100 @@ export type CreateProjectFileUploadResponse = {
   data: CreateProjectFileUploadResponseRef4
 }
 
+/** `POST /api/v2/prompts` */
+export type CreatePromptQuery = Record<string, unknown>
+
+export type CreatePromptBody = {
+  workspaceId: string
+  name: string
+  description?: string
+  content: string
+  variables?: Array<{
+    name: string
+    type: 'text' | 'number' | 'boolean'
+    description?: string
+    defaultValue?: string
+  }>
+  note?: string
+}
+
+type CreatePromptResponseRef0 = {
+  id: string
+  name: string
+  description: string
+  labels: {
+    production: number | null
+    test: number | null
+  }
+  latestVersion: number
+  createdAt: string
+  updatedAt: string
+  version: {
+    number: number
+    content: string
+    variables: Array<{
+      name: string
+      type: 'text' | 'number' | 'boolean'
+      description?: string
+      defaultValue?: string
+    }>
+    note: string
+    createdAt: string
+  }
+}
+
+export type CreatePromptResponse = {
+  data: CreatePromptResponseRef0
+}
+
+/** `POST /api/v2/prompts/[promptId]/versions` */
+export type CreatePromptVersionParams = {
+  promptId: string
+}
+
+export type CreatePromptVersionQuery = Record<string, unknown>
+
+export type CreatePromptVersionBody = {
+  workspaceId: string
+  content: string
+  variables?: Array<{
+    name: string
+    type: 'text' | 'number' | 'boolean'
+    description?: string
+    defaultValue?: string
+  }>
+  note?: string
+}
+
+type CreatePromptVersionResponseRef0 = {
+  id: string
+  name: string
+  description: string
+  labels: {
+    production: number | null
+    test: number | null
+  }
+  latestVersion: number
+  createdAt: string
+  updatedAt: string
+  version: {
+    number: number
+    content: string
+    variables: Array<{
+      name: string
+      type: 'text' | 'number' | 'boolean'
+      description?: string
+      defaultValue?: string
+    }>
+    note: string
+    createdAt: string
+  }
+}
+
+export type CreatePromptVersionResponse = {
+  data: CreatePromptVersionResponseRef0
+}
+
 /** `POST /api/v2/sandboxes` */
 export type CreateSandboxQuery = Record<string, unknown>
 
@@ -6428,6 +6522,46 @@ export type GetProjectFileVersionResponse = {
   data: GetProjectFileVersionResponseRef0
 }
 
+/** `GET /api/v2/prompts/[promptId]` */
+export type GetPromptParams = {
+  promptId: string
+}
+
+export type GetPromptQuery = {
+  workspaceId: string
+  label?: 'production' | 'test'
+  version?: number
+}
+
+type GetPromptResponseRef0 = {
+  id: string
+  name: string
+  description: string
+  labels: {
+    production: number | null
+    test: number | null
+  }
+  latestVersion: number
+  createdAt: string
+  updatedAt: string
+  version: {
+    number: number
+    content: string
+    variables: Array<{
+      name: string
+      type: 'text' | 'number' | 'boolean'
+      description?: string
+      defaultValue?: string
+    }>
+    note: string
+    createdAt: string
+  }
+}
+
+export type GetPromptResponse = {
+  data: GetPromptResponseRef0
+}
+
 /** `GET /api/v2/tables/[tableId]/rows/[rowId]/enrichment/[groupId]` */
 export type GetRowEnrichmentParams = {
   tableId: string
@@ -9328,6 +9462,34 @@ type ListProjectFileVersionsResponseRef1 = {
 
 export type ListProjectFileVersionsResponse = {
   data: Array<ListProjectFileVersionsResponseRef0>
+  nextCursor: string | null
+}
+
+/** `GET /api/v2/prompts` */
+export type ListPromptsQuery = {
+  workspaceId: string
+  search?: string
+  sortBy?: 'name' | 'createdAt' | 'updatedAt'
+  sortOrder?: 'asc' | 'desc'
+  limit?: number
+  cursor?: string
+}
+
+type ListPromptsResponseRef0 = {
+  id: string
+  name: string
+  description: string
+  labels: {
+    production: number | null
+    test: number | null
+  }
+  latestVersion: number
+  createdAt: string
+  updatedAt: string
+}
+
+export type ListPromptsResponse = {
+  data: Array<ListPromptsResponseRef0>
   nextCursor: string | null
 }
 
@@ -16279,6 +16441,61 @@ export const V2_OPERATIONS = {
       },
     },
   },
+  createPrompt: {
+    method: 'POST',
+    path: '/api/v2/prompts',
+    pathParams: [] as const,
+    responseMode: 'json',
+    summary: 'Create prompt',
+    body: {
+      workspaceId: {
+        kind: 'string',
+        required: true,
+        describe: 'Workspace in which to create the prompt.',
+      },
+      name: {
+        kind: 'string',
+        required: true,
+        describe: 'Name, unique within the workspace regardless of case.',
+      },
+      description: { kind: 'string', default: '', describe: 'What the prompt is for.' },
+      content: {
+        kind: 'string',
+        required: true,
+        describe: 'Text of version 1, with `{{variables}}`.',
+      },
+      variables: {
+        kind: 'array',
+        default: [],
+        describe:
+          'Declarations of the variables. A placeholder without one is a `text` variable; a declaration without a placeholder is dropped.',
+      },
+      note: { kind: 'string', default: '', describe: 'Note of version 1.' },
+    },
+  },
+  createPromptVersion: {
+    method: 'POST',
+    path: '/api/v2/prompts/[promptId]/versions',
+    pathParams: ['promptId'] as const,
+    pathParamDocs: { promptId: 'Prompt identifier, or its name.' },
+    responseMode: 'json',
+    summary: 'Create prompt version',
+    body: {
+      workspaceId: { kind: 'string', required: true, describe: 'Workspace that owns the prompt.' },
+      content: {
+        kind: 'string',
+        required: true,
+        describe: 'Text of the new version, with `{{variables}}`.',
+      },
+      variables: {
+        kind: 'array',
+        default: [],
+        describe:
+          'Declarations of the variables. A placeholder without one is a `text` variable; a declaration without a placeholder is dropped.',
+      },
+      note: { kind: 'string', default: '', describe: 'What changed in this version.' },
+    },
+  },
   createSandbox: {
     method: 'POST',
     path: '/api/v2/sandboxes',
@@ -18145,6 +18362,26 @@ export const V2_OPERATIONS = {
     responseMode: 'json',
     summary: 'Get Project File Version',
     workspaceKeyUnsupported: true,
+  },
+  getPrompt: {
+    method: 'GET',
+    path: '/api/v2/prompts/[promptId]',
+    pathParams: ['promptId'] as const,
+    pathParamDocs: { promptId: 'Prompt identifier, or its name.' },
+    responseMode: 'json',
+    summary: 'Get prompt',
+    query: {
+      workspaceId: { kind: 'string', required: true, describe: 'Workspace that owns the prompt.' },
+      label: {
+        kind: 'enum',
+        values: ['production', 'test'] as const,
+        describe: 'Return the version this label points at. Defaults to `production`.',
+      },
+      version: {
+        kind: 'integer',
+        describe: 'Return this version number instead of a labelled one.',
+      },
+    },
   },
   getRowEnrichment: {
     method: 'GET',
@@ -20404,6 +20641,44 @@ export const V2_OPERATIONS = {
         default: 50,
         describe:
           'Maximum versions to return per page. Must be a whole number from 1 to 100. Defaults to 50.',
+      },
+      cursor: {
+        kind: 'string',
+        describe:
+          'Opaque cursor from the previous page. Send it back with the same sort and filters; only `limit` may change. Change anything else and pagination must restart without a cursor.',
+      },
+    },
+  },
+  listPrompts: {
+    method: 'GET',
+    path: '/api/v2/prompts',
+    pathParams: [] as const,
+    responseMode: 'json',
+    summary: 'List prompts',
+    query: {
+      workspaceId: { kind: 'string', required: true, describe: 'Workspace that owns the prompts.' },
+      search: {
+        kind: 'string',
+        describe: 'Case-insensitive substring match against the prompt name.',
+      },
+      sortBy: {
+        kind: 'enum',
+        values: ['name', 'createdAt', 'updatedAt'] as const,
+        default: 'name',
+        describe:
+          'Field used to sort the result. Do not rely on case-insensitive ordering when sorting by `name`.',
+      },
+      sortOrder: {
+        kind: 'enum',
+        values: ['asc', 'desc'] as const,
+        default: 'asc',
+        describe: 'Sort direction.',
+      },
+      limit: {
+        kind: 'integer',
+        default: 50,
+        describe:
+          'Maximum prompts to return per page. Must be a whole number from 1 to 100. Defaults to 50.',
       },
       cursor: {
         kind: 'string',
