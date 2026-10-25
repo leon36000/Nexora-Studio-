@@ -10,8 +10,6 @@ const shortText = z.string().max(20_000)
 
 const workspaceQuerySchema = z.object({ workspaceId: workspaceIdSchema })
 
-// ── Judges ───────────────────────────────────────────────────────────────────
-
 const judgeConfigSchema = z.discriminatedUnion('kind', [
   z.object({
     kind: z.literal('contains'),
@@ -138,8 +136,6 @@ export const tryEvalJudgeContract = defineRouteContract({
     schema: z.object({ results: z.array(tryResultSchema), agreement: agreementSchema }),
   },
 })
-
-// ── Test sets ────────────────────────────────────────────────────────────────
 
 const columnMappingSchema = z
   .object({
@@ -324,8 +320,6 @@ export const listEvalImportSourcesContract = defineRouteContract({
   query: workspaceQuerySchema,
   response: { mode: 'json', schema: importSourcesSchema },
 })
-
-// ── Targets, campaigns ───────────────────────────────────────────────────────
 
 const promptSelectorSchema = z.enum(['production', 'test', 'latest'])
 
@@ -530,8 +524,6 @@ export const compareEvalCampaignsContract = defineRouteContract({
   response: { mode: 'json', schema: comparisonSchema },
 })
 
-// ── Schedules ────────────────────────────────────────────────────────────────
-
 const scheduleSchema = z.object({
   id: z.string(),
   name: z.string(),
@@ -602,8 +594,6 @@ export const runEvalScheduleContract = defineRouteContract({
   body: z.object({ workspaceId: workspaceIdSchema }),
   response: { mode: 'json', schema: z.object({ campaign: campaignSchema }) },
 })
-
-// ── Alerts ───────────────────────────────────────────────────────────────────
 
 const alertSchema = z.object({
   id: z.string(),

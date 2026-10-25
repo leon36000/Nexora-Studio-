@@ -35,7 +35,7 @@ const logger = createLogger('NexoraEvaluations')
 const INSTANCE_CALL_LIMIT = 4
 /** A running campaign renews its lease this often; a stopped server loses it after `LEASE_MS`. */
 const LEASE_MS = 120_000
-const HEARTBEAT_LOOKBACK_MS = 10 * 60_000
+const INTERACTIVE_LOOKBACK_MS = 10 * 60_000
 
 const limiter = createLimiter(INSTANCE_CALL_LIMIT)
 const running = new Map<string, AbortController>()
@@ -87,7 +87,7 @@ async function interactiveBusy(): Promise<boolean> {
       and(
         eq(workflowExecutionLogs.status, 'running'),
         inArray(workflowExecutionLogs.trigger, ['chat', 'manual']),
-        gt(workflowExecutionLogs.startedAt, new Date(Date.now() - HEARTBEAT_LOOKBACK_MS))
+        gt(workflowExecutionLogs.startedAt, new Date(Date.now() - INTERACTIVE_LOOKBACK_MS))
       )
     )
     .limit(1)

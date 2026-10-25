@@ -72,10 +72,10 @@
 
 **Interfaces — produit :** exports Drizzle `nexoraEvalDataset`, `nexoraEvalRow`, `nexoraEvalJudge`, `nexoraEvalCampaign`, `nexoraEvalItem`, `nexoraEvalSchedule`, `nexoraEvalAlert` ; actions d'audit `EVALUATION_DATASET_CREATED`, `EVALUATION_DATASET_DELETED`, `EVALUATION_JUDGE_SAVED`, `EVALUATION_JUDGE_DELETED`, `EVALUATION_CAMPAIGN_LAUNCHED`, `EVALUATION_CAMPAIGN_CANCELLED`, `EVALUATION_CAMPAIGN_DELETED`, `EVALUATION_SCHEDULE_SAVED`, `EVALUATION_SCHEDULE_DELETED`, `EVALUATION_ALERT_ACKNOWLEDGED`.
 
-- [ ] **Étape 1 : écrire le schéma** dans `schema.ts` (colonnes décidées : voir le ledger K10, tables neuves, clés étrangères en cascade vers l'espace, `ON DELETE RESTRICT` du jeu et du juge depuis une campagne, index `(campaign_id, status)`, unicité `(campaign_id, row_id, target_key)`, unicité du nom par espace sans casse).
-- [ ] **Étape 2 : générer** `bunx drizzle-kit generate`, renommer en `0446_nexora_evaluations` (idx 446, `when` > 1792897222733), instantané `0446_snapshot.json` rebasé sur 0444.
-- [ ] **Étape 3 : vérifier** sur un Postgres jetable (`pgvector/pgvector:pg17`) : migrations rejouées de bout en bout ; `drizzle-kit generate` ne produit plus rien ; `bun run check:migrations` sans bloquant ; `bun run scripts/generate-schema-mock.ts`.
-- [ ] **Étape 4 : commit** `feat(k10): tables des évaluations (migration 0446)`.
+- [x] **Étape 1 : écrire le schéma** dans `schema.ts` (colonnes décidées : voir le ledger K10, tables neuves, clés étrangères en cascade vers l'espace, `ON DELETE RESTRICT` du jeu et du juge depuis une campagne, index `(campaign_id, status)`, unicité `(campaign_id, row_id, target_key)`, unicité du nom par espace sans casse).
+- [x] **Étape 2 : générer** `bunx drizzle-kit generate`, renommer en `0446_nexora_evaluations` (idx 446, `when` > 1792897222733), instantané `0446_snapshot.json` rebasé sur 0444.
+- [x] **Étape 3 : vérifier** sur un Postgres jetable (`pgvector/pgvector:pg17`) : migrations rejouées de bout en bout ; `drizzle-kit generate` ne produit plus rien ; `bun run check:migrations` sans bloquant ; `bun run scripts/generate-schema-mock.ts`.
+- [x] **Étape 4 : commit** `feat(k10): tables des évaluations (migration 0446)`.
 
 ### Tâche 2 : Règles et statistiques (modules purs)
 
@@ -85,15 +85,15 @@
 - `type JudgeVerdict = 'pass' | 'fail' | 'error'` ; `interface JudgeOutcome { verdict: JudgeVerdict; score: number | null; note: string }`
 - `evaluateRule(config: RuleJudgeConfig, subject: { answer: string; expected: string | null }): JudgeOutcome` ; `validateRuleConfig(config): string | null` (message en français ou `null`)
 - `percentile(values: number[], p: number): number | null` (interpolation linéaire)
-- `summarizeItems(items: SummaryItem[]): TargetSummary` — `{ total, done, errors, passed, failed, passRate: number | null, meanScore: number | null, latencyP50: number | null, latencyP95: number | null, inputTokens, outputTokens, kgCo2eq: number | null }` ; les éléments en erreur d'exécution ne comptent ni pour ni contre le taux de réussite
+- `summarizeItems(items: SummaryItem[]): TargetSummary` — `{ total, finished, errors, passed, failed, passRate: number | null, meanScore: number | null, latencyP50: number | null, latencyP95: number | null, inputTokens, outputTokens, kgCo2eq: number | null }` ; une erreur (cible ou juge) **compte comme non réussie** dans le taux (une cible qui plante ne paraît pas bonne) et est affichée à part
 - `compareSeries(a: SeriesItem[], b: SeriesItem[]): { rows: ComparedRow[]; counts: { improved, regressed, same, onlyA, onlyB } }` — appariement par `rowId`
 - `agreement(pairs: { judge: JudgeVerdict; human: 'pass' | 'fail' }[]): { total, matched, rate: number | null }` (les verdicts `error` comptent comme désaccord)
 
-- [ ] **Étape 1 : tests rouges** : `contains` (casse, valeur littérale ou attendu de la ligne, attendu absent ⇒ `error`), `regex` (`(a+)+b` sur 30 000 `a` ⇒ rapide, motif avec assertion arrière ⇒ refusé par `validateRuleConfig`), `json_valid` (clôture ```json acceptée, clés requises, tableau racine accepté seulement sans clés requises), `percentile` ([] ⇒ null, p50/p95 sur 1..100 = 50,5 / 95,05), `summarizeItems` (erreurs exclues du taux, CO₂ nul si aucun élément mesuré, jamais 0), `compareSeries` (ligne présente d'un seul côté, régression pass→fail), `agreement` (10 paires, 8 concordantes ⇒ 0,8 ; `error` = désaccord ; 0 annotation ⇒ `rate` null).
-- [ ] **Étape 2 : voir rouge** `LANG=en_US.UTF-8 bun run --cwd workstudio/apps/sim test lib/nexora/evaluations`.
-- [ ] **Étape 3 : implémenter** (`compileLinearRegex` de `@/lib/core/security/linear-regex` pour les motifs).
-- [ ] **Étape 4 : retirer chaque garde** (RE2, exclusion des erreurs, appariement par identifiant) ⇒ le test correspondant rougit ; remettre.
-- [ ] **Étape 5 : commit.**
+- [x] **Étape 1 : tests rouges** : `contains` (casse, valeur littérale ou attendu de la ligne, attendu absent ⇒ `error`), `regex` (`(a+)+b` sur 30 000 `a` ⇒ rapide, motif avec assertion arrière ⇒ refusé par `validateRuleConfig`), `json_valid` (clôture ```json acceptée, clés requises, tableau racine accepté seulement sans clés requises), `percentile` ([] ⇒ null, p50/p95 sur 1..100 = 50,5 / 95,05), `summarizeItems` (une erreur n'est pas une réussite, CO₂ nul si aucun élément mesuré, jamais 0), `compareSeries` (ligne présente d'un seul côté, régression pass→fail), `agreement` (10 paires, 8 concordantes ⇒ 0,8 ; `error` = désaccord ; 0 annotation ⇒ `rate` null).
+- [x] **Étape 2 : voir rouge** `LANG=en_US.UTF-8 bun run --cwd workstudio/apps/sim test lib/nexora/evaluations`.
+- [x] **Étape 3 : implémenter** (`compileLinearRegex` de `@/lib/core/security/linear-regex` pour les motifs).
+- [x] **Étape 4 : retirer chaque garde** (RE2, exclusion des erreurs, appariement par identifiant) ⇒ le test correspondant rougit ; remettre.
+- [x] **Étape 5 : commit.**
 
 ### Tâche 3 : Juges LLM, proximité sémantique et appel de modèle
 
@@ -103,12 +103,12 @@
 - `nexoraWandComplete(input: { messages; signal?; responseFormat?; trace?; model?: string; temperature?: number; maxTokens?: number }): Promise<{ text: string; usage: WandUsage }>`
 - `buildJudgeMessages(config: LlmJudgeConfig, subject: JudgeSubject): WandMessage[]` ; `parseJudgeReply(config: LlmJudgeConfig, reply: string): JudgeOutcome`
 - `runJudge(config: JudgeConfig, subject: JudgeSubject, deps: JudgeDeps): Promise<JudgeOutcome & { usage: WandUsage | null }>` où `JudgeDeps = { complete: (…) => …; embed: (texts: string[], model: string) => Promise<number[][]> }`
-- `cosineSimilarity(a: number[], b: number[]): number` ; `embedTexts(texts: string[], model: string, signal?: AbortSignal): Promise<number[][]>`
+- `cosineSimilarity(a: number[], b: number[]): number` ; `embedTexts(texts: string[], model: string, signal?: AbortSignal): Promise<number[][]>` (Ollama de l'instance, `/api/embed`, comme les bases de connaissances)
 
-- [ ] **Étape 1 : tests rouges** : réponse `{"verdict":"correct","note":"…"}` ; clôture ```json ; `<think>` en tête ; texte libre ⇒ `error` avec la réponse brute ; classification : étiquette hors liste ⇒ `error` ; note : `7/10` et `{"score":7}` lus, hors bornes ⇒ `error`, seuil `passAt` ; sémantique : cosinus de vecteurs colinéaires = 1, orthogonaux = 0, vecteur nul ⇒ 0 sans NaN, seuil ; `nexoraWandComplete` envoie le modèle, la température 0 et `max_tokens` demandés.
-- [ ] **Étape 2 : rouge, implémenter, vert.**
-- [ ] **Étape 3 : gardes retirées** (seuil, bornes de note, étiquette hors liste) ⇒ rouge.
-- [ ] **Étape 4 : commit.**
+- [x] **Étape 1 : tests rouges** : réponse `{"verdict":"correct","note":"…"}` ; clôture ```json ; `<think>` en tête ; texte libre ⇒ `error` avec la réponse brute ; classification : étiquette hors liste ⇒ `error` ; note : `7/10` et `{"score":7}` lus, hors bornes ⇒ `error`, seuil `passAt` ; sémantique : cosinus de vecteurs colinéaires = 1, orthogonaux = 0, vecteur nul ⇒ 0 sans NaN, seuil ; `nexoraWandComplete` envoie le modèle, la température 0 et `max_tokens` demandés.
+- [x] **Étape 2 : rouge, implémenter, vert.**
+- [x] **Étape 3 : gardes retirées** (seuil, bornes de note, étiquette hors liste) ⇒ rouge.
+- [x] **Étape 4 : commit.**
 
 ### Tâche 4 : Import des jeux de tests
 
@@ -116,9 +116,9 @@
 
 **Produit :** `interface RowDraft { input: string; expected: string | null; guidance: string | null; candidate: string | null; humanVerdict: 'pass' | 'fail' | null; humanNote: string | null; sourceRef: string | null }` ; `parseCsvRows(text: string, mapping?: ColumnMapping): { rows: RowDraft[]; skipped: number }` ; `parseJsonlRows(text: string, mapping?: ColumnMapping): { rows: RowDraft[]; skipped: number }` ; `rowsFromTable(columns, rows, mapping)` ; `rowsFromTraces(traces)` ; `rowsFromConversation(messages)` ; colonnes reconnues par défaut : `question|input|entrée`, `attendu|expected|réponse attendue`, `consigne|guidance`, `réponse|candidate`, `verdict`, `justification`.
 
-- [ ] **Étape 1 : tests rouges** : CSV avec `;`, BOM et guillemets ; JSONL avec une ligne invalide (comptée « ignorée », pas d'échec global) ; 10 001 lignes ⇒ erreur « au plus 10 000 lignes » ; ligne sans entrée ignorée ; verdict `oui/non/pass/fail` normalisé ; conversation : un échange (question, réponse) par paire de messages, les messages d'outil ignorés.
-- [ ] **Étape 2 : rouge, implémenter (CSV via `decodeCsvText`/`detectCsvDelimiter`/`parseCsvBuffer` de `lib/table/import`), vert.**
-- [ ] **Étape 3 : commit.**
+- [x] **Étape 1 : tests rouges** : CSV avec `;`, BOM et guillemets ; JSONL avec une ligne invalide (comptée « ignorée », pas d'échec global) ; 10 001 lignes ⇒ erreur « au plus 10 000 lignes » ; ligne sans entrée ignorée ; verdict `oui/non/pass/fail` normalisé ; conversation : un échange (question, réponse) par paire de messages, les messages d'outil ignorés.
+- [x] **Étape 2 : rouge, implémenter (CSV via `decodeCsvText`/`detectCsvDelimiter`/`parseCsvBuffer` de `lib/table/import`), vert.**
+- [x] **Étape 3 : commit.**
 
 ### Tâche 5 : Dépôt PostgreSQL
 
@@ -126,9 +126,9 @@
 
 **Produit (signatures utilisées par le moteur et les cas d'usage) :** `insertDataset`, `listDatasets`, `getDatasetWithRows`, `appendRows`, `updateRow`, `deleteDataset` (refus si une campagne l'utilise) ; `saveJudge`, `listJudges`, `getJudge`, `deleteJudge` ; `insertCampaignWithItems(campaign, items)` ; `claimNextItem(campaignId, workerId, now): Promise<ItemRecord | null>` (`UPDATE … WHERE id = (SELECT … FOR UPDATE SKIP LOCKED LIMIT 1)`) ; `completeItem`, `heartbeat(campaignId, owner, leaseUntil)` ; `adoptCampaign(campaignId, owner, now, leaseMs)` (prend une campagne dont le bail est expiré, remet ses éléments `running` à `pending` avec `attempt + 1`, `error` après 3) ; `listAdoptableCampaigns(now)` ; `finishCampaign(campaignId, status, error?)` ; `cancelCampaign` ; `listCampaigns` (progression et taux par SQL) ; `getCampaignItems` ; planifications : `insertSchedule`, `claimDueSchedules(now)` (`SKIP LOCKED`, avance `next_run_at` dans la même requête) ; alertes : `insertAlert`, `listAlerts`, `acknowledgeAlert`.
 
-- [ ] **Étape 1 : tests d'intégration rouges** (Postgres jetable) : deux travailleurs réclament en même temps ⇒ jamais le même élément ; bail expiré ⇒ reprise, élément `running` remis à `pending` ; 4ᵉ tentative ⇒ `error` ; suppression d'un jeu utilisé ⇒ refus ; instantané de campagne indépendant de la modification du jeu ; `claimDueSchedules` deux fois ⇒ une seule campagne ; unicité du nom d'un jeu sans casse.
-- [ ] **Étape 2 : implémenter, vert ; gardes retirées (`SKIP LOCKED`, borne de tentatives) ⇒ rouge.**
-- [ ] **Étape 3 : commit.**
+- [x] **Étape 1 : tests d'intégration rouges** (Postgres jetable) : deux travailleurs réclament en même temps ⇒ jamais le même élément ; bail expiré ⇒ reprise, élément `running` remis à `pending` ; 4ᵉ tentative ⇒ `error` ; suppression d'un jeu utilisé ⇒ refus ; instantané de campagne indépendant de la modification du jeu ; `claimDueSchedules` deux fois ⇒ une seule campagne ; unicité du nom d'un jeu sans casse.
+- [x] **Étape 2 : implémenter, vert ; gardes retirées (`SKIP LOCKED`, borne de tentatives) ⇒ rouge.**
+- [x] **Étape 3 : commit.**
 
 ### Tâche 6 : Cibles — modèle, prompt K9, agent publié
 
@@ -136,9 +136,9 @@
 
 **Interfaces — produit :** `runTarget(target: EvalTarget, row: { input: string }, ctx: TargetContext, deps: TargetDeps): Promise<TargetResult>` avec `TargetResult = { answer: string; latencyMs: number; usage: { promptTokens; completionTokens }; executionId: string | null }` ; `describeTarget(target, resolved): string` ; `launchAgentRun(target, request?): Promise<{ stream; settleUsage; executionId }>` extrait de `startAgentRun` sans changement de comportement de la passerelle.
 
-- [ ] **Étape 1 : tests rouges** : cible `model` → message système facultatif + question, modèle sans préfixe `vllm/` ; cible `prompt` → version épinglée au lancement (pas l'étiquette), variables rendues, une variable manquante ⇒ erreur d'élément claire ; cible `agent` → la sortie du bloc réponse ; erreur du modèle ⇒ `TargetResult` rejeté avec message court ; réponse coupée à 20 000 caractères ; `<think>` jamais dans la réponse.
-- [ ] **Étape 2 : rouge, implémenter, vert.** Le test K3 existant de la passerelle reste vert.
-- [ ] **Étape 3 : commit.**
+- [x] **Étape 1 : tests rouges** : cible `model` → message système facultatif + question, modèle sans préfixe `vllm/` ; cible `prompt` → version épinglée au lancement (pas l'étiquette), variables rendues, une variable manquante ⇒ erreur d'élément claire ; cible `agent` → la sortie du bloc réponse ; erreur du modèle ⇒ `TargetResult` rejeté avec message court ; réponse coupée à 20 000 caractères ; `<think>` jamais dans la réponse.
+- [x] **Étape 2 : rouge, implémenter, vert.** Le test K3 existant de la passerelle reste vert.
+- [x] **Étape 3 : commit.**
 
 ### Tâche 7 : Moteur de campagnes
 
@@ -146,9 +146,9 @@
 
 **Interfaces — produit :** `runCampaign(campaignId: string, deps: RunnerDeps): Promise<'completed' | 'cancelled' | 'interrupted' | 'failed'>` ; `startCampaign(campaignId: string): void` (démarre sans attendre, une seule exécution par campagne et par processus) ; `resumeCampaigns(now: Date): Promise<string[]>` (appelé par le cron). `RunnerDeps = { store, runTarget, runJudge, checkBudget, interactiveBusy, now, sleep, globalLimit }`.
 
-- [ ] **Étape 1 : tests rouges** : concurrence 2 ⇒ jamais plus de 2 éléments en vol (30 éléments) ; limite globale partagée entre deux campagnes ; annulation en cours ⇒ plus aucun élément démarré, statut `cancelled`, signal d'annulation transmis aux cibles ; redémarrage simulé (bail expiré) ⇒ éléments repris sans doublon, 3 tentatives max ; budget atteint ⇒ `interrupted` avec message, éléments restants `pending` ; erreur d'une cible ⇒ élément `error`, la campagne continue ; erreur du juge ⇒ verdict `error` ; priorité : tant qu'une exécution interactive est en cours, un nouvel élément attend (au plus 30 s, horloge simulée) puis part ; clôture : statut `completed`, alertes calculées une fois.
-- [ ] **Étape 2 : rouge, implémenter, vert ; gardes retirées (borne de concurrence, bail, attente bornée) ⇒ rouge.**
-- [ ] **Étape 3 : commit.**
+- [x] **Étape 1 : tests rouges** : concurrence 2 ⇒ jamais plus de 2 éléments en vol (30 éléments) ; limite globale partagée entre deux campagnes ; annulation en cours ⇒ plus aucun élément démarré, statut `cancelled`, signal d'annulation transmis aux cibles ; redémarrage simulé (bail expiré) ⇒ éléments repris sans doublon, 3 tentatives max ; budget atteint ⇒ `interrupted` avec message, éléments restants `pending` ; erreur d'une cible ⇒ élément `error`, la campagne continue ; erreur du juge ⇒ verdict `error` ; priorité : tant qu'une exécution interactive est en cours, un nouvel élément attend (au plus 30 s, horloge simulée) puis part ; clôture : statut `completed`, alertes calculées une fois.
+- [x] **Étape 2 : rouge, implémenter, vert ; gardes retirées (borne de concurrence, bail, attente bornée) ⇒ rouge.**
+- [x] **Étape 3 : commit.**
 
 ### Tâche 8 : Alertes et planification
 
@@ -156,9 +156,9 @@
 
 **Produit :** `raiseCampaignAlerts(campaign, summaries, deps): Promise<AlertRecord[]>` (une alerte par cible sous le seuil, une seule par campagne et cible ; e-mail aux administrateurs de l'instance et au créateur seulement si `hasEmailService()`) ; `nextRun(cron: string, timezone: string, after: Date): Date | null` ; `runDueSchedules(now: Date, deps): Promise<{ started: string[] }>` ; route cron `GET` (auth `verifyCronAuth`, `?asOf=` accepté uniquement avec l'authentification cron, pour les essais).
 
-- [ ] **Étape 1 : tests rouges** : taux 0,66 sous un seuil 0,8 ⇒ une alerte par cible fautive ; taux = seuil ⇒ pas d'alerte ; aucune évaluation réussie (tout en erreur) ⇒ alerte « campagne en échec » ; pas de SMTP ⇒ alerte enregistrée sans e-mail ; échéance `0 3 * * *` Europe/Paris autour du passage à l'heure d'été ; échéance déjà passée plusieurs fois ⇒ une seule campagne (pas de rattrapage multiple) ; cron : sans secret ⇒ 401.
-- [ ] **Étape 2 : rouge, implémenter, vert ; `check:cron-parity` vert.**
-- [ ] **Étape 3 : commit.**
+- [x] **Étape 1 : tests rouges** : taux 0,66 sous un seuil 0,8 ⇒ une alerte par cible fautive ; taux = seuil ⇒ pas d'alerte ; aucune évaluation réussie (tout en erreur) ⇒ alerte « campagne en échec » ; pas de SMTP ⇒ alerte enregistrée sans e-mail ; échéance `0 3 * * *` Europe/Paris autour du passage à l'heure d'été ; échéance déjà passée plusieurs fois ⇒ une seule campagne (pas de rattrapage multiple) ; cron : sans secret ⇒ 401.
+- [x] **Étape 2 : rouge, implémenter, vert ; `check:cron-parity` vert.**
+- [x] **Étape 3 : commit.**
 
 ### Tâche 9 : Cas d'usage, contrats et routes
 
@@ -166,9 +166,9 @@
 
 **Produit :** opérations `nexora_evaluations.{datasets,judges,campaigns,schedules,alerts}.*` (lecture : `read` ; création, lancement, annulation, suppression : `write` ; clés d'espace refusées) ; routes listées dans la carte ; erreur 404 pour toute ressource d'un autre espace ; import de conversation limité aux conversations du demandeur ; import de traces limité à `canReadTrace` et, pour une trace privée, à son auteur.
 
-- [ ] **Étape 1 : tests rouges** : membre en lecture ne lance pas (403) ; jeu d'un autre espace ⇒ 404 ; conversation d'un autre membre ⇒ 404 ; trace privée d'un autre auteur ⇒ refusée ; campagne dont les cibles dépassent 5 000 éléments ⇒ 400 en français ; agent non publié ⇒ 400 ; juge regex invalide ⇒ 400 ; audit émis au lancement et à l'annulation.
-- [ ] **Étape 2 : rouge, implémenter, vert ; `check:api-validation:strict`.**
-- [ ] **Étape 3 : commit.**
+- [x] **Étape 1 : tests rouges** : membre en lecture ne lance pas (403) ; jeu d'un autre espace ⇒ 404 ; conversation d'un autre membre ⇒ 404 ; trace privée d'un autre auteur ⇒ refusée ; campagne dont les cibles dépassent 5 000 éléments ⇒ 400 en français ; agent non publié ⇒ 400 ; juge regex invalide ⇒ 400 ; audit émis au lancement et à l'annulation.
+- [x] **Étape 2 : rouge, implémenter, vert ; `check:api-validation:strict`.**
+- [x] **Étape 3 : commit.**
 
 ### Tâche 10 : Interface
 

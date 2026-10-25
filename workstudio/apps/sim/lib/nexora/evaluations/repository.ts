@@ -38,7 +38,7 @@ import {
 } from '@/lib/nexora/evaluations/types'
 
 /** An item interrupted this many times (the server stopped while it ran) is given up on. */
-export const MAX_ITEM_ATTEMPTS = 3
+const MAX_ITEM_ATTEMPTS = 3
 
 const INSERT_CHUNK = 500
 
@@ -80,8 +80,6 @@ function asTargets(value: unknown): EvalTarget[] {
 function asHumanVerdict(value: string | null): 'pass' | 'fail' | null {
   return value === 'pass' || value === 'fail' ? value : null
 }
-
-// ── Test sets ────────────────────────────────────────────────────────────────
 
 export interface DatasetRecord {
   id: string
@@ -334,8 +332,6 @@ export async function deleteDataset(
   }
 }
 
-// ── Judges ───────────────────────────────────────────────────────────────────
-
 export interface JudgeRecord {
   id: string
   workspaceId: string
@@ -450,8 +446,6 @@ export async function deleteJudge(
     throw error
   }
 }
-
-// ── Campaigns ────────────────────────────────────────────────────────────────
 
 export interface CampaignRecord {
   id: string
@@ -982,8 +976,6 @@ export async function listAdoptableCampaignIds(now: Date): Promise<string[]> {
   return rows.map((row) => row.id)
 }
 
-// ── Schedules ────────────────────────────────────────────────────────────────
-
 export interface ScheduleRecord {
   id: string
   workspaceId: string
@@ -1144,8 +1136,6 @@ export async function claimDueSchedules(
     return claimed
   })
 }
-
-// ── Alerts ───────────────────────────────────────────────────────────────────
 
 export interface NewAlert {
   workspaceId: string

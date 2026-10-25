@@ -69,8 +69,6 @@ const evaluationAudit = {
   resourceType: AuditResourceType.EVALUATION,
 } as const
 
-// ── Test sets ────────────────────────────────────────────────────────────────
-
 export const listDatasetsUseCase = defineAuthorizedWorkspaceUseCase({
   operation: OP.listDatasets,
   resolveContext: resolveWorkspace,
@@ -357,8 +355,6 @@ export const listImportSourcesUseCase = defineAuthorizedWorkspaceUseCase({
   },
 })
 
-// ── Judges ───────────────────────────────────────────────────────────────────
-
 export const listJudgesUseCase = defineAuthorizedWorkspaceUseCase({
   operation: OP.listJudges,
   resolveContext: resolveWorkspace,
@@ -495,8 +491,6 @@ export const tryJudgeUseCase = defineAuthorizedWorkspaceUseCase({
     return { results, agreement: agreement(pairs) }
   },
 })
-
-// ── Campaigns ────────────────────────────────────────────────────────────────
 
 export const listCampaignsUseCase = defineAuthorizedWorkspaceUseCase({
   operation: OP.listCampaigns,
@@ -679,8 +673,6 @@ function presentComparedRow(row: ComparedRow) {
   return { rowId: row.rowId, input: row.input, change: row.change, a: side(row.a), b: side(row.b) }
 }
 
-// ── Schedules ────────────────────────────────────────────────────────────────
-
 export const listSchedulesUseCase = defineAuthorizedWorkspaceUseCase({
   operation: OP.listSchedules,
   resolveContext: resolveWorkspace,
@@ -800,8 +792,6 @@ export const runScheduleUseCase = defineAuthorizedWorkspaceUseCase({
     metadata: { items: result.itemTotal, scheduleId: result.scheduleId },
   }),
 })
-
-// ── Alerts ───────────────────────────────────────────────────────────────────
 
 export const listAlertsUseCase = defineAuthorizedWorkspaceUseCase({
   operation: OP.listAlerts,
