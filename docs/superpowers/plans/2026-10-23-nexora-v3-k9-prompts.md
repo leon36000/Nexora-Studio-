@@ -1,6 +1,6 @@
 # K9 — Prompts versionnés : plan d'implémentation
 
-> **Pour les agents :** sous-skill requis : superpowers:executing-plans (exécution par la session K9 elle-même, décisions déléguées par le fondateur). Les étapes utilisent des cases à cocher (`- [ ]`).
+> **Pour les agents :** sous-skill requis : superpowers:executing-plans (exécution par la session K9 elle-même, décisions déléguées par le fondateur). Les étapes utilisent des cases à cocher (`- [x]`).
 
 **But :** un objet **Prompt** par espace, versionné et étiqueté, que les agents publiés lisent à l'exécution : déplacer l'étiquette `production` change leurs réponses sans republier.
 
@@ -154,10 +154,10 @@
 - Modifier : `workstudio/apps/sim/app/workspace/[workspaceId]/playground/playground.tsx` (« Enregistrer comme prompt »)
 - Modifier : `workstudio/apps/sim/messages/{fr,en}/agents.json` (zone `agents.prompts`), `shell.json` (barre latérale)
 
-- [ ] Liste (nom, description, version en production, mise à jour), « Nouveau prompt » (fenêtre : nom, description, texte, note).
-- [ ] Détail : versions (numéro, note, auteur, date, étiquettes), texte et variables de la version choisie, « Nouvelle version » (texte, variables typées, note), « Mettre en production » / « Mettre en test », diff entre deux versions, suppression (rôle Modifier).
-- [ ] Playground : « Enregistrer comme prompt » (nom + note) ⇒ page du prompt.
-- [ ] Parcours au navigateur sur le serveur de développement.
+- [x] Liste (nom, description, version en production, mise à jour), « Nouveau prompt » (fenêtre : nom, description, texte, note).
+- [x] Détail : versions (numéro, note, auteur, date, étiquettes), texte et variables de la version choisie, « Nouvelle version » (texte, variables typées, note), « Mettre en production » / « Mettre en test », diff entre deux versions, suppression (rôle Modifier).
+- [x] Playground : « Enregistrer comme prompt » (nom + note) ⇒ page du prompt.
+- [x] Parcours au navigateur sur le serveur de développement.
 
 ### Tâche 8 : guide, fumée, ledger
 
@@ -166,13 +166,13 @@
 - Modifier : `scripts/smoke.py` (contrôle « Prompts »)
 - Modifier : `docs/superpowers/plans/2026-10-23-nexora-v3-ledger.md` (section K9)
 
-- [ ] Contrôle « Prompts » : prompt v1 (« réponds par POMME ») et v2 (« … CERISE ») ; agent Start → Agent référencé `@production`, déployé ; exécution déployée ⇒ POMME ; étiquette vers v2 ⇒ CERISE sans redéployer ; retour v1 ⇒ POMME ; sortie `prompt.version` ; diff ; `GET /api/v2/prompts/{id}?label=production` avec une clé d'espace ⇒ v1.
-- [ ] Guide et lien ; ledger (Rulings, preuves, à vérifier après déploiement).
+- [x] Contrôle « Prompts » : prompt v1 (« réponds par POMME ») et v2 (« … CERISE ») ; agent Start → Agent référencé `@production`, déployé ; exécution déployée ⇒ POMME ; étiquette vers v2 ⇒ CERISE sans redéployer ; retour v1 ⇒ POMME ; sortie `prompt.version` ; diff ; `GET /api/v2/prompts/{id}?label=production` avec une clé d'espace ⇒ v1.
+- [x] Guide et lien ; ledger (Rulings, preuves, à vérifier après déploiement).
 
 ### Tâche 9 : vérifications et commit
 
-- [ ] Biome sur les fichiers touchés ; `bun run type-check` (racine `workstudio/`) ; `check:audits` ; `check:test-types` ; `check:api-validation:strict` ; `check:migrations`.
-- [ ] Vitest ciblé + intégration (Postgres jetable lancé et supprimé).
-- [ ] Réel : `next dev` sur 127.0.0.1:3214 contre la pile ; contrôle « Prompts » de la fumée (`--only Prompts`) avec GLM 5.3 ; arrêt du serveur, suppression de `.next/dev`.
-- [ ] À la racine : `check-i18n`, `check-brand`, `check-no-ee`, `check-licenses`.
-- [ ] Commit sur la branche (message français, `Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>`), sans pousser.
+- [x] Biome sur les fichiers touchés ; `bun run type-check` (racine `workstudio/`) ; `check:audits` ; `check:test-types` ; `check:api-validation:strict` ; `check:migrations`.
+- [x] Vitest ciblé + intégration (Postgres jetable lancé et supprimé).
+- [x] Réel : `next dev` sur 127.0.0.1:3214 contre la pile ; contrôle « Prompts » de la fumée (`--only Prompts`) avec GLM 5.3 ; arrêt du serveur, suppression de `.next/dev`.
+- [x] À la racine : `check-i18n`, `check-brand`, `check-no-ee`, `check-licenses`.
+- [x] Commit sur la branche (message français, `Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>`), sans pousser.

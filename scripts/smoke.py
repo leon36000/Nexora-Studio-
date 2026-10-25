@@ -962,7 +962,7 @@ def main() -> int:
                         "subBlocks": {"inputFormat": sub("inputFormat", "input-format", [])}, "outputs": {}},
                 agent_id: {"id": agent_id, "type": "agent", "name": "Agent", "position": {"x": 420, "y": 0}, "enabled": True,
                            "subBlocks": {"messages": sub("messages", "messages-input", [{"role": "system", "content": "Réponds par le mot BANANE."}, {"role": "user", "content": "<start.input>"}]),
-                                         "model": sub("model", "combobox", "vllm/nexora-default"),
+                                         "model": sub("model", "combobox", os.environ.get("NEXORA_SMOKE_PROMPTS_MODEL", "vllm/nexora-default")),
                                          "promptId": sub("promptId", "combobox", prompt_id),
                                          "promptLabel": sub("promptLabel", "dropdown", "production")},
                            "outputs": {}}},
