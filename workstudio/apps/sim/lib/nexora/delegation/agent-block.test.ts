@@ -140,7 +140,7 @@ describe('a conversation handed to another agent', () => {
       delegation: { agent: 'Agent tarifs', agentId: 'wf-tarifs' },
       toolCalls: { count: 1 },
     })
-    expect(output?.toolCalls.list[0]).toMatchObject({
+    expect(output?.toolCalls?.list[0]).toMatchObject({
       name: 'delegate_to_agent',
       arguments: { question: 'Et pour 50 baguettes ?' },
       result: { agent: 'Agent tarifs', childWorkflowId: 'wf-tarifs' },

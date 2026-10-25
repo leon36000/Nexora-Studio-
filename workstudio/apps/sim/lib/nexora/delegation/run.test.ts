@@ -1,4 +1,4 @@
-import { beforeEach, describe, expect, it, vi } from 'vitest'
+import { beforeEach, describe, expect, it, type Mock, vi } from 'vitest'
 import {
   type DelegationDeps,
   type DelegationFrame,
@@ -34,8 +34,8 @@ const childAnswer = {
 
 let frames: DelegationFrame[]
 let deps: DelegationDeps
-let runChild: ReturnType<typeof vi.fn>
-let rememberTransfer: ReturnType<typeof vi.fn>
+let runChild: Mock<DelegationDeps['runChild']>
+let rememberTransfer: Mock<DelegationDeps['rememberTransfer']>
 
 const input: DelegationInput = {
   agentId: 'wf-tarifs',
@@ -50,8 +50,8 @@ const input: DelegationInput = {
 
 beforeEach(() => {
   frames = []
-  runChild = vi.fn(async () => childAnswer)
-  rememberTransfer = vi.fn(async () => undefined)
+  runChild = vi.fn<DelegationDeps['runChild']>(async () => childAnswer)
+  rememberTransfer = vi.fn<DelegationDeps['rememberTransfer']>(async () => undefined)
   deps = {
     loadAgents: async (_workspaceId, ids) =>
       agents.filter((agent) => ids.includes(agent.workflowId)),

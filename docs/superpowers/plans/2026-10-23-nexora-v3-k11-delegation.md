@@ -98,22 +98,22 @@ Modifier
 
 ### Tâche 7 : formulaire d'agent
 
-- [ ] Hook `useDelegationTargets(workspaceId, excludeId)` (agents publiés = flux « Agents » déployés) ; `handoffs-field.tsx` (liste + mode par agent, l'agent lui-même exclu) ; `skills-field.tsx` (compétences de l'espace, intégrées exclues) ; messages `agents.editor.*` fr/en ; `check-i18n`.
-- [ ] Vérification au navigateur (tâche 10).
+- [x] Hook `useDelegationTargets(workspaceId, excludeId)` (agents publiés = flux « Agents » déployés) ; `handoffs-field.tsx` (liste + mode par agent, l'agent lui-même exclu) ; `skills-field.tsx` (compétences de l'espace, intégrées exclues) ; messages `agents.editor.*` fr/en ; `check-i18n`.
+- [x] Vérification au navigateur (tâche 10).
 
 ### Tâche 8 : Assistant (affichage et `@`)
 
-- [ ] **Tests rouges** : `agent-extras.test.ts` (`delegations` conservées et relues dans le commentaire final, ancien format lu sans), `stream-reply.test.ts` (trames `delegation` ⇒ `onDelegation`, résultat avec `delegations`), `skills-mention.test.ts` (`@ton-entreprise` reconnu, e-mail `a@b.fr` ignoré, compétence inconnue ignorée, instructions ajoutées à l'entrée envoyée au fil sans toucher au texte conservé).
-- [ ] Implémenter `skills-mention.ts`, `agent-extras.ts`, `stream-reply.ts`, `use-assistant-turn.ts`, `delegation-notes.tsx`, `skill-mention-list.tsx`, `composer.tsx` ; messages `assistant.*`.
-- [ ] Vert ; vérification au navigateur (tâche 10).
+- [x] **Tests rouges** : `agent-extras.test.ts` (`delegations` conservées et relues dans le commentaire final, ancien format lu sans), `stream-reply.test.ts` (trames `delegation` ⇒ `onDelegation`, résultat avec `delegations`), `skills-mention.test.ts` (`@ton-entreprise` reconnu, e-mail `a@b.fr` ignoré, compétence inconnue ignorée, instructions ajoutées à l'entrée envoyée au fil sans toucher au texte conservé).
+- [x] Implémenter `skills-mention.ts`, `agent-extras.ts`, `stream-reply.ts`, `use-assistant-turn.ts`, `delegation-notes.tsx`, `skill-mention-list.tsx`, `composer.tsx` ; messages `assistant.*`.
+- [x] Vert ; vérification au navigateur (tâche 10).
 
 ### Tâche 9 : guide, fumée, ledger
 
-- [ ] `docs/guide/agents.md` : « Peut confier à », modes, limite de profondeur, boucle, compétences et `@`, groupes d'accès (`delegate_to_agent`).
-- [ ] `scripts/smoke.py` : contrôle « Délégation » (agent tarifs avec base, Assistant général qui lui confie, trace, compétence « Ton de l'entreprise », boucle A→B→A).
-- [ ] Ledger : section K11 avec décisions (« Ruling : … — pourquoi — coût si faux »).
+- [x] `docs/guide/agents.md` : « Peut confier à », modes, limite de profondeur, boucle, compétences et `@`, groupes d'accès (`delegate_to_agent`).
+- [x] `scripts/smoke.py` : contrôle « Délégation » (agent tarifs avec base, Assistant général qui lui confie, trace, compétence « Ton de l'entreprise », boucle A→B→A).
+- [x] Ledger : section K11 avec décisions (« Ruling : … — pourquoi — coût si faux »).
 
 ### Tâche 10 : vérification réelle et fin
 
-- [ ] `next dev` sur 127.0.0.1:3223 (cache Turbopack sous `/dev/shm`), fumée « Délégation » avec GLM 5.3, parcours au navigateur, arrêt et nettoyage de `.next/dev`.
-- [ ] `git merge main`, biome sur les fichiers touchés, `type-check`, `check:audits`, `check:test-types`, `check:api-validation:strict`, `check:migrations`, suite complète, scripts racine ; commit.
+- [x] `next dev` sur 127.0.0.1:3223 (cache Turbopack sous `/dev/shm`), fumée « Délégation » avec GLM 5.3, parcours au navigateur, arrêt et nettoyage de `.next/dev`.
+- [x] `git merge main`, biome sur les fichiers touchés, `type-check`, `check:audits`, `check:test-types`, `check:api-validation:strict`, `check:migrations`, suite complète, scripts racine ; commit.
