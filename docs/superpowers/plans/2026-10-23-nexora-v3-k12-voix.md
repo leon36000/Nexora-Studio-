@@ -1,6 +1,6 @@
 # K12 — Voix : réunions, synthèse vocale, dictée — Plan d'implémentation
 
-> **Pour les agents :** sous-compétence requise : `superpowers:executing-plans` (exécution en ligne, par la session qui a écrit ce plan). Les étapes utilisent des cases `- [ ]`, cochées au fur et à mesure.
+> **Pour les agents :** sous-compétence requise : `superpowers:executing-plans` (exécution en ligne, par la session qui a écrit ce plan). Les étapes utilisent des cases `- [x]`, cochées au fur et à mesure.
 
 **Objectif :** Nexora sait parler (`/v1/audio/speech`, bloc Synthèse vocale, « Lire à voix haute »), écouter (dictée au micro dans l'Assistant, lexique de l'entreprise) et distinguer les intervenants d'une réunion (« Intervenant 1 / 2 / 3 »), le tout sur CPU, sans qu'aucune donnée ne sorte de l'instance.
 
@@ -32,7 +32,7 @@
 3. **Service de diarisation absent ou en panne** alors que `diarized_json` est demandé : réponse 4xx/5xx explicite en français côté WorkStudio (« les intervenants ne sont pas disponibles »), la transcription simple reste possible. Test : cas d'usage, erreur du diariseur ; bloc : repli sur le texte sans intervenants.
 4. **Texte de synthèse vide, trop long ou avec balisage Markdown** (réponses de l'Assistant) : `/audio/speech` refuse > 4 096 caractères ; « Lire à voix haute » retire le Markdown et découpe en phrases. Test : `speechText()`.
 5. **Micro refusé ou enregistrement vide** (dictée) : message en français, le texte déjà tapé n'est jamais perdu. Test : hook de dictée.
-6. **Lexique trop long** : tronqué à 224 jetons de Whisper côté API ? non — côté WorkStudio, 100 termes / 800 caractères au plus. Test : `buildTranscriptionPrompt`.
+6. **Lexique trop long** : coupé côté WorkStudio à 100 termes et 800 caractères, aux termes entiers (Whisper ne lit qu'environ 220 jetons d'invite). Test : `normalizeLexicon`.
 7. **Enregistrement de plus d'une heure** avec intervenants : refus clair (limite mesurée, §ledger), pas de coupure silencieuse en tranches aux étiquettes incohérentes. Test : `transcribeMeeting`.
 
 ---
@@ -56,12 +56,12 @@
 - Produit : `CreateAudioSpeechForm(ForwardablePayload)` : `model: str`, `input: str` (1 à 4 096 caractères), `voice: str = "default"`, `response_format: AudioSpeechResponseFormat = MP3` (`mp3|wav|flac|pcm`), `speed: float = 1.0` (0,25 à 4). `CreateAudioSpeechUseCase.execute(CreateAudioSpeechCommand) -> CreateAudioSpeechUseCaseSuccess(audio: bytes, media_type: str, headers) | ProviderRequestForwardingUseCaseError`. `get_prompts() -> [input]` (le jeton compte l'entrée ; aucun jeton de sortie).
 - Consomme : `ProviderRequestForwardingUseCase` (hooks `_build_success`).
 
-- [ ] Écrire les tests rouges : entité (`input` vide refusé, > 4 096 refusé, format inconnu refusé) ; adaptateur (`to_http_request` : URL `/v1/audio/speech`, corps JSON `{model: <nom du fournisseur>, input, voice, response_format, speed}` ; `to_provider_response` : octets conservés, type média lu de l'en-tête) ; cas d'usage (succès WAV, mauvais type de routeur ⇒ `RouterHasWrongTypeError`, fournisseur indisponible ⇒ erreur propagée) ; endpoint (200 `audio/wav`, 404 modèle inconnu, 403 modèle d'un autre type, 401 sans clé).
-- [ ] Vérifier qu'ils échouent : `.nexora-work/napi-venv/bin/pytest services/nexora-api/api/tests/unit -k "speech" -q`.
-- [ ] Implémenter, dans cet ordre : énumérations et formulaire, octets bruts dans le client HTTP (`HttpProviderResponse.content: bytes | None`, `.media_type`), adaptateurs openai/vllm, cas d'usage (`_build_success` renvoie les octets, `get_completions()` ⇒ `[]` pour l'audio), route et schéma, fabrique d'injection (session sans transaction), migration `ALTER TYPE routertype ADD VALUE IF NOT EXISTS 'TEXT_TO_SPEECH'`.
-- [ ] Faire passer : pytest unitaire + `ruff check` et `ruff format --check` sur les fichiers touchés.
-- [ ] Intégration sur un Postgres/Redis jetables (conteneurs `k12-pg`, `k12-redis`) : migrations rejouées de bout en bout (montée et descente), tests d'intégration `audiospeech` et `autocommitsession`.
-- [ ] Commit : `feat(k12): synthèse vocale /v1/audio/speech dans Nexora API`.
+- [x] Écrire les tests rouges : entité (`input` vide refusé, > 4 096 refusé, format inconnu refusé) ; adaptateur (`to_http_request` : URL `/v1/audio/speech`, corps JSON `{model: <nom du fournisseur>, input, voice, response_format, speed}` ; `to_provider_response` : octets conservés, type média lu de l'en-tête) ; cas d'usage (succès WAV, mauvais type de routeur ⇒ `RouterHasWrongTypeError`, fournisseur indisponible ⇒ erreur propagée) ; endpoint (200 `audio/wav`, 404 modèle inconnu, 403 modèle d'un autre type, 401 sans clé).
+- [x] Vérifier qu'ils échouent : `.nexora-work/napi-venv/bin/pytest services/nexora-api/api/tests/unit -k "speech" -q`.
+- [x] Implémenter, dans cet ordre : énumérations et formulaire, octets bruts dans le client HTTP (`HttpProviderResponse.content: bytes | None`, `.media_type`), adaptateurs openai/vllm, cas d'usage (`_build_success` renvoie les octets, `get_completions()` ⇒ `[]` pour l'audio), route et schéma, fabrique d'injection (session sans transaction), migration `ALTER TYPE routertype ADD VALUE IF NOT EXISTS 'TEXT_TO_SPEECH'`.
+- [x] Faire passer : pytest unitaire + `ruff check` et `ruff format --check` sur les fichiers touchés.
+- [x] Intégration sur un Postgres/Redis jetables (conteneurs `k12-pg`, `k12-redis`) : migrations rejouées de bout en bout (montée et descente), tests d'intégration `audiospeech` et `autocommitsession`.
+- [x] Commit : `feat(k12): synthèse vocale /v1/audio/speech dans Nexora API`.
 
 ## Tâche 2 : Nexora API — `diarized_json` (segments, mots, intervenants)
 
@@ -74,11 +74,11 @@
 - Produit : `SpeakerTurn(start: float, end: float, speaker: int)` ; `AudioDiarizer.diarize(file, num_speakers: int | None) -> list[SpeakerTurn] | AudioDiarizationUnavailableError` ; `assign_speakers(words: list[TimedWord], turns: list[SpeakerTurn]) -> list[Segment]` (un segment par suite de mots du même intervenant, étiquettes `speaker_1…speaker_N` dans l'ordre d'apparition, `Segment.id` consécutifs, texte recollé).
 - Contrat de l'API : `response_format=diarized_json` ⇒ `{id, model, text, segments: [{id, type, text, start, end, speaker}], usage}` ; sans service de diarisation configuré ⇒ 501 `Les intervenants ne sont pas disponibles sur cette instance` ; `num_speakers` (extension Nexora, 1 à 20) fixe le nombre d'intervenants.
 
-- [ ] Tests rouges du fusionneur : trois tours/neuf mots ⇒ trois segments dans l'ordre ; deux mots consécutifs du même intervenant ⇒ un segment ; **un seul tour** ⇒ « speaker_1 » partout ; mot hors de tout tour ⇒ tour le plus proche à ≤ 1,5 s, sinon intervenant précédent ; intervenants renumérotés par ordre d'apparition (le tour d'étiquette 2 qui parle en premier devient `speaker_1`) ; aucun mot ⇒ liste vide ; ponctuation collée au mot précédent.
-- [ ] Tests rouges du cas d'usage : `diarized_json` sans diariseur ⇒ `AudioDiarizationUnavailableError` **avant** tout appel au fournisseur Whisper ; diariseur en erreur ⇒ idem ; succès ⇒ segments avec intervenants ; `json`/`text` inchangés (le diariseur n'est pas appelé).
-- [ ] Implémenter le fusionneur, le port, l'adaptateur HTTP (multipart `file`, `num_speakers`, délai réglable, défaut 900 s), la surcharge de `_send_request` (diariser d'abord, puis transmettre, puis fusionner ; le fichier est relu depuis le début entre les deux), l'adaptateur de transcription (mots), la configuration, l'endpoint (501 en français).
-- [ ] Vérifier : pytest unitaire + intégration ciblée, `ruff`.
-- [ ] Commit : `feat(k12): diarisation et horodatage par segment dans /v1/audio/transcriptions`.
+- [x] Tests rouges du fusionneur : trois tours/neuf mots ⇒ trois segments dans l'ordre ; deux mots consécutifs du même intervenant ⇒ un segment ; **un seul tour** ⇒ « speaker_1 » partout ; mot hors de tout tour ⇒ tour le plus proche à ≤ 1,5 s, sinon intervenant précédent ; intervenants renumérotés par ordre d'apparition (le tour d'étiquette 2 qui parle en premier devient `speaker_1`) ; aucun mot ⇒ liste vide ; ponctuation collée au mot précédent.
+- [x] Tests rouges du cas d'usage : `diarized_json` sans diariseur ⇒ `AudioDiarizationUnavailableError` **avant** tout appel au fournisseur Whisper ; diariseur en erreur ⇒ idem ; succès ⇒ segments avec intervenants ; `json`/`text` inchangés (le diariseur n'est pas appelé).
+- [x] Implémenter le fusionneur, le port, l'adaptateur HTTP (multipart `file`, `num_speakers`, délai réglable, défaut 900 s), la surcharge de `_send_request` (diariser d'abord, puis transmettre, puis fusionner ; le fichier est relu depuis le début entre les deux), l'adaptateur de transcription (mots), la configuration, l'endpoint (501 en français).
+- [x] Vérifier : pytest unitaire + intégration ciblée, `ruff`.
+- [x] Commit : `feat(k12): diarisation et horodatage par segment dans /v1/audio/transcriptions`.
 
 ## Tâche 3 : Service `nexora-diarize`
 
@@ -86,18 +86,18 @@
 
 **Interfaces :** `POST /diarize` (multipart : `file`, `num_speakers` facultatif) ⇒ `{"duration": s, "speakers": n, "turns": [{"start","end","speaker"}]}` ; `GET /health` ; `diarize_samples(samples: np.ndarray, num_speakers: int | None) -> list[Turn]`. Décodage de tout format par PyAV (wav, mp3, m4a, ogg, webm/opus) en 16 kHz mono ; refus au-delà de 3 h ; seuil de regroupement 0,8 réglé par la mesure (tâche 0), `NEXORA_DIARIZE_THRESHOLD` pour l'ajuster.
 
-- [ ] Tests rouges : pipeline (silence ⇒ aucun tour ; deux voix synthétiques ⇒ 2 intervenants ; `num_speakers=1` ⇒ un seul ; tours triés, sans chevauchement du même intervenant) ; application (fichier non audio ⇒ 422 ; absence de `file` ⇒ 422 ; `/health` 200 une fois les modèles chargés).
-- [ ] Implémenter ; Dockerfile : `python:3.12-slim`, utilisateur non-root, modèles téléchargés **au build** (somme SHA-256 vérifiée) dans `/models`, `OMP_NUM_THREADS` ← `NEXORA_DIARIZE_THREADS`.
-- [ ] `docker build` de `nexora/diarize:k12` (image jetable, jamais le tag de la pile) ; lancer `k12-diarize` sur un port libre ; `curl` de la réunion de test ⇒ tours cohérents.
-- [ ] Commit : `feat(k12): service de diarisation sherpa-onnx (CPU)`.
+- [x] Tests rouges : pipeline (silence ⇒ aucun tour ; deux voix synthétiques ⇒ 2 intervenants ; `num_speakers=1` ⇒ un seul ; tours triés, sans chevauchement du même intervenant) ; application (fichier non audio ⇒ 422 ; absence de `file` ⇒ 422 ; `/health` 200 une fois les modèles chargés).
+- [x] Implémenter ; Dockerfile : `python:3.12-slim`, utilisateur non-root, modèles téléchargés **au build** (somme SHA-256 vérifiée) dans `/models`, `OMP_NUM_THREADS` ← `NEXORA_DIARIZE_THREADS`.
+- [x] `docker build` de `nexora/diarize:k12` (image jetable, jamais le tag de la pile) ; lancer `k12-diarize` sur un port libre ; `curl` de la réunion de test ⇒ tours cohérents.
+- [x] Commit : `feat(k12): service de diarisation sherpa-onnx (CPU)`.
 
 ## Tâche 4 : Déploiement — compose, amorçage, installateur
 
 **Fichiers :** `deploy/compose.yml` (service `diarize` du profil `voice`, `NEXORA_DIARIZE_URL`, `NEXORA_TTS_MODEL`), `deploy/nexora-api/config.yml` (`audio_diarization_url`), `deploy/whisper/fetch-whisper-model.py` (plusieurs modèles : `NEXORA_WHISPER_MODEL` et `NEXORA_TTS_MODEL`), `deploy/bootstrap/bootstrap.py` + `test_bootstrap.py` (enregistrement du modèle de synthèse), `install.sh` (texte de la question, « voix locale »), `scripts/tests/test-compose-env.sh`, `scripts/tests/test-install.sh`.
 
-- [ ] Tests rouges : `test-compose-env.sh` (service `diarize` : image épinglée par construction locale, aucun port publié, fils bornés, hors profil par défaut, dépendance de `nexora-api` à `NEXORA_DIARIZE_URL` ; téléchargement des deux modèles avant le serveur hors ligne) ; `test_bootstrap.py` (le routeur `text-to-speech` est créé une fois, son fournisseur `openai` pointe vers speaches avec le modèle `speaches-ai/piper-fr_FR-siwis-medium`, un routeur existant est laissé tel quel, un téléchargement refusé échoue clairement).
-- [ ] Implémenter ; `bash scripts/tests/test-*.sh` et `python3 -m pytest deploy/bootstrap` verts.
-- [ ] Commit : `feat(k12): service diarize, modèle de voix et amorçage dans le déploiement`.
+- [x] Tests rouges : `test-compose-env.sh` (service `diarize` : image épinglée par construction locale, aucun port publié, fils bornés, hors profil par défaut, dépendance de `nexora-api` à `NEXORA_DIARIZE_URL` ; téléchargement des deux modèles avant le serveur hors ligne) ; `test_bootstrap.py` (le routeur `text-to-speech` est créé une fois, son fournisseur `openai` pointe vers speaches avec le modèle `speaches-ai/piper-fr_FR-siwis-medium`, un routeur existant est laissé tel quel, un téléchargement refusé échoue clairement).
+- [x] Implémenter ; `bash scripts/tests/test-*.sh` et `python3 -m pytest deploy/bootstrap` verts.
+- [x] Commit : `feat(k12): service diarize, modèle de voix et amorçage dans le déploiement`.
 
 ## Tâche 5 : WorkStudio — usage « Synthèse vocale », client, lexique
 
@@ -110,64 +110,74 @@
 - `formatSpeakerTranscript(segments): string` (« Intervenant 1 : … » une ligne par prise de parole ; `speaker_n` ⇒ « Intervenant n »).
 - `transcribeMeeting(input, steps): Promise<{transcript; segments; speakers; duration}>` : un seul envoi pour une durée ≤ 60 min, au-delà `NexoraDocumentAiError('too-long')`.
 
-- [ ] Tests rouges (`lexicon`, `speech-text`, `meeting`, `client`) avec les cas du Review Focus 4, 6, 7.
-- [ ] Ajouter l'usage `speech` partout où le typage l'exige ; l'ajout d'un modèle de synthèse se fait par « compatible OpenAI » (Ollama ne synthétise pas).
-- [ ] Vérifier : vitest ciblé, `bun run type-check`. Commit : `feat(k12): usage Synthèse vocale, client Nexora API voix et lexique`.
+- [x] Tests rouges (`lexicon`, `speech-text`, `meeting`, `client`) avec les cas du Review Focus 4, 6, 7.
+- [x] Ajouter l'usage `speech` partout où le typage l'exige ; l'ajout d'un modèle de synthèse se fait par « compatible OpenAI » (Ollama ne synthétise pas).
+- [x] Vérifier : vitest ciblé, `bun run type-check`. Commit : `feat(k12): usage Synthèse vocale, client Nexora API voix et lexique`.
 
 ## Tâche 6 : Lexique de l'entreprise réglable
 
 **Fichiers :** `lib/nexora/voice/lexicon-store.ts` (lecture/écriture dans les métadonnées de l'organisation d'instance, clé `nexoraVoice`, cache LRU 30 s), contrat `lib/api/contracts/nexora-voice.ts`, cas d'usage `lib/nexora/voice/application/`, route `app/api/nexora/voice/lexicon/route.ts`, carte « Lexique de l'entreprise » dans Réglages › Modèles, hook React Query, messages.
 
-- [ ] Tests rouges : la lecture rend `[]` par défaut ; l'écriture refuse un non-administrateur d'instance (403) ; normalise (espaces, doublons, 100 termes) ; invalide le cache.
-- [ ] Implémenter en suivant `budgets` (même garde `requireInstanceAdmin`) ; brancher le lexique dans `transcribeWithNexora` (prompt initial de Whisper, sans écraser le prompt du bloc).
-- [ ] Commit : `feat(k12): lexique de l'entreprise (prompt initial de Whisper)`.
+- [x] Tests rouges : la lecture rend `[]` par défaut ; l'écriture refuse un non-administrateur d'instance (403) ; normalise (espaces, doublons, 100 termes) ; invalide le cache.
+- [x] Implémenter en suivant `budgets` (même garde `requireInstanceAdmin`) ; brancher le lexique dans `transcribeWithNexora` (prompt initial de Whisper, sans écraser le prompt du bloc).
+- [x] Commit : `feat(k12): lexique de l'entreprise (prompt initial de Whisper)`.
 
 ## Tâche 7 : Bloc Synthèse vocale et bloc de transcription
 
 **Fichiers :** `tools/tts/nexora.ts` (`tts_nexora`), `tools/tts/index.ts`, `tools/registry.ts`, `tools/generated/*` (régénérés par le script du dépôt), `blocks/blocks/tts.ts` (fournisseur « Nexora », modèle, voix, vitesse), `lib/internal/tts/execute-tool.ts` + `operations.ts` (`executeNexoraTts`), `lib/internal/tool-operations/registry.server.ts`, `tools/stt/nexora.ts` + `blocks/blocks/stt.ts` (case « Distinguer les intervenants », nombre d'intervenants ; sorties `segments`, `speakers`, `transcriptBySpeaker`), `lib/internal/nexora-document-ai/{schema.ts,execute-tool.ts}`.
 
-- [ ] Tests rouges : exécuteur TTS (texte vide refusé, aucun modèle ⇒ message « Aucun modèle de synthèse vocale », succès ⇒ fichier stocké WAV/MP3 dans l'exécution) ; exécuteur STT (intervenants ⇒ `transcriptBySpeaker` en lignes « Intervenant n : » ; repli sur le texte si le service est absent, avec avertissement dans `warnings`).
-- [ ] Implémenter ; régénérer les artefacts d'outils ; `check:audits` ciblés (`tool-registry-boundary`, `block-registry`).
-- [ ] Commit : `feat(k12): fournisseur Nexora du bloc Synthèse vocale et intervenants dans la transcription`.
+- [x] Tests rouges : exécuteur TTS (texte vide refusé, aucun modèle ⇒ message « Aucun modèle de synthèse vocale », succès ⇒ fichier stocké WAV/MP3 dans l'exécution) ; exécuteur STT (intervenants ⇒ `transcriptBySpeaker` en lignes « Intervenant n : » ; repli sur le texte si le service est absent, avec avertissement dans `warnings`).
+- [x] Implémenter ; régénérer les artefacts d'outils ; `check:audits` ciblés (`tool-registry-boundary`, `block-registry`).
+- [x] Commit : `feat(k12): fournisseur Nexora du bloc Synthèse vocale et intervenants dans la transcription`.
 
 ## Tâche 8 : Passerelle développeur K3 — `/v1/audio/speech`
 
 **Fichiers :** `app/api/nexora/v1/audio/speech/route.ts`, `lib/api/contracts/nexora-openai.ts` (`nexoraSpeechContract`), `lib/nexora/developer-api/models.ts` (`relaySpeech`), `openapi.ts`, `errors.ts` (liste des points d'accès), `proxy.ts`/`proxy.test.ts` (`/v1/audio/speech` non tamponné), tests des routes.
 
-- [ ] Tests rouges : relais (modèle inconnu 404, modèle d'un autre type refusé, octets relayés avec le bon `Content-Type`, jetons comptés au nom du routeur, texte > 4 096 ⇒ 400 en français) ; description OpenAPI ; point d'accès inconnu liste `/v1/audio/speech`.
-- [ ] Implémenter sur le modèle de `relayTranscription` ; Commit : `feat(k12): relais /v1/audio/speech dans la passerelle développeur`.
+- [x] Tests rouges : relais (modèle inconnu 404, modèle d'un autre type refusé, octets relayés avec le bon `Content-Type`, jetons comptés au nom du routeur, texte > 4 096 ⇒ 400 en français) ; description OpenAPI ; point d'accès inconnu liste `/v1/audio/speech`.
+- [x] Implémenter sur le modèle de `relayTranscription` ; Commit : `feat(k12): relais /v1/audio/speech dans la passerelle développeur`.
 
 ## Tâche 9 : Assistant — « Lire à voix haute » et dictée
 
 **Fichiers :** routes `app/api/nexora/assistant/voice/speak/route.ts` et `…/voice/transcribe/route.ts`, contrats (`nexora-voice.ts`), `assistant/hooks/use-read-aloud.ts`, `assistant/hooks/use-dictation.ts`, `assistant/components/{composer.tsx,message-item.tsx}`, état de disponibilité (modèles de synthèse/transcription via `/api/nexora/home` `modelUsages`), messages `assistant.json` fr/en.
 
-- [ ] Tests rouges : routes (401 sans session, 403 hors espace, 400 texte vide/enregistrement vide, 413 enregistrement > 25 Mo, 503 « aucun modèle » en français, succès) ; `use-dictation` (micro refusé ⇒ message, enregistrement vide ⇒ message, succès ⇒ texte inséré à la position du curseur sans effacer le brouillon) ; `use-read-aloud` (un seul son à la fois, arrêt au démontage, Markdown retiré).
-- [ ] Implémenter ; boutons masqués quand le navigateur n'a pas de micro ou que l'usage n'a pas de modèle ; accessibilité (`aria-pressed`, étiquettes).
-- [ ] Commit : `feat(k12): Assistant — lecture à voix haute et dictée au micro`.
+- [x] Tests rouges : routes (401 sans session, 403 hors espace, 400 texte vide/enregistrement vide, 413 enregistrement > 25 Mo, 503 « aucun modèle » en français, succès) ; `use-dictation` (micro refusé ⇒ message, enregistrement vide ⇒ message, succès ⇒ texte inséré à la position du curseur sans effacer le brouillon) ; `use-read-aloud` (un seul son à la fois, arrêt au démontage, Markdown retiré).
+- [x] Implémenter ; boutons masqués quand le navigateur n'a pas de micro ou que l'usage n'a pas de modèle ; accessibilité (`aria-pressed`, étiquettes).
+- [x] Commit : `feat(k12): Assistant — lecture à voix haute et dictée au micro`.
 
 ## Tâche 10 : Modèle PME « Compte rendu de réunion » et fumée
 
 **Fichiers :** `lib/nexora/templates.ts` (constructeur étendu : blocs `stt`, `agent`, `human_in_the_loop_v2`, `smtp` ; champ de départ de type fichier), `templates.test.ts`, `seed-templates.test.ts`, `scripts/smoke.py` (contrôles « Synthèse vocale » et « Réunion », entrée du modèle mise à jour), `docs/verification/k12-reunion/reunion-courte.mp3` (extrait de 45 s, 3 voix), `scripts/verification/fumee-pc6.sh`.
 
-- [ ] Tests rouges : le modèle produit Start(fichier `enregistrement`, texte `participants`, `destinataire`) → Transcription (Nexora, intervenants) → Agent (résumé : décisions, actions) → Validation humaine → E-mail ; les liens `<transcription.transcriptBySpeaker>` et `<résumé.content>` existent ; les autres modèles sont inchangés.
-- [ ] Implémenter ; `check:test-types`.
-- [ ] Fumée « Synthèse vocale » : voix ⇒ WAV audible (durée > 1 s, transcrit en retour par Whisper), via l'API de l'Assistant **et** l'API développeur avec une clé ; fumée « Réunion » : l'extrait de 3 voix ⇒ au moins 2 intervenants, résumé non vide, pause de validation reprise par l'API, e-mail reçu dans Mailpit.
-- [ ] Commit : `feat(k12): modèle « Compte rendu de réunion » avec intervenants et fumée`.
+- [x] Tests rouges : le modèle produit Start(fichier `enregistrement`, texte `participants`, `destinataire`) → Transcription (Nexora, intervenants) → Agent (résumé : décisions, actions) → Validation humaine → E-mail ; les liens `<transcription.transcriptBySpeaker>` et `<résumé.content>` existent ; les autres modèles sont inchangés.
+- [x] Implémenter ; `check:test-types`.
+- [x] Fumée « Synthèse vocale » : voix ⇒ WAV audible (durée > 1 s, transcrit en retour par Whisper), via l'API de l'Assistant **et** l'API développeur avec une clé ; fumée « Réunion » : l'extrait de 3 voix ⇒ au moins 2 intervenants, résumé non vide, pause de validation reprise par l'API, e-mail reçu dans Mailpit.
+- [x] Commit : `feat(k12): modèle « Compte rendu de réunion » avec intervenants et fumée`.
 
 ## Tâche 11 : Vérification réelle sur pc6 (conteneurs jetables, aucun appel externe)
 
-- [ ] Image `nexora/api:k12` construite depuis le worktree, lancée avec Postgres/Redis jetables (`k12-*`) et speaches `k12-speaches` (déjà lancé) + `k12-diarize` ; amorçage du modèle de voix et de Whisper (avec le script `bootstrap.py` de ce worktree).
-- [ ] Réunion de 10 min 3 voix : transcription diarisée par Nexora API ; **DER mesuré et consigné** (`k12_der.py`), temps de traitement, intervenants cohérents ; puis par le modèle PME dans `next dev` (127.0.0.1:3218) avec GLM 5.3 et avec `qwen2.5:7b`.
-- [ ] Assistant au navigateur : « Lire à voix haute » (octets WAV valides, durée > 1 s, lecture démarrée) ; dictée avec un vrai `MediaRecorder` alimenté par un fichier audio ; capture d'écran dans `docs/verification/k12-voix/`.
-- [ ] Mesurer la mémoire et le temps de la diarisation sous charge (8 cœurs visés : `docker update --cpus 8`).
+- [x] Image `nexora/api:k12` construite depuis le worktree, lancée avec Postgres/Redis jetables (`k12-*`) et speaches `k12-speaches` (déjà lancé) + `k12-diarize` ; amorçage du modèle de voix et de Whisper (avec le script `bootstrap.py` de ce worktree).
+- [x] Réunion de 10 min 3 voix : transcription diarisée par Nexora API ; **DER mesuré et consigné** (`k12_der.py`), temps de traitement, intervenants cohérents ; puis par le modèle PME dans `next dev` (127.0.0.1:3218) avec GLM 5.3 et avec `qwen2.5:7b`.
+- [x] Assistant au navigateur : « Lire à voix haute » (octets WAV valides, durée > 1 s, lecture démarrée) ; dictée avec un vrai `MediaRecorder` alimenté par un fichier audio ; capture d'écran dans `docs/verification/k12-voix/`.
+- [ ] ~~Mesurer sous 8 cœurs (`docker update --cpus 8`)~~ : **non fait** (machine partagée à 20 cœurs, charge 20–60) ; durées mesurées sous charge, voir le ledger.
 
 ## Tâche 12 : Documentation, ledger, licences
 
-- [ ] `docs/guide/documents-et-voix.md` : synthèse vocale, intervenants, lexique, dictée, modèle de réunion, limites et durées mesurées ; `THIRD_PARTY_NOTICES.md` ; section **K12** à la fin du ledger (décisions « Ruling : … — pourquoi — coût si faux », preuves, tableau du balayage, DER).
-- [ ] Commit : `docs(k12): guide voix, licences et ledger`.
+- [x] `docs/guide/documents-et-voix.md` : synthèse vocale, intervenants, lexique, dictée, modèle de réunion, limites et durées mesurées ; `THIRD_PARTY_NOTICES.md` ; section **K12** à la fin du ledger (décisions « Ruling : … — pourquoi — coût si faux », preuves, tableau du balayage, DER).
+- [x] Commit : `docs(k12): guide voix, licences et ledger`.
 
 ## Tâche 13 : Fin
 
-- [ ] `git merge main`, résoudre les conflits.
-- [ ] biome sur mes fichiers ; `bun run type-check` ; `check:audits`, `check:test-types`, `check:api-validation:strict` ; pytest + ruff de Nexora API et de `nexora-diarize` ; `bash scripts/tests/test-*.sh` ; `LANG=en_US.UTF-8 bun run --cwd workstudio/apps/sim test` ; `check-i18n/brand/no-ee/licenses`.
-- [ ] Arrêter `next dev` et supprimer `.next/dev` ; supprimer les conteneurs `k12-*` ; commit final.
+- [x] `git merge main`, résoudre les conflits.
+- [x] biome sur mes fichiers ; `bun run type-check` ; `check:audits`, `check:test-types`, `check:api-validation:strict` ; pytest + ruff de Nexora API et de `nexora-diarize` ; `bash scripts/tests/test-*.sh` ; `LANG=en_US.UTF-8 bun run --cwd workstudio/apps/sim test` ; `check-i18n/brand/no-ee/licenses`.
+- [x] Arrêter `next dev` et supprimer `.next/dev` ; supprimer les conteneurs `k12-*` ; commit final.
+
+---
+
+## Écarts constatés à l'exécution
+
+- **Approbation obligatoire** (tâche 10) : le modèle de réunion a reçu un bloc Condition entre la validation et l'e-mail (sans lui, un « non » n'arrêtait rien) ; la fumée vérifie « refus ⇒ rien d'envoyé ».
+- **Délais** (tâche 4 et 5) : fournisseur Whisper à 3 600 s (amorçage, relevé à chaud, Réglages › Modèles) et requête de réunion à 75 min, pour tenir une heure d'enregistrement.
+- **Fumée e-mail** facultative (`NEXORA_SMOKE_MEETING_MAIL=1`) : l'hôte du serveur SMTP doit être autorisé par `EGRESS_ALLOWED_HOSTS` (ou `EGRESS_ALLOWED_IP_RANGES` pour une adresse IP).
+- **Silence de coupure** des segments : 0,8 s (2 s au départ) après mesure.
+- **Mesure à 8 cœurs** non faite ; mesures sous charge.

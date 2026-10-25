@@ -78,11 +78,16 @@ describe('servedUsages', () => {
         { id: 'qwen2.5vl:3b', type: 'image-to-text' },
         { id: 'bge-m3', type: 'text-embeddings-inference' },
       ])
-    ).toEqual({ chat: true, vision: true, transcription: false })
+    ).toEqual({ chat: true, vision: true, transcription: false, speech: false })
   })
 
   it('has no usage on an instance without models', () => {
-    expect(servedUsages([])).toEqual({ chat: false, vision: false, transcription: false })
+    expect(servedUsages([])).toEqual({
+      chat: false,
+      vision: false,
+      transcription: false,
+      speech: false,
+    })
   })
 
   it('counts an untyped entry as a chat model only, like the chat model list', () => {
@@ -90,6 +95,7 @@ describe('servedUsages', () => {
       chat: true,
       vision: false,
       transcription: false,
+      speech: false,
     })
   })
 })

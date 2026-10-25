@@ -223,7 +223,12 @@ export async function transcribeWithNexora(
  * minutes for an hour on a CPU. The default of twenty minutes would cut it.
  */
 const MEETING_REQUEST_MS = 75 * 60 * 1000
-const meetingFetch = createLongFetch(MEETING_REQUEST_MS)
+let meetingFetch: typeof fetch | undefined
+
+function getMeetingFetch(): typeof fetch {
+  meetingFetch ??= createLongFetch(MEETING_REQUEST_MS)
+  return meetingFetch
+}
 
 export interface TranscribeMeetingWithNexoraInput extends MeetingInput {
   model?: string | null
@@ -260,7 +265,7 @@ export async function transcribeMeetingWithNexora(
   const longOptions: NexoraApiOptions = {
     ...options,
     timeoutMs: MEETING_REQUEST_MS,
-    fetchFn: options.fetchFn ?? meetingFetch,
+    fetchFn: options.fetchFn ?? getMeetingFetch(),
   }
   const result = await transcribeMeeting(
     { ...input, prompt },

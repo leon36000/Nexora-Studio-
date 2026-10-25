@@ -77,31 +77,30 @@ describe('Nexora capture templates', () => {
 describe('availableCaptureKinds', () => {
   it('offers nothing while the model usages are unknown or none has a model', () => {
     expect(availableCaptureKinds(null)).toEqual([])
-    expect(availableCaptureKinds({ chat: true, vision: false, transcription: false, speech: false })).toEqual([])
+    expect(
+      availableCaptureKinds({ chat: true, vision: false, transcription: false, speech: false })
+    ).toEqual([])
   })
 
   it('offers a card only for a usage that has a model', () => {
-    expect(availableCaptureKinds({ chat: false, vision: true, transcription: false, speech: false })).toEqual([
-      'document',
-    ])
-    expect(availableCaptureKinds({ chat: false, vision: false, transcription: true, speech: false })).toEqual([
-      'transcription',
-    ])
-    expect(availableCaptureKinds({ chat: true, vision: true, transcription: true, speech: false })).toEqual([
-      'document',
-      'transcription',
-      'extraction',
-    ])
+    expect(
+      availableCaptureKinds({ chat: false, vision: true, transcription: false, speech: false })
+    ).toEqual(['document'])
+    expect(
+      availableCaptureKinds({ chat: false, vision: false, transcription: true, speech: false })
+    ).toEqual(['transcription'])
+    expect(
+      availableCaptureKinds({ chat: true, vision: true, transcription: true, speech: false })
+    ).toEqual(['document', 'transcription', 'extraction'])
   })
 
   it('offers the extraction only with both a vision and a chat model', () => {
-    expect(availableCaptureKinds({ chat: false, vision: true, transcription: false, speech: false })).toEqual([
-      'document',
-    ])
-    expect(availableCaptureKinds({ chat: true, vision: true, transcription: false, speech: false })).toEqual([
-      'document',
-      'extraction',
-    ])
+    expect(
+      availableCaptureKinds({ chat: false, vision: true, transcription: false, speech: false })
+    ).toEqual(['document'])
+    expect(
+      availableCaptureKinds({ chat: true, vision: true, transcription: false, speech: false })
+    ).toEqual(['document', 'extraction'])
   })
 })
 
