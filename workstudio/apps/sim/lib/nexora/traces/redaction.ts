@@ -118,6 +118,26 @@ const PASSES: Array<(text: string) => RedactedText> = [
   (text) => replaceMatches(text, PHONE_FRENCH, '[TÉLÉPHONE]'),
 ]
 
+const TRACE_MARK_BY_SERVICE_ENTITY: Readonly<Record<string, string>> = {
+  IBAN_CODE: '[IBAN]',
+  EMAIL_ADDRESS: '[E-MAIL]',
+  CREDIT_CARD: '[CARTE]',
+  PHONE_NUMBER: '[TÉLÉPHONE]',
+}
+const SERVICE_ENTITY_MARK = /<(IBAN_CODE|EMAIL_ADDRESS|CREDIT_CARD|PHONE_NUMBER)>/g
+
+/**
+ * A text masked by the local personal-data service, with the marks the patterns write for the
+ * entities they also know: a trace reads `[IBAN]` whether or not the service is installed. Names
+ * and the entities only the service knows keep its marks (`<PERSON>`).
+ */
+export function withTraceMarks(text: string): string {
+  return text.replace(
+    SERVICE_ENTITY_MARK,
+    (_mark, entity: string) => TRACE_MARK_BY_SERVICE_ENTITY[entity]
+  )
+}
+
 export function redactText(text: string, mode: RedactionMode): RedactedText {
   if (mode === 'none' || typeof text !== 'string' || text === '') return { text, masked: 0 }
   let current = text

@@ -1329,7 +1329,8 @@ print(json.dumps(summary))
             status, text = s.call("POST", f"/api/chat/{identifier}", {"input": f"Mon IBAN est {iban} et mon e-mail jean.dupont@exemple.fr : confirme en une phrase que tu les as notés.", "conversationId": secrets.token_hex(8)}, raw=True, timeout=300)
             require(status == 200, f"chat with an IBAN returned HTTP {status}")
             found = wait_for(lambda t: "[IBAN]" in (t.get("inputPreview") or ""))
-            require(found, "the question with an IBAN left no trace")
+            require(found, "the question with an IBAN left no trace: "
+                    + str([(t["source"], t["status"], (t.get("inputPreview") or "")[:120]) for t in traces_of(s)[:6]]))
             _, detail = s.call("GET", f"/api/nexora/traces/{found[0]['id']}?workspaceId={ws}")
             dump = json.dumps(detail)
             require("3000 6000" not in dump and "7630006000" not in dump and "jean.dupont@exemple.fr" not in dump, "an IBAN or an e-mail address is readable in the stored trace")
@@ -1605,7 +1606,8 @@ print(json.dumps(summary))
                 {"input": ("long-input", "<start.input>"), "validationType": ("dropdown", "pii"),
                  "piiEntityTypes": ("grouped-checkbox-list", ["IBAN_CODE", "EMAIL_ADDRESS"]),
                  "piiMode": ("dropdown", "block"), "piiLanguage": ("dropdown", "fr")},
-                f"Mon IBAN est {iban}, écrivez à {email_address}.")
+                # A Start without declared fields exposes a bare string body as nothing: « <start.input> » reads the « input » key.
+                {"input": f"Mon IBAN est {iban}, écrivez à {email_address}."})
             try:
                 require(status == 200, f"guardrails run returned HTTP {status}: {str(run)[:200]}")
                 out = run.get("output") or {}
@@ -1648,7 +1650,8 @@ print(json.dumps(summary))
                 # (c) « refuser »
                 set_mode("refuse")
                 status, refused = s.call("POST", "/api/nexora/playground", {
-                    "workspaceId": ws, "model": f"vllm/{default['name']}", "messages": [{"role": "user", "content": question}]})
+                    "workspaceId": ws, "model": f"vllm/{default['name']}", "temperature": 0.2, "maxTokens": 256,
+                    "messages": [{"role": "user", "content": question}]})
                 require(status == 403 and refused.get("error") == "personal_data" and "IBAN" in refused.get("reason", ""),
                         f"Playground under « refuser »: HTTP {status} {refused}")
                 notes.append("« refuser » : 403 en français")

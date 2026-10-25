@@ -2,7 +2,7 @@
  * @vitest-environment node
  */
 import { describe, expect, it } from 'vitest'
-import { redactText, redactValue } from '@/lib/nexora/traces/redaction'
+import { redactText, redactValue, withTraceMarks } from '@/lib/nexora/traces/redaction'
 
 describe('redactText', () => {
   it.each([
@@ -148,5 +148,25 @@ describe('redactValue', () => {
     loop.self = loop
     const result = redactValue(loop, 'standard')
     expect((result.value as { text: string }).text).toBe('[E-MAIL]')
+  })
+})
+
+describe('withTraceMarks', () => {
+  it.each([
+    ['IBAN <IBAN_CODE> reçu', 'IBAN [IBAN] reçu'],
+    ['écrire à <EMAIL_ADDRESS>', 'écrire à [E-MAIL]'],
+    ['carte <CREDIT_CARD>', 'carte [CARTE]'],
+    ['appeler le <PHONE_NUMBER>', 'appeler le [TÉLÉPHONE]'],
+    ['<IBAN_CODE> et <IBAN_CODE>', '[IBAN] et [IBAN]'],
+  ])(
+    'écrit dans « %s » la marque des traces, la même qu’avec les motifs seuls',
+    (input, expected) => {
+      expect(withTraceMarks(input)).toBe(expected)
+    }
+  )
+
+  it('laisse les entités que les motifs ne connaissent pas', () => {
+    const text = 'Bonjour <PERSON>, depuis <IP_ADDRESS> (<FR_NIR>)'
+    expect(withTraceMarks(text)).toBe(text)
   })
 })
