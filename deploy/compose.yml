@@ -292,11 +292,15 @@ services:
       context: ../workstudio
       dockerfile: docker/cron.Dockerfile
     image: ${NEXORA_IMAGE_PREFIX:-nexora/}cron:${NEXORA_VERSION:-local}
-    restart: on-failure
+    # Back after a host reboot: supercronic exits 0 on shutdown, which `on-failure` never restarts.
+    restart: unless-stopped
     environment:
       SIM_URL: http://workstudio:3000
       CRON_SECRET: ${CRON_SECRET:?run scripts/init-env.sh first}
-      TZ: ${NEXORA_TIME_ZONE:-Europe/Paris}
+      # The job clock stays on UTC: every job is an interval or housekeeping, and a local zone
+      # stalls the scheduler for an hour each autumn (02:00–03:00 happens twice). Workflow
+      # schedules keep their own time zone, applied by WorkStudio.
+      TZ: UTC
     depends_on:
       workstudio:
         condition: service_healthy
