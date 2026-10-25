@@ -74,6 +74,8 @@ services:
       NEXORA_UPSTREAM_URL: ${NEXORA_UPSTREAM_URL:?set the model provider in deploy/.env}
       NEXORA_UPSTREAM_MODEL: ${NEXORA_UPSTREAM_MODEL:?set the model provider in deploy/.env}
       NEXORA_UPSTREAM_KEY: ${NEXORA_UPSTREAM_KEY:-none}
+      # Speaker diarization (profile « voice »): where to ask who speaks when.
+      NEXORA_DIARIZE_URL: ${NEXORA_DIARIZE_URL:-http://diarize:8001}
     volumes:
       - ./nexora-api/config.yml:/config.yml:ro
     extra_hosts:
@@ -115,6 +117,7 @@ services:
       # transcription model. Empty: nothing to register.
       NEXORA_WHISPER_URL: ${NEXORA_WHISPER_URL:-}
       NEXORA_WHISPER_MODEL: ${NEXORA_WHISPER_MODEL:-Systran/faster-whisper-small}
+      NEXORA_TTS_MODEL: ${NEXORA_TTS_MODEL:-speaches-ai/piper-fr_FR-siwis-medium}
     volumes:
       - ./bootstrap/bootstrap.py:/bootstrap-script/bootstrap.py:ro
       - bootstrap:/bootstrap
@@ -351,7 +354,9 @@ services:
       # Loading the model (after each idle period) never contacts Hugging Face.
       HF_HUB_OFFLINE: '1'
       NEXORA_WHISPER_MODEL: ${NEXORA_WHISPER_MODEL:-Systran/faster-whisper-small}
-    # The model is fetched once, online, only while missing from the volume; then the server starts
+      # The French voice of speech synthesis (Piper, CC-BY-4.0), fetched with the Whisper model.
+      NEXORA_TTS_MODEL: ${NEXORA_TTS_MODEL:-speaches-ai/piper-fr_FR-siwis-medium}
+    # The models are fetched once, online, only while missing from the volume; then the server starts
     # offline (the image's own command).
     command:
       - sh
@@ -366,6 +371,24 @@ services:
       timeout: 5s
       retries: 30
       start_period: 20s
+
+  # Speaker diarization (profile « voice »): who speaks when in a recording, on the CPU and offline
+  # (sherpa-onnx; its two models are baked into the image). Nexora API asks it for
+  # `response_format=diarized_json`; internal network only.
+  diarize:
+    build:
+      context: ../services/nexora-diarize
+    image: ${NEXORA_IMAGE_PREFIX:-nexora/}diarize:${NEXORA_VERSION:-local}
+    profiles: [voice]
+    restart: unless-stopped
+    environment:
+      NEXORA_DIARIZE_THREADS: ${NEXORA_DIARIZE_THREADS:-2}
+    healthcheck:
+      test: ['CMD', 'python', '-c', "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8001/health', timeout=3)"]
+      interval: 10s
+      timeout: 5s
+      retries: 30
+      start_period: 15s
 
   # Local model server, always present: it serves the knowledge-base embeddings (bge-m3) and,
   # when chosen, the chat model (NEXORA_UPSTREAM_URL=http://ollama:11434). CPU by default.

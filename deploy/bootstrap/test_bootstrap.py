@@ -74,7 +74,10 @@ class FakeApi(BaseHTTPRequestHandler):
     def do_POST(self):
         s, body = self.state, self._body()
         if self.path.startswith("/v1/models/"):  # the transcription service downloads a model
-            s.setdefault("downloads", []).append(self.path.removeprefix("/v1/models/"))
+            model = self.path.removeprefix("/v1/models/")
+            if model in s.get("refused_downloads", []):
+                return self._json(500, {"detail": "offline"})
+            s.setdefault("downloads", []).append(model)
             return self._json(200, {})
         if self.path == "/v1/auth/login":
             ok = body == {"email": "admin", "password": "pw"}
@@ -424,6 +427,43 @@ class BootstrapTest(unittest.TestCase):
         FakeApi.state["unreachable_provider_url"] = self.url
         self.run_bootstrap(voice=self.voice())
         self.assertEqual(self.transcription_routers(), [])
+
+    VOICE = "speaches-ai/piper-fr_FR-siwis-medium"
+
+    def speech_routers(self):
+        return [r for r in FakeApi.state["routers"].values() if r["type"] == "text-to-speech"]
+
+    def test_registers_the_local_voice_once_beside_the_transcription_model(self):
+        self.run_bootstrap(voice=self.voice(tts_model=self.VOICE))
+        self.run_bootstrap(voice=self.voice(tts_model=self.VOICE))
+        (router,) = self.speech_routers()
+        self.assertEqual((router["name"], router["aliases"]), ("piper-fr-fr-siwis-medium", []))
+        (provider,) = self.providers_of(router)
+        self.assertEqual(
+            (provider["type"], provider["url"], provider["model_name"], provider["key"], provider["timeout"]),
+            ("openai", self.url.lower() + "/", self.VOICE, "none", 600),
+        )
+        self.assertEqual(FakeApi.state["downloads"], ["Systran/faster-whisper-small", self.VOICE])
+        self.assertEqual(len(self.transcription_routers()), 1)
+
+    def test_a_voice_that_cannot_be_fetched_keeps_the_transcription_model(self):
+        FakeApi.state["refused_downloads"] = [self.VOICE]
+        key = self.run_bootstrap(voice=self.voice(tts_model=self.VOICE))
+        self.assertEqual(FakeApi.state["keys"][key]["email"], bootstrap.WORKSTUDIO_EMAIL)
+        self.assertEqual(self.speech_routers(), [])
+        self.assertEqual(len(self.transcription_routers()), 1)
+
+    def test_no_voice_is_registered_unless_one_is_asked_for(self):
+        self.run_bootstrap(voice=self.voice())
+        self.assertEqual(self.speech_routers(), [])
+
+    def test_a_refused_voice_provider_leaves_no_empty_router(self):
+        FakeApi.state["unreachable_provider_url"] = self.url
+        self.run_bootstrap(voice=self.voice(tts_model=self.VOICE))
+        self.assertEqual(self.speech_routers(), [])
+
+    def test_names_the_voice_model_without_its_organization_or_underscores(self):
+        self.assertEqual(bootstrap.speech_router_name("speaches-ai/piper-fr_FR-siwis-medium"), "piper-fr-fr-siwis-medium")
 
     def test_names_the_transcription_model_after_its_size(self):
         self.assertEqual(bootstrap.transcription_router_name("Systran/faster-whisper-small"), "whisper-small")
