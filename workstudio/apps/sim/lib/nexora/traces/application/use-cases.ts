@@ -175,11 +175,21 @@ export const testTraceExport = defineAuthorizedOrganizationUseCase({
   },
 })
 
+/**
+ * Deletes the traces older than the retention (and, for the whole instance, the old Assistant
+ * conversations). `asOf` plays another clock, so it needs a workspace to stay within.
+ */
 export const purgeNexoraTraces = defineAuthorizedOrganizationUseCase({
   operation: nexoraTraceOperations.purge,
   execute: async ({
     input,
   }: OrganizationUseCaseContext<InstanceInput & { workspaceId?: string; asOf?: Date }>) => {
+    if (input.asOf && !input.workspaceId) {
+      throw new OrchestrationError(
+        'validation',
+        'A simulated clock only applies to one workspace: it cannot purge the whole instance'
+      )
+    }
     const settings = await loadTraceSettings()
     const now = input.asOf ?? new Date()
     const traces = await purgeTraces({
