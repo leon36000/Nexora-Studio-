@@ -44,6 +44,10 @@ Un changement d'étiquette s'applique au message suivant de l'agent. Si plusieur
 
 Un prompt supprimé fait échouer les agents qui l'utilisent, avec un message clair, jusqu'à ce que leurs consignes soient changées. Un workflow copié dans un autre espace garde la référence au prompt de l'espace d'origine : choisissez-en un dans le nouvel espace.
 
+## Mesurer un prompt avant de le mettre en production
+
+Une version enregistrée se **mesure** avant d’être promue : dans [Évaluations](evaluations.md), une campagne fait passer un jeu de questions à la version actuelle (`@production`) et à la nouvelle (`@test` ou son numéro), un juge décide si chaque réponse est bonne, et la comparaison ligne à ligne montre ce qui s’améliore et ce qui régresse. Une campagne planifiée relit l’étiquette `@production` à chaque lancement et alerte quand le taux de réussite passe sous le seuil.
+
 ## API
 
 Avec une clé de **workflows** (Réglages › Clés API, section du bas : clé personnelle ou clé d'espace), l'API v2 de WorkStudio lit et versionne les prompts. `{promptId}` accepte l'identifiant **ou le nom** du prompt.

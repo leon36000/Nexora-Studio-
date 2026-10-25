@@ -1,0 +1,363 @@
+{
+  "navLabel": "Evaluations",
+  "metaTitle": "Evaluations",
+  "campaignMetaTitle": "Evaluation campaign",
+  "datasetMetaTitle": "Test set",
+  "compareMetaTitle": "Campaign comparison",
+  "title": "Evaluations",
+  "help": "Help",
+  "cancel": "Cancel",
+  "tabs": {
+    "campaigns": "Campaigns",
+    "datasets": "Test sets",
+    "judges": "Judges",
+    "schedules": "Schedules"
+  },
+  "status": {
+    "pending": "Pending",
+    "running": "Running",
+    "completed": "Completed",
+    "cancelled": "Cancelled",
+    "interrupted": "Interrupted",
+    "failed": "Failed",
+    "done": "Done",
+    "error": "Error"
+  },
+  "verdicts": {
+    "pass": "Passed",
+    "fail": "Failed",
+    "error": "Error"
+  },
+  "alerts": {
+    "title": "Evaluation alerts",
+    "belowThreshold": "“{campaign}”: {target} passes {rate} of the questions, under the {threshold} threshold.",
+    "noResult": "“{campaign}”: {target} produced no usable result.",
+    "campaignStopped": "“{campaign}” stopped before the end (monthly budget reached or error).",
+    "view": "View",
+    "acknowledge": "Acknowledge",
+    "acknowledgeFailed": "The alert could not be acknowledged."
+  },
+  "campaigns": {
+    "new": "New campaign",
+    "loadFailed": "The campaigns could not be loaded.",
+    "empty": "No campaigns. Create a test set and a judge, then launch your first campaign.",
+    "progress": "{finished} / {total}"
+  },
+  "datasets": {
+    "new": "New test set",
+    "loadFailed": "The test sets could not be loaded.",
+    "empty": "No test sets. Import a file, a table, traces or your Assistant conversations.",
+    "summary": "{rows, plural, one {# row} other {# rows}} · {annotated} annotated"
+  },
+  "judges": {
+    "new": "New judge",
+    "loadFailed": "The judges could not be loaded.",
+    "empty": "No judges. A judge decides whether an answer is good: a model that classifies or grades, or a rule.",
+    "edit": "Edit",
+    "delete": "Delete",
+    "deleteFailed": "The judge could not be deleted.",
+    "deleteTitle": "Delete the judge “{name}”?",
+    "deleteText": "A judge used by a campaign or a schedule cannot be deleted."
+  },
+  "schedules": {
+    "new": "New schedule",
+    "loadFailed": "The schedules could not be loaded.",
+    "empty": "No schedules. A scheduled campaign runs on its own, overnight for instance, and raises an alert under the threshold.",
+    "timetable": "{cron} ({timezone})",
+    "threshold": "alert under {value}%",
+    "next": "Next run: {date}",
+    "last": "Last run: {date}",
+    "run": "Run now",
+    "delete": "Delete",
+    "runFailed": "The campaign could not be launched.",
+    "deleteFailed": "The schedule could not be deleted.",
+    "deleteTitle": "Delete the schedule “{name}”?",
+    "deleteText": "Campaigns already launched are kept."
+  },
+  "targets": {
+    "kind": "Target type",
+    "kinds": {
+      "model": "Model",
+      "prompt": "Prompt",
+      "agent": "Agent"
+    },
+    "remove": "Remove this target",
+    "system": "Instructions (optional)",
+    "choosePrompt": "Choose a prompt",
+    "chooseAgent": "Choose a published agent",
+    "selectors": {
+      "production": "@production",
+      "test": "@test",
+      "latest": "Latest version"
+    },
+    "add": "Add a target"
+  },
+  "campaignModal": {
+    "title": "New campaign",
+    "name": "Name",
+    "dataset": "Test set",
+    "datasetOption": "{name} ({rows, plural, one {# row} other {# rows}})",
+    "noDataset": "No test sets",
+    "judge": "Judge",
+    "noJudge": "No judges",
+    "targets": "Targets to compare",
+    "concurrency": "Questions in parallel",
+    "concurrencyHint": "2 by default: the Assistant keeps priority and a local model on a processor is slow.",
+    "threshold": "Alert threshold (% passed)",
+    "thresholdHint": "Leave empty for no alert.",
+    "thresholdInvalid": "Enter a number between 0 and 100.",
+    "failed": "The campaign could not be launched.",
+    "starting": "Launching…",
+    "start": "Launch the campaign"
+  },
+  "scheduleModal": {
+    "title": "New schedule",
+    "name": "Name",
+    "when": "When",
+    "presets": {
+      "nightly3": "Every night at 3 am",
+      "nightly2": "Every night at 2 am",
+      "weekly": "Every Monday at 7 am",
+      "hourly": "Every hour",
+      "custom": "Custom expression"
+    },
+    "cron": "Expression",
+    "cronHint": "Five fields: minute hour day month weekday, for example 0 3 * * *.",
+    "timezone": "Time zone",
+    "dataset": "Test set",
+    "noDataset": "No test sets",
+    "judge": "Judge",
+    "noJudge": "No judges",
+    "targets": "Targets to evaluate",
+    "threshold": "Alert threshold (% passed)",
+    "thresholdHint": "An alert appears on the page, and is e-mailed when the e-mail server is configured, when a target passes less than this threshold.",
+    "thresholdInvalid": "Enter a number between 0 and 100.",
+    "failed": "The schedule could not be saved.",
+    "saving": "Saving…",
+    "save": "Schedule"
+  },
+  "judgeModal": {
+    "title": "New judge",
+    "editTitle": "Edit the judge",
+    "name": "Name",
+    "kind": "Judge type",
+    "kinds": {
+      "llm_class": "Model that classifies",
+      "llm_score": "Model that grades",
+      "contains": "Rule: contains",
+      "regex": "Rule: regular expression",
+      "json_valid": "Rule: valid JSON",
+      "semantic": "Semantic similarity"
+    },
+    "model": "Judge model",
+    "instructions": "Judge instructions",
+    "instructionsHint": "What a good answer must contain. The judge receives the question, the expected answer, the row’s guidance and the answer to judge.",
+    "labels": "Possible labels",
+    "labelsHint": "Separated by commas, for example: correct, incorrect.",
+    "passLabels": "Labels that count as a pass",
+    "min": "Minimum grade",
+    "max": "Maximum grade",
+    "passAt": "Pass from",
+    "passAtHint": "A grade at or above this threshold is a pass.",
+    "contains": {
+      "source": "Text to look for",
+      "expected": "The expected answer",
+      "text": "A fixed text",
+      "value": "Text"
+    },
+    "pattern": "Regular expression",
+    "patternHint": "No lookarounds or back-references: the check stays fast.",
+    "case": "Case",
+    "caseIgnore": "Ignored",
+    "caseRespect": "Respected",
+    "keys": "Required keys",
+    "keysHint": "Separated by commas. Empty: the JSON only has to be valid.",
+    "similarity": "Minimum similarity",
+    "similarityHint": "From 0 to 1: the cosine of the embeddings of the answer and of the expected answer (the instance’s local model).",
+    "try": {
+      "title": "Try",
+      "hint": "The judge is tried on up to 10 rows, starting with the annotated ones.",
+      "noDataset": "Create a test set first to try this judge.",
+      "dataset": "Test set",
+      "run": "Try on 10 rows",
+      "running": "Trying…",
+      "agreement": "Agreement with your annotations: {matched} of {total} ({rate})",
+      "noAnnotation": "None of the tried rows is annotated: no agreement to measure.",
+      "human": "You",
+      "judge": "Judge",
+      "expectedUsed": "(expected answer)"
+    },
+    "verdicts": {
+      "pass": "Passed",
+      "fail": "Failed",
+      "error": "Error"
+    },
+    "failed": "The judge could not be saved.",
+    "tryFailed": "The trial failed.",
+    "saving": "Saving…",
+    "save": "Save the judge"
+  },
+  "datasetModal": {
+    "title": "New test set",
+    "name": "Name",
+    "description": "Description",
+    "source": "Source",
+    "sources": {
+      "file": "File",
+      "table": "Table",
+      "traces": "Traces",
+      "conversations": "Conversations",
+      "empty": "Empty"
+    },
+    "file": {
+      "title": "CSV or JSONL file",
+      "picked": "{name} — click to replace it",
+      "drop": "Drop a file or click to choose one",
+      "dragging": "Drop the file here",
+      "formats": "CSV or JSONL, 25 MB at most. Recognized columns: question, expected, guidance, answer, verdict, justification."
+    },
+    "fileTooLarge": "This file is larger than 25 MB.",
+    "loading": "Loading…",
+    "table": {
+      "title": "Workspace table",
+      "choose": "Choose a table",
+      "option": "{name} ({rows, plural, one {# row} other {# rows}})",
+      "hint": "The rows are copied: changing the table afterwards does not change campaigns already launched."
+    },
+    "traces": {
+      "title": "Traces to import",
+      "hint": "Each trace becomes a row: its question and the answer obtained. You only see the traces you can read.",
+      "empty": "No recent traces."
+    },
+    "conversations": {
+      "title": "Your conversations with the Assistant",
+      "consent": "I agree that my questions and the answers of these conversations serve as test rows for this workspace.",
+      "empty": "You have no conversations with the Assistant in this workspace."
+    },
+    "skipped": "{count, plural, one {# row skipped (no question).} other {# rows skipped (no question or unreadable).}}",
+    "failed": "The test set could not be created.",
+    "creating": "Creating…",
+    "create": "Create the test set"
+  },
+  "summary": {
+    "target": "Target",
+    "passRate": "Pass rate",
+    "meanScore": "Mean grade",
+    "latencyP50": "Latency p50",
+    "latencyP95": "Latency p95",
+    "tokens": "Tokens",
+    "co2": "CO₂",
+    "errors": "Errors",
+    "passed": "{passed} passed out of {finished} finished"
+  },
+  "campaign": {
+    "back": "Evaluations",
+    "loadFailed": "The campaign could not be loaded.",
+    "cancel": "Cancel the campaign",
+    "delete": "Delete",
+    "context": "Test set: {dataset} · Judge: {judge} · {concurrency, plural, one {# question} other {# questions}} in parallel",
+    "progress": "{finished} items finished out of {total}",
+    "started": "launched on {date}",
+    "duration": "duration {value}",
+    "threshold": "Alert under {value} passed",
+    "statistics": "Statistics per target",
+    "compare": "Compare two series",
+    "versus": "against",
+    "compareAction": "Compare",
+    "answers": "Answers",
+    "views": {
+      "all": "All",
+      "problems": "Failures and errors"
+    },
+    "question": "Question",
+    "expected": "Expected: {value}",
+    "cancelTitle": "Cancel this campaign?",
+    "cancelText": "Items in progress are interrupted, the others will not start. Results already obtained are kept.",
+    "deleteTitle": "Delete this campaign?",
+    "deleteText": "Its results and statistics will be lost.",
+    "keep": "Keep",
+    "actionFailed": "The action failed."
+  },
+  "rowModal": {
+    "title": "Add a row",
+    "editTitle": "Edit the row",
+    "input": "Question",
+    "expected": "Expected answer",
+    "guidance": "Grading guidance",
+    "guidanceHint": "What the judge must check for this question only.",
+    "candidate": "Annotated answer",
+    "candidateHint": "An answer you judged yourself: it measures how well a judge agrees with you.",
+    "verdict": "Your verdict",
+    "verdicts": {
+      "none": "No annotation",
+      "pass": "Passed",
+      "fail": "Failed"
+    },
+    "note": "Justification",
+    "failed": "The row could not be saved.",
+    "saving": "Saving…",
+    "save": "Save"
+  },
+  "dataset": {
+    "back": "Test sets",
+    "loadFailed": "The test set could not be loaded.",
+    "addRow": "Add a row",
+    "delete": "Delete",
+    "cancel": "Cancel",
+    "summary": "{rows, plural, one {# row} other {# rows}} · {annotated} annotated · source: {source}",
+    "sources": {
+      "manual": "typed in",
+      "empty": "typed in",
+      "csv": "CSV file",
+      "jsonl": "JSONL file",
+      "table": "table",
+      "traces": "traces",
+      "conversations": "conversations"
+    },
+    "empty": "This test set is empty.",
+    "input": "Question",
+    "expected": "Expected answer",
+    "annotation": "Annotation",
+    "verdicts": {
+      "pass": "Passed",
+      "fail": "Failed"
+    },
+    "edit": "Edit",
+    "deleteRow": "Remove",
+    "deleteRowFailed": "The row could not be removed.",
+    "deleteFailed": "The test set could not be deleted (a campaign or a schedule may use it).",
+    "deleteTitle": "Delete the test set “{name}”?",
+    "deleteText": "Its rows will be lost. Campaigns already launched keep their copy.",
+    "previous": "Previous",
+    "next": "Next",
+    "page": "Rows {from} to {to} of {total}"
+  },
+  "comparison": {
+    "back": "Evaluations",
+    "loadFailed": "The comparison could not be loaded.",
+    "title": "Row-by-row comparison",
+    "statistics": "Statistics",
+    "rows": "Rows",
+    "counts": {
+      "improved": "{count, plural, one {# improvement} other {# improvements}}",
+      "regressed": "{count, plural, one {# regression} other {# regressions}}",
+      "same": "{count, plural, one {# identical row} other {# identical rows}}",
+      "missing": "{count, plural, one {# row missing on one side} other {# rows missing on one side}}"
+    },
+    "filters": {
+      "all": "All",
+      "differences": "Differences",
+      "regressed": "Regressions",
+      "improved": "Improvements"
+    },
+    "question": "Question",
+    "change": "Change",
+    "changes": {
+      "improved": "Improvement",
+      "regressed": "Regression",
+      "same": "Identical",
+      "only_a": "Only in A",
+      "only_b": "Only in B"
+    }
+  }
+}

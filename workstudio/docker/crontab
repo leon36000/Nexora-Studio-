@@ -59,6 +59,9 @@ SHELL=/bin/sh
 # Fails runs whose worker died without a terminal state and prunes their history
 */30 * * * * curl -fsS -m 60 -o /dev/null -H "Authorization: Bearer $CRON_SECRET" "$SIM_URL/api/cron/cleanup-stale-executions"
 
+# Nexora edition: scheduled evaluation campaigns, and adoption of the campaigns whose server stopped
+*/1 * * * * curl -fsS -m 60 -o /dev/null -H "Authorization: Bearer $CRON_SECRET" "$SIM_URL/api/cron/run-nexora-evaluations"
+
 # Nexora edition: trace retention (and Assistant conversation retention when set)
 17 * * * * curl -fsS -m 300 -o /dev/null -H "Authorization: Bearer $CRON_SECRET" "$SIM_URL/api/cron/purge-nexora-traces"
 

@@ -33,6 +33,7 @@ import {
   Files,
   FileText,
   Integration,
+  ListChecks,
   MessageSquareText,
   MoreHorizontal,
   PanelLeft,
@@ -419,6 +420,7 @@ export const Sidebar = memo(function Sidebar({ organizationHref, desktopExecutor
   const tCopilot = useTranslations('copilot.entry')
   const tDevelopers = useTranslations('developers.page')
   const tTraces = useTranslations('traces')
+  const tEvaluations = useTranslations('evaluations')
   const navCopy = useSettingsNavCopy()
   const params = useParams()
   const workspaceId = params.workspaceId as string
@@ -845,6 +847,14 @@ export const Sidebar = memo(function Sidebar({ organizationHref, desktopExecutor
           hidden: chatEnabled,
         },
         {
+          // Nexora edition: test sets, judges and campaigns that measure agents, prompts and models.
+          id: 'evaluations',
+          label: tEvaluations('navLabel'),
+          icon: ListChecks,
+          href: `/workspace/${workspaceId}/evaluations`,
+          hidden: chatEnabled,
+        },
+        {
           id: 'home',
           label: chatEnabled ? t('nav.newChat') : t('nav.newWorkflow'),
           icon: chatEnabled ? Home : Plus,
@@ -887,6 +897,7 @@ export const Sidebar = memo(function Sidebar({ organizationHref, desktopExecutor
       t,
       tDevelopers,
       tTraces,
+      tEvaluations,
       workspaceId,
       createWorkflow,
       canEdit,

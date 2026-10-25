@@ -63,6 +63,25 @@ describe('Nexora wand', () => {
     })
   })
 
+  it('lets an evaluation pick the model, a zero temperature and a token ceiling, and traces that model', async () => {
+    fetchMock.mockResolvedValue(
+      Response.json({ choices: [{ message: { content: 'ok' } }], usage: { prompt_tokens: 3 } })
+    )
+    await nexoraWandComplete({
+      messages,
+      model: 'qwen2.5:7b',
+      temperature: 0,
+      maxTokens: 700,
+      trace: { source: 'playground', workspaceId: 'ws-1', userId: 'user-1', name: 'Évaluation' },
+    })
+    expect(JSON.parse(fetchMock.mock.calls[0][1].body)).toMatchObject({
+      model: 'qwen2.5:7b',
+      temperature: 0,
+      max_tokens: 700,
+    })
+    expect(vi.mocked(recordTrace).mock.calls.at(-1)?.[0].spans[0].model).toBe('qwen2.5:7b')
+  })
+
   it('asks for a JSON object only when the caller wants JSON mode', async () => {
     fetchMock.mockImplementation(async () =>
       Response.json({ choices: [{ message: { content: '{"ok":true}' } }] })

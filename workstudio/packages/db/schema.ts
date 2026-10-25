@@ -8869,3 +8869,225 @@ export const nexoraTraceSpan = pgTable(
     index('nexora_trace_span_order_idx').on(t.traceId, t.position),
   ]
 )
+
+/**
+ * Nexora edition: a test set of a workspace for evaluations (questions, expected answers, grading
+ * guidance, and the human annotations a judge is calibrated against). Its rows are its own
+ * snapshot, imported from a Sim table, a CSV or JSONL file, traces or Assistant conversations.
+ */
+export const nexoraEvalDataset = pgTable(
+  'nexora_eval_dataset',
+  {
+    id: text('id').primaryKey(),
+    workspaceId: text('workspace_id')
+      .notNull()
+      .references(() => workspace.id, { onDelete: 'cascade' }),
+    name: text('name').notNull(),
+    description: text('description').notNull().default(''),
+    source: text('source').notNull().default('manual'),
+    createdBy: text('created_by').references(() => user.id, { onDelete: 'set null' }),
+    createdAt: timestamp('created_at').notNull().defaultNow(),
+    updatedAt: timestamp('updated_at').notNull().defaultNow(),
+  },
+  (t) => [
+    uniqueIndex('nexora_eval_dataset_workspace_name_idx').on(t.workspaceId, sql`lower(${t.name})`),
+    index('nexora_eval_dataset_workspace_updated_idx').on(t.workspaceId, t.updatedAt),
+  ]
+)
+
+/** Nexora edition: one row of a test set. `candidate` and `humanVerdict` hold an annotated answer. */
+export const nexoraEvalRow = pgTable(
+  'nexora_eval_row',
+  {
+    id: text('id').primaryKey(),
+    datasetId: text('dataset_id')
+      .notNull()
+      .references(() => nexoraEvalDataset.id, { onDelete: 'cascade' }),
+    position: integer('position').notNull(),
+    input: text('input').notNull(),
+    expected: text('expected'),
+    guidance: text('guidance'),
+    candidate: text('candidate'),
+    humanVerdict: text('human_verdict'),
+    humanNote: text('human_note'),
+    sourceRef: text('source_ref'),
+    createdAt: timestamp('created_at').notNull().defaultNow(),
+  },
+  (t) => [
+    index('nexora_eval_row_dataset_idx').on(t.datasetId, t.position),
+    check(
+      'nexora_eval_row_verdict_check',
+      sql`${t.humanVerdict} IS NULL OR ${t.humanVerdict} IN ('pass', 'fail')`
+    ),
+  ]
+)
+
+/** Nexora edition: a saved judge (an LLM in classification or scoring, or a rule). */
+export const nexoraEvalJudge = pgTable(
+  'nexora_eval_judge',
+  {
+    id: text('id').primaryKey(),
+    workspaceId: text('workspace_id')
+      .notNull()
+      .references(() => workspace.id, { onDelete: 'cascade' }),
+    name: text('name').notNull(),
+    kind: text('kind').notNull(),
+    config: jsonb('config').notNull(),
+    createdBy: text('created_by').references(() => user.id, { onDelete: 'set null' }),
+    createdAt: timestamp('created_at').notNull().defaultNow(),
+    updatedAt: timestamp('updated_at').notNull().defaultNow(),
+  },
+  (t) => [
+    uniqueIndex('nexora_eval_judge_workspace_name_idx').on(t.workspaceId, sql`lower(${t.name})`),
+  ]
+)
+
+/** Nexora edition: a campaign run on a timetable (a cron expression in a time zone). */
+export const nexoraEvalSchedule = pgTable(
+  'nexora_eval_schedule',
+  {
+    id: text('id').primaryKey(),
+    workspaceId: text('workspace_id')
+      .notNull()
+      .references(() => workspace.id, { onDelete: 'cascade' }),
+    name: text('name').notNull(),
+    cron: text('cron').notNull(),
+    timezone: text('timezone').notNull(),
+    datasetId: text('dataset_id')
+      .notNull()
+      .references(() => nexoraEvalDataset.id, { onDelete: 'no action' }),
+    judgeId: text('judge_id')
+      .notNull()
+      .references(() => nexoraEvalJudge.id, { onDelete: 'no action' }),
+    targets: jsonb('targets').notNull(),
+    concurrency: integer('concurrency').notNull().default(2),
+    alertThreshold: real('alert_threshold'),
+    enabled: boolean('enabled').notNull().default(true),
+    nextRunAt: timestamp('next_run_at'),
+    lastRunAt: timestamp('last_run_at'),
+    lastCampaignId: text('last_campaign_id'),
+    createdBy: text('created_by').references(() => user.id, { onDelete: 'set null' }),
+    createdAt: timestamp('created_at').notNull().defaultNow(),
+    updatedAt: timestamp('updated_at').notNull().defaultNow(),
+  },
+  (t) => [
+    index('nexora_eval_schedule_due_idx').on(t.enabled, t.nextRunAt),
+    index('nexora_eval_schedule_workspace_idx').on(t.workspaceId),
+  ]
+)
+
+/**
+ * Nexora edition: a campaign crosses targets (a model, a prompt version, a published agent) with a
+ * test set, answers judged one item at a time in the background. `leaseOwner`/`leaseUntil` let
+ * another process adopt a campaign whose server restarted.
+ */
+export const nexoraEvalCampaign = pgTable(
+  'nexora_eval_campaign',
+  {
+    id: text('id').primaryKey(),
+    workspaceId: text('workspace_id')
+      .notNull()
+      .references(() => workspace.id, { onDelete: 'cascade' }),
+    name: text('name').notNull(),
+    datasetId: text('dataset_id')
+      .notNull()
+      .references(() => nexoraEvalDataset.id, { onDelete: 'no action' }),
+    judgeId: text('judge_id')
+      .notNull()
+      .references(() => nexoraEvalJudge.id, { onDelete: 'no action' }),
+    targets: jsonb('targets').notNull(),
+    concurrency: integer('concurrency').notNull().default(2),
+    alertThreshold: real('alert_threshold'),
+    status: text('status').notNull().default('pending'),
+    error: text('error'),
+    scheduleId: text('schedule_id').references(() => nexoraEvalSchedule.id, {
+      onDelete: 'set null',
+    }),
+    itemTotal: integer('item_total').notNull().default(0),
+    leaseOwner: text('lease_owner'),
+    leaseUntil: timestamp('lease_until'),
+    createdBy: text('created_by').references(() => user.id, { onDelete: 'set null' }),
+    createdAt: timestamp('created_at').notNull().defaultNow(),
+    startedAt: timestamp('started_at'),
+    finishedAt: timestamp('finished_at'),
+  },
+  (t) => [
+    index('nexora_eval_campaign_workspace_idx').on(t.workspaceId, t.createdAt.desc()),
+    index('nexora_eval_campaign_lease_idx').on(t.status, t.leaseUntil),
+    index('nexora_eval_campaign_dataset_idx').on(t.datasetId),
+    check(
+      'nexora_eval_campaign_status_check',
+      sql`${t.status} IN ('pending', 'running', 'completed', 'cancelled', 'interrupted', 'failed')`
+    ),
+  ]
+)
+
+/** Nexora edition: one (row, target) pair of a campaign, with its answer, verdict and measures. */
+export const nexoraEvalItem = pgTable(
+  'nexora_eval_item',
+  {
+    id: text('id').primaryKey(),
+    campaignId: text('campaign_id')
+      .notNull()
+      .references(() => nexoraEvalCampaign.id, { onDelete: 'cascade' }),
+    rowId: text('row_id').notNull(),
+    targetKey: text('target_key').notNull(),
+    position: integer('position').notNull(),
+    status: text('status').notNull().default('pending'),
+    attempt: integer('attempt').notNull().default(0),
+    input: text('input').notNull(),
+    expected: text('expected'),
+    guidance: text('guidance'),
+    answer: text('answer'),
+    verdict: text('verdict'),
+    score: real('score'),
+    judgeNote: text('judge_note'),
+    error: text('error'),
+    latencyMs: integer('latency_ms'),
+    inputTokens: integer('input_tokens').notNull().default(0),
+    outputTokens: integer('output_tokens').notNull().default(0),
+    kgCo2eq: doublePrecision('kg_co2eq'),
+    executionId: text('execution_id'),
+    startedAt: timestamp('started_at'),
+    finishedAt: timestamp('finished_at'),
+  },
+  (t) => [
+    uniqueIndex('nexora_eval_item_pair_idx').on(t.campaignId, t.rowId, t.targetKey),
+    index('nexora_eval_item_queue_idx').on(t.campaignId, t.status, t.position),
+    check(
+      'nexora_eval_item_status_check',
+      sql`${t.status} IN ('pending', 'running', 'done', 'error')`
+    ),
+    check(
+      'nexora_eval_item_verdict_check',
+      sql`${t.verdict} IS NULL OR ${t.verdict} IN ('pass', 'fail', 'error')`
+    ),
+  ]
+)
+
+/** Nexora edition: a campaign target below its alert threshold, shown as a banner until acknowledged. */
+export const nexoraEvalAlert = pgTable(
+  'nexora_eval_alert',
+  {
+    id: text('id').primaryKey(),
+    workspaceId: text('workspace_id')
+      .notNull()
+      .references(() => workspace.id, { onDelete: 'cascade' }),
+    campaignId: text('campaign_id')
+      .notNull()
+      .references(() => nexoraEvalCampaign.id, { onDelete: 'cascade' }),
+    targetKey: text('target_key').notNull(),
+    targetLabel: text('target_label').notNull(),
+    kind: text('kind').notNull(),
+    passRate: real('pass_rate'),
+    threshold: real('threshold'),
+    createdAt: timestamp('created_at').notNull().defaultNow(),
+    acknowledgedAt: timestamp('acknowledged_at'),
+    acknowledgedBy: text('acknowledged_by').references(() => user.id, { onDelete: 'set null' }),
+  },
+  (t) => [
+    uniqueIndex('nexora_eval_alert_slot_idx').on(t.campaignId, t.targetKey, t.kind),
+    index('nexora_eval_alert_open_idx').on(t.workspaceId, t.acknowledgedAt),
+    check('nexora_eval_alert_kind_check', sql`${t.kind} IN ('below_threshold', 'failed')`),
+  ]
+)
