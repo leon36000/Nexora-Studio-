@@ -11,6 +11,10 @@ vi.mock('@/lib/nexora/wand', async (importOriginal) => ({
   nexoraWandStream: mockStream,
 }))
 
+import {
+  PersonalDataRefusedError,
+  PersonalDataServiceError,
+} from '@/lib/nexora/data-protection/errors'
 import { NexoraWandRejectedError, NexoraWandUnavailableError } from '@/lib/nexora/wand'
 import { POST } from '@/app/api/nexora/playground/route'
 
@@ -105,5 +109,25 @@ describe('POST /api/nexora/playground', () => {
     const response = await POST(post(body), {})
     expect(response.status).toBe(422)
     expect(await response.json()).toEqual({ error: 'rejected', reason: 'Model not found' })
+  })
+
+  it('answers 403 with the reason when the workspace policy forbids sending that personal data', async () => {
+    mockStream.mockRejectedValueOnce(new PersonalDataRefusedError({ IBAN_CODE: 1 }))
+    const response = await POST(post(body), {})
+    expect(response.status).toBe(403)
+    expect(await response.json()).toEqual({
+      error: 'personal_data',
+      reason: expect.stringContaining('IBAN'),
+    })
+  })
+
+  it('answers 503 with the reason when the protection cannot be applied', async () => {
+    mockStream.mockRejectedValueOnce(new PersonalDataServiceError())
+    const response = await POST(post(body), {})
+    expect(response.status).toBe(503)
+    expect(await response.json()).toEqual({
+      error: 'personal_data_unavailable',
+      reason: expect.stringContaining('n’a pas été envoyée'),
+    })
   })
 })

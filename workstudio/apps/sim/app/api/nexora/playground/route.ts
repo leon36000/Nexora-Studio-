@@ -50,7 +50,7 @@ export const POST = withRouteHandler(async (request: NextRequest) => {
     const failure = describeWandFailure(error)
     if (!failure) throw error
     return NextResponse.json(
-      failure.code === 'rejected'
+      'reason' in failure
         ? { error: failure.code, reason: failure.reason }
         : { error: failure.code },
       { status: failure.status }

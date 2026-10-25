@@ -5,6 +5,7 @@ import {
   type FoundPersonalData,
   PersonalDataRefusedError,
   PersonalDataServiceError,
+  PersonalDataUnsupportedError,
 } from '@/lib/nexora/data-protection/errors'
 import { protectTexts } from '@/lib/nexora/data-protection/masking'
 import { isOffInstanceModel } from '@/lib/nexora/data-protection/model-location'
@@ -37,7 +38,7 @@ export interface GuardDeps {
   protect: (texts: readonly string[]) => Promise<{ texts: string[]; found: FoundPersonalData }>
 }
 
-const defaultDeps: GuardDeps = {
+export const defaultGuardDeps: GuardDeps = {
   loadPolicy: loadDataProtection,
   isOffInstance: (model) => isOffInstanceModel(model),
   protect: (texts) => protectTexts(texts),
@@ -116,7 +117,7 @@ async function policyOrStop(deps: GuardDeps): Promise<DataProtectionPolicy> {
  */
 export async function guardChatMessages<M extends ChatMessageLike>(
   input: GuardInput<M>,
-  deps: GuardDeps = defaultDeps
+  deps: GuardDeps = defaultGuardDeps
 ): Promise<{ messages: readonly M[]; applied: ProtectionNote | null }> {
   const unchanged = { messages: input.messages, applied: null }
   const mode = resolveMode(await policyOrStop(deps), input.workspaceId)
@@ -132,4 +133,18 @@ export async function guardChatMessages<M extends ChatMessageLike>(
     messages: withTexts(input.messages, slots, texts),
     applied: { mode: 'mask', model: input.model, found, masked },
   }
+}
+
+/**
+ * For a provider whose messages the guard cannot read and so cannot mask: stops the call, with
+ * {@link PersonalDataUnsupportedError}, when the workspace protects personal data and the model is
+ * off this server. A call that is not concerned goes through.
+ */
+export async function assertCallNeedsNoProtection(
+  input: Pick<GuardInput<ChatMessageLike>, 'model' | 'workspaceId'>,
+  deps: GuardDeps = defaultGuardDeps
+): Promise<void> {
+  const mode = resolveMode(await policyOrStop(deps), input.workspaceId)
+  if (mode === 'allow') return
+  if (await deps.isOffInstance(input.model)) throw new PersonalDataUnsupportedError()
 }

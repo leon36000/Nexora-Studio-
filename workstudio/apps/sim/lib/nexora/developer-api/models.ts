@@ -1,6 +1,12 @@
 import { getErrorMessage } from '@sim/utils/errors'
 import { toRecord } from '@sim/utils/object'
 import { SSE_HEADERS } from '@/lib/core/utils/sse'
+import {
+  PersonalDataRefusedError,
+  PersonalDataServiceError,
+  PersonalDataUnsupportedError,
+} from '@/lib/nexora/data-protection/errors'
+import { guardChatMessages } from '@/lib/nexora/data-protection/guard'
 import { agentModelIds, listApiAgents } from '@/lib/nexora/developer-api/agents'
 import { gatewayErrors } from '@/lib/nexora/developer-api/errors'
 import {
@@ -103,6 +109,34 @@ async function callReserved(
   return upstream
 }
 
+/**
+ * The messages of a call as they may go to a model off this server: the personal-data policy of
+ * the key's workspace (the instance's for an instance key) applied, a refusal answered 403 in the
+ * OpenAI error shape.
+ */
+async function protectedMessages(
+  call: GatewayCall,
+  model: string,
+  messages: unknown
+): Promise<unknown> {
+  if (!Array.isArray(messages)) return messages
+  try {
+    return (await guardChatMessages({ messages, model, workspaceId: call.key.workspaceId }))
+      .messages
+  } catch (error) {
+    if (
+      error instanceof PersonalDataRefusedError ||
+      error instanceof PersonalDataUnsupportedError
+    ) {
+      throw gatewayErrors.personalDataNotAllowed(error.message)
+    }
+    if (error instanceof PersonalDataServiceError) {
+      throw gatewayErrors.personalDataProtectionUnavailable(error.message)
+    }
+    throw error
+  }
+}
+
 /** Relays a chat completion to Nexora API (streamed or not) and records its tokens on the key. */
 export async function relayChatCompletion(
   call: GatewayCall,
@@ -110,6 +144,8 @@ export async function relayChatCompletion(
   signal: AbortSignal
 ): Promise<Response> {
   const usageModel = await admitModel(call.key, body.model)
+  const messages = await protectedMessages(call, usageModel, body.messages)
+  if (messages !== body.messages) body = { ...body, messages }
   const reservation = await reserveSpending(
     call.key,
     usageModel,
