@@ -184,6 +184,10 @@ const AuditAction = {
   EVALUATION_SCHEDULE_DELETED: 'evaluation_schedule.deleted',
   EVALUATION_ALERT_ACKNOWLEDGED: 'evaluation_alert.acknowledged',
 
+  BATCH_LAUNCHED: 'batch.launched',
+  BATCH_CANCELLED: 'batch.cancelled',
+  BATCH_DELETED: 'batch.deleted',
+
   PROJECT_CREATED: 'project.created',
   PROJECT_UPDATED: 'project.updated',
   PROJECT_ARCHIVED: 'project.archived',
@@ -278,6 +282,7 @@ const AuditResourceType = {
   PERMISSION_ACCESS_REQUEST: 'permission_access_request',
   PROMPT: 'prompt',
   EVALUATION: 'evaluation',
+  BATCH: 'batch',
   PROJECT: 'project',
   SANDBOX: 'sandbox',
   SCHEDULE: 'schedule',

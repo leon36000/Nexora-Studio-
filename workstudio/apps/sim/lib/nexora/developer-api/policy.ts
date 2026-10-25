@@ -127,3 +127,14 @@ export function estimateCallTokens(
       : DEFAULT_ANSWER_RESERVE
   return { promptTokens, completionTokens: Math.min(asked, MAX_ANSWER_RESERVE) }
 }
+
+/** The characters an embeddings `input` (a text, a list of texts, or token lists) holds. */
+export function embeddingInputCharacters(input: unknown): number {
+  if (typeof input === 'string') return input.length
+  if (!Array.isArray(input)) return 0
+  return input.reduce<number>(
+    (total, entry) =>
+      total + (typeof entry === 'string' ? entry.length : Array.isArray(entry) ? entry.length : 1),
+    0
+  )
+}

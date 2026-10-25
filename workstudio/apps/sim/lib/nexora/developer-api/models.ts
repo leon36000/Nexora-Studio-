@@ -1,6 +1,7 @@
 import { getErrorMessage } from '@sim/utils/errors'
 import { toRecord } from '@sim/utils/object'
 import { SSE_HEADERS } from '@/lib/core/utils/sse'
+import { noteInteractiveActivity } from '@/lib/nexora/background-load'
 import { agentModelIds, listApiAgents } from '@/lib/nexora/developer-api/agents'
 import { gatewayErrors } from '@/lib/nexora/developer-api/errors'
 import {
@@ -11,7 +12,12 @@ import {
 } from '@/lib/nexora/developer-api/gateway'
 import { keyModelConfig } from '@/lib/nexora/developer-api/key-model-policy'
 import { keyModelRefusal } from '@/lib/nexora/developer-api/model-gate'
-import { agentRefusal, estimateCallTokens, modelRefusal } from '@/lib/nexora/developer-api/policy'
+import {
+  agentRefusal,
+  embeddingInputCharacters,
+  estimateCallTokens,
+  modelRefusal,
+} from '@/lib/nexora/developer-api/policy'
 import { type RelayedText, relayWithUsage } from '@/lib/nexora/developer-api/sse'
 import {
   callUpstream,
@@ -109,6 +115,7 @@ export async function relayChatCompletion(
   body: Record<string, unknown> & { model: string; stream?: boolean },
   signal: AbortSignal
 ): Promise<Response> {
+  noteInteractiveActivity()
   const usageModel = await admitModel(call.key, body.model)
   const reservation = await reserveSpending(
     call.key,
@@ -194,16 +201,6 @@ export async function relayChatCompletion(
     error: null,
   })
   return Response.json(completion, { headers: call.headers })
-}
-
-function embeddingInputCharacters(input: unknown): number {
-  if (typeof input === 'string') return input.length
-  if (!Array.isArray(input)) return 0
-  return input.reduce<number>(
-    (total, entry) =>
-      total + (typeof entry === 'string' ? entry.length : Array.isArray(entry) ? entry.length : 1),
-    0
-  )
 }
 
 /** Relays an embeddings request and records its tokens on the key, under the router's name. */

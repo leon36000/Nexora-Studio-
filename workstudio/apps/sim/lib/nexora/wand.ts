@@ -4,6 +4,7 @@ import { toRecord } from '@sim/utils/object'
 import { escapeRegExp, truncate } from '@sim/utils/string'
 import { env } from '@/lib/core/config/env'
 import { isNexoraOnlyModels } from '@/lib/core/config/env-flags'
+import { noteInteractiveActivity } from '@/lib/nexora/background-load'
 import {
   createThinkTagSplitter,
   isReasoningEffortRejection,
@@ -240,6 +241,7 @@ export async function nexoraWandStream(
     includeThinking?: boolean
   } & CompletionSettings
 ): Promise<ReadableStream<Uint8Array>> {
+  noteInteractiveActivity()
   const trace = beginTrace(input, input.messages)
   let outcome: CompletionResponse
   try {

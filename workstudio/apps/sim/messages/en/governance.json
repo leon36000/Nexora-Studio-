@@ -393,6 +393,11 @@
       },
       "evaluation_alert": {
         "acknowledged": "Evaluation alert acknowledged"
+      },
+      "batch": {
+        "launched": "Batch launched",
+        "cancelled": "Batch cancelled",
+        "deleted": "Batch deleted"
       }
     },
     "resourceTypes": {
@@ -436,7 +441,8 @@
       "workflow": "Workflow",
       "workspace": "Workspace",
       "prompt": "Prompt",
-      "evaluation": "Evaluation"
+      "evaluation": "Evaluation",
+      "batch": "Batch"
     }
   },
   "consumption": {

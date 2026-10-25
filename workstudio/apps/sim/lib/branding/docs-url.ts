@@ -32,6 +32,7 @@ const GUIDE_PAGES: ReadonlyArray<readonly [prefix: string, page: string]> = [
   ['/playground', 'playground.md'],
   ['/prompts', 'prompts.md'],
   ['/evaluations', 'evaluations.md'],
+  ['/lots', 'lots.md'],
   ['/connectors', 'connecteurs.md'],
 ]
 
