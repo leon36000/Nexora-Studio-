@@ -4,7 +4,7 @@ from api.domain.audio.entities import Segment, TimedWord
 # A word further than this from every turn (in seconds) takes the speaker of the word before it.
 MAX_DISTANCE_TO_TURN = 1.5
 # A silence longer than this inside one speaker's words starts a new segment.
-MAX_SILENCE_IN_SEGMENT = 2.0
+MAX_SILENCE_IN_SEGMENT = 0.8
 
 
 class SpeakerTurn(BaseModel):

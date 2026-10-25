@@ -42,7 +42,14 @@ interface EmailStep {
   body: string
 }
 
-type TemplateStep = AgentStep | TranscriptionStep | ApprovalStep | EmailStep
+/** Lets the workflow go on only when `approved` (a reference such as `<validation.approuve>`) is true. */
+interface GateStep {
+  kind: 'gate'
+  name: string
+  approved: string
+}
+
+type TemplateStep = AgentStep | TranscriptionStep | ApprovalStep | GateStep | EmailStep
 
 export interface NexoraTemplate {
   slug: string
@@ -194,6 +201,7 @@ export const NEXORA_TEMPLATES: readonly NexoraTemplate[] = [
         name: 'Validation',
         shows: [{ name: 'compteRendu', value: '<compterendu.content>' }],
       },
+      { kind: 'gate', name: 'Approbation', approved: '<validation.approuve>' },
       {
         kind: 'email',
         name: 'Email',
@@ -221,6 +229,7 @@ interface TemplateBlock {
   outputs: Record<string, never>
   data?: { canonicalModes: Record<string, 'basic' | 'advanced'> }
 }
+
 
 type TemplateWorkflowState = {
   blocks: Record<string, TemplateBlock>
@@ -258,7 +267,8 @@ function formField(name: string, type: string, description: string, required = f
 /** The block a step becomes, without its id and position. */
 function stepBlock(
   step: TemplateStep,
-  model: string
+  model: string,
+  blockId: string
 ): Pick<TemplateBlock, 'type' | 'subBlocks' | 'data'> {
   switch (step.kind) {
     case 'transcription':
@@ -292,6 +302,24 @@ function stepBlock(
             formField('approuve', 'boolean', 'Approuvez-vous ?', true),
             formField('commentaire', 'string', 'Commentaire'),
           ])
+        ),
+      }
+    case 'gate':
+      return {
+        type: 'condition',
+        subBlocks: subBlocksOf(
+          sub(
+            'conditions',
+            'condition-input',
+            JSON.stringify([
+              {
+                id: `${blockId}-if`,
+                title: 'if',
+                value: `String(${step.approved} ?? '').trim().toLowerCase() === "true"`,
+              },
+              { id: `${blockId}-else`, title: 'else', value: '' },
+            ])
+          )
         ),
       }
     case 'email':
@@ -355,6 +383,7 @@ export function buildTemplateWorkflow(
   }
   const edges: TemplateWorkflowState['edges'] = []
   let previousId = startId
+  let previousHandle = 'source'
   template.steps.forEach((step, index) => {
     const id = generateId()
     blocks[id] = {
@@ -363,16 +392,17 @@ export function buildTemplateWorkflow(
       position: { x: 420 * (index + 1), y: 0 },
       enabled: true,
       outputs: {},
-      ...stepBlock(step, model),
+      ...stepBlock(step, model, id),
     }
     edges.push({
       id: generateId(),
       source: previousId,
       target: id,
-      sourceHandle: 'source',
+      sourceHandle: previousHandle,
       targetHandle: 'target',
     })
     previousId = id
+    previousHandle = step.kind === 'gate' ? `condition-${id}-if` : 'source'
   })
   return { blocks, edges, loops: {}, parallels: {} }
 }

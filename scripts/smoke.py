@@ -15,12 +15,14 @@ import argparse
 import base64
 import http.cookiejar
 import http.server
+import io
 import json
 import os
 from pathlib import Path
 import secrets
 import sys
 import threading
+import wave
 import time
 import urllib.error
 import urllib.parse
@@ -31,8 +33,12 @@ TEMPLATE_INPUTS = {
     "Relance de facture impayée": {"client": "Garage Durand", "facture": "F-2026-104", "montant": "1 250 EUR TTC", "echeance": "15/09/2026", "niveau": "2"},
     "Réponse support (FAQ)": {"question": "Livrez-vous le samedi ?", "faq": "Livraison du lundi au samedi, de 8h à 18h."},
     "Tri des e-mails entrants": {"email": "De : client@exemple.fr\nObjet : Facture en double\nBonjour, j'ai reçu deux fois la facture F-88."},
-    "Compte rendu de réunion": {"transcription": "Paul : on lance la campagne le 3 novembre. Anne : je prépare le visuel pour vendredi."},
+    # Run by the « Réunion » check: it starts from a recording, not a text.
+    "Compte rendu de réunion": {},
 }
+MEETING_TEMPLATE = "Compte rendu de réunion"
+# Three voices (a woman, a man, a second woman), 61 s, made by the local French voices.
+MEETING_AUDIO = Path(__file__).resolve().parent.parent / "docs" / "verification" / "k12-reunion" / "reunion-courte.mp3"
 
 
 # 5×7 glyphs for the OCR and extraction checks' test images (standard library only: no imaging package needed).
@@ -152,7 +158,8 @@ class Smoke:
         self.results: list[dict] = []
 
     def call(self, method: str, path: str, body: dict | None = None, timeout: int = 120, raw: bool = False,
-             headers: dict | None = None, data: bytes | None = None, content_type: str = "application/json"):
+             headers: dict | None = None, data: bytes | None = None, content_type: str = "application/json",
+             binary: bool = False):
         if data is None:
             data = json.dumps(body).encode() if body is not None else None
         request = urllib.request.Request(f"{self.url}{path}", data=data, method=method)
@@ -164,10 +171,14 @@ class Smoke:
         try:
             with self.opener.open(request, timeout=timeout) as response:
                 payload = response.read()
+                if binary:
+                    return response.status, payload
                 return response.status, (payload.decode() if raw else json.loads(payload or b"{}"))
         except urllib.error.HTTPError as error:
             payload = error.read()
             try:
+                if binary:
+                    return error.code, payload
                 return error.code, (payload.decode() if raw else json.loads(payload or b"{}"))
             except json.JSONDecodeError:
                 return error.code, {}
@@ -621,9 +632,143 @@ def main() -> int:
         finally:
             s.call("DELETE", f"/api/workflows/{wf}")
 
+    def multipart(fields: dict[str, str], file_field: str, file_name: str, file_type: str, content: bytes) -> tuple[bytes, str]:
+        boundary = f"nexora{secrets.token_hex(8)}"
+        parts = b"".join(
+            f'--{boundary}\r\nContent-Disposition: form-data; name="{name}"\r\n\r\n{value}\r\n'.encode()
+            for name, value in fields.items()
+        )
+        parts += (f'--{boundary}\r\nContent-Disposition: form-data; name="{file_field}"; filename="{file_name}"\r\n'
+                  f"Content-Type: {file_type}\r\n\r\n").encode() + content + f"\r\n--{boundary}--\r\n".encode()
+        return parts, f"multipart/form-data; boundary={boundary}"
+
+    def speech():
+        """K12: the local French voice speaks, through the Assistant's route and through the developer API;
+        the Assistant's dictation hears the sentence again (the full voice round trip, offline)."""
+        if not usages().get("speech"):
+            return "non testé : aucun modèle « Synthèse vocale » (Réglages › Modèles, ou voix locale à l'installation)"
+        sentence = "Bonjour, la livraison de vos croissants aura lieu mardi prochain à six heures."
+        status, wav = s.call("POST", "/api/nexora/assistant/voice/speak", {"workspaceId": state["ws"], "text": sentence}, binary=True, timeout=300)
+        require(status == 200, f"speak returned HTTP {status}: {wav[:200]!r}")
+        require(wav[:4] == b"RIFF" and wav[8:12] == b"WAVE", f"not a WAV: {wav[:12]!r}")
+        with wave.open(io.BytesIO(wav)) as audio:
+            seconds = audio.getnframes() / audio.getframerate()
+        require(seconds > 2.5, f"the audio lasts only {seconds:.1f} s")
+        status, _ = Smoke(args.url, args.origin).call("POST", "/api/nexora/assistant/voice/speak", {"workspaceId": state["ws"], "text": sentence}, binary=True)
+        require(status in (401, 403), f"an anonymous visitor made the voice speak (HTTP {status})")
+
+        if usages().get("transcription"):
+            body, content_type = multipart({"workspaceId": state["ws"], "language": "fr"}, "file", "dictee.wav", "audio/wav", wav)
+            status, heard = s.call("POST", "/api/nexora/assistant/voice/dictate", data=body, content_type=content_type, timeout=600)
+            require(status == 200, f"dictate returned HTTP {status}: {str(heard)[:200]}")
+            text = str(heard.get("text", "")).lower()
+            require("livraison" in text and "croissant" in text, f"the dictation did not hear the sentence: {text!r}")
+            heard_text = f"dictée relue : « {text[:50]}… »"
+        else:
+            heard_text = "dictée non testée (aucun modèle de transcription)"
+
+        status, created = s.call("POST", "/api/nexora/api-keys", {"workspaceId": state["ws"], "name": f"voix-{secrets.token_hex(3)}"})
+        require(status == 200, f"key creation returned HTTP {status}")
+        key = created["key"]
+        try:
+            auth = {"Authorization": f"Bearer {created['value']}"}
+            _, models = s.call("GET", "/v1/models", headers=auth)
+            voices = [m["id"] for m in models.get("data", []) if m.get("type") == "text-to-speech"]
+            require(voices, f"no speech model in /v1/models: {[m.get('id') for m in models.get('data', [])]}")
+            status, api_wav = s.call("POST", "/v1/audio/speech", {"model": voices[0], "input": sentence, "response_format": "wav"}, headers=auth, binary=True, timeout=300)
+            require(status == 200 and api_wav[:4] == b"RIFF", f"/v1/audio/speech returned HTTP {status}: {api_wav[:120]!r}")
+            status, refused = Smoke(args.url, args.origin).call("POST", "/v1/audio/speech", {"model": voices[0], "input": sentence})
+            require(status == 401, f"/v1/audio/speech without a key answered HTTP {status}")
+            status, long_text = s.call("POST", "/v1/audio/speech", {"model": voices[0], "input": "x" * 5000}, headers=auth)
+            require(status == 400 and "4 096" in json.dumps(long_text, ensure_ascii=False), f"a 5000-character text answered HTTP {status}: {str(long_text)[:200]}")
+        finally:
+            s.call("DELETE", f"/api/nexora/api-keys/{key['id'] if isinstance(key, dict) else key}?workspaceId={state['ws']}")
+        return f"WAV de {seconds:.1f} s par l'Assistant et par /v1/audio/speech, 401 sans clé, 400 au-delà de 4 096 caractères ; {heard_text}"
+
     def usages() -> dict:
         _, home = s.call("GET", f"/api/nexora/home?workspaceId={state['ws']}")
         return home.get("modelUsages") or {}
+
+    def meeting():
+        """K12: a recording of three voices becomes « Intervenant 1 / 2 / 3 », then the SME template
+        carries it to the validation step (summary written, human approval waiting)."""
+        if not usages().get("transcription"):
+            return "non testé : aucun modèle « Transcription » (Réglages › Modèles)"
+        audio = Path(os.environ.get("NEXORA_SMOKE_MEETING_AUDIO") or MEETING_AUDIO)
+        if not audio.exists():
+            return f"non testé : {audio} absent"
+        data = base64.b64encode(audio.read_bytes()).decode()
+        recording = [{"name": audio.name, "mimeType": "audio/mpeg", "data": data}]
+        wf = reader_workflow("Réunion de fumée", "stt_v2", "enregistrement", "audioFile",
+                             {"provider": ("dropdown", "nexora"), "audioFileReference": ("short-input", "<start.enregistrement>"),
+                              "language": ("dropdown", "fr"), "diarization": ("switch", True)})
+        try:
+            status, run = s.call("POST", f"/api/workflows/{wf}/execute", {"useDraftState": True, "stream": False, "input": {"enregistrement": recording}}, timeout=1800)
+            require(status == 200 and run.get("success"), f"meeting run returned HTTP {status}: {str(run.get('error'))[:200]}")
+            out = run.get("output") or {}
+            lines = [line for line in str(out.get("transcriptBySpeaker", "")).splitlines() if line.strip()]
+            require(out.get("speakers", 0) >= 2, f"fewer than two speakers told apart: {out.get('speakers')} ({str(out)[:200]})")
+            require(lines and all(line.startswith("Intervenant ") and " : " in line for line in lines), f"lines without a speaker: {lines[:3]}")
+            labels = {line.split(" : ", 1)[0] for line in lines}
+            require({"Intervenant 1", "Intervenant 2"} <= labels, f"speakers seen: {sorted(labels)}")
+            require("campagne" in str(out.get("transcript", "")).lower(), f"the meeting was not heard: {str(out.get('transcript'))[:200]}")
+        finally:
+            s.call("DELETE", f"/api/workflows/{wf}")
+        told = f"{out['speakers']} intervenants ({', '.join(sorted(labels))}), {len(lines)} prises de parole"
+
+        # The SME template itself: recording -> transcription by speaker -> summary -> validation -> e-mail.
+        # The e-mail leg needs a mailbox the instance may reach (its host listed in EGRESS_ALLOWED_HOSTS):
+        # NEXORA_SMOKE_MEETING_MAIL=1 with NEXORA_SMOKE_SMTP_HOST and NEXORA_SMOKE_MAILPIT_URL.
+        smtp_host, mailbox = os.environ.get("NEXORA_SMOKE_SMTP_HOST", ""), os.environ.get("NEXORA_SMOKE_MAILPIT_URL", "")
+        with_mail = os.environ.get("NEXORA_SMOKE_MEETING_MAIL") == "1" and smtp_host and mailbox
+        template = state["workflows"][MEETING_TEMPLATE]
+        if with_mail:
+            status, loaded = s.call("GET", f"/api/workflows/{template}")
+            require(status == 200, f"template state returned HTTP {status}")
+            saved = (loaded.get("data") or loaded)["state"]
+            smtp = next((b for b in saved["blocks"].values() if b["type"] == "smtp"), None)
+            require(smtp, "the template has no e-mail block")
+            for key, value in {"smtpHost": smtp_host, "smtpPort": os.environ.get("NEXORA_SMOKE_SMTP_PORT", "1025"), "smtpUsername": "reunion",
+                               "smtpPassword": "reunion", "smtpSecure": "None", "from": "reunions@nexora.test"}.items():
+                smtp["subBlocks"].setdefault(key, {"id": key, "type": "short-input", "value": ""})["value"] = value
+            status, _ = s.call("PUT", f"/api/workflows/{template}/state", saved)
+            require(status == 200, f"template state save returned HTTP {status}")
+
+        def mails_for(recipient: str) -> list:
+            with urllib.request.urlopen(f"{mailbox.rstrip('/')}/api/v1/search?query=to:{recipient}", timeout=30) as response:
+                return json.load(response).get("messages", [])
+
+        def meeting_run(recipient: str) -> tuple[str, str]:
+            status, run = s.call("POST", f"/api/workflows/{template}/execute", {"useDraftState": True, "stream": False, "input": {
+                "enregistrement": recording, "participants": "Marie, Paul, Claire", "destinataire": recipient}}, timeout=1800)
+            require(status == 200 and run.get("success"), f"template run returned HTTP {status}: {str(run.get('error'))[:200]}")
+            paused = (run.get("output") or {}).get("data") or {}
+            minutes = next((f["value"] for f in paused.get("responseStructure", []) if f.get("name") == "compteRendu"), "")
+            resume = (paused.get("_resume") or {}).get("apiUrl", "")
+            require(len(minutes) > 200 and resume, f"the run did not stop at the validation with minutes: {str(run)[:300]}")
+            require("campagne" in minutes.lower(), f"the minutes do not mention the meeting: {minutes[:200]}")
+            return minutes, resume.replace(s.url, "")
+
+        # A refusal at the validation sends nothing; an approval sends the minutes.
+        refused_to = f"refus-{secrets.token_hex(4)}@nexora.test"
+        minutes, resume = meeting_run(refused_to)
+        status, _ = s.call("POST", resume, {"approuve": False, "commentaire": "Refusé par la fumée"}, timeout=300)
+        require(status == 200, f"resume (refusal) returned HTTP {status}")
+        approved_to = f"reunion-{secrets.token_hex(4)}@nexora.test"
+        minutes, resume = meeting_run(approved_to)
+        status, resumed = s.call("POST", resume, {"approuve": True, "commentaire": "Validé par la fumée"}, timeout=300)
+        require(status == 200, f"resume returned HTTP {status}: {str(resumed)[:200]}")
+        if not with_mail:
+            return f"{told} ; modèle PME : compte rendu de {len(minutes)} caractères, arrêt à la validation, reprise acceptée (e-mail non vérifié : NEXORA_SMOKE_MEETING_MAIL absent)"
+        found: list = []
+        for _ in range(30):
+            found = mails_for(approved_to)
+            if found:
+                break
+            time.sleep(2)
+        require(found and found[0]["Subject"] == "Compte rendu de réunion", f"no e-mail reached the mailbox for {approved_to}")
+        require(not mails_for(refused_to), "an e-mail left after a refusal")
+        return f"{told} ; modèle PME : compte rendu de {len(minutes)} caractères, rien envoyé après un refus, e-mail reçu après l'approbation"
 
     def copilot():
         description = "Quand je lance le workflow avec un texte, un agent le résume en une phrase en français."
@@ -1240,9 +1385,12 @@ def main() -> int:
     if os.environ.get("NEXORA_SMOKE_WEB_SEARCH") == "1":
         s.check("Recherche web (SearXNG)", web_search)
     for name in TEMPLATE_INPUTS:
-        s.check(f"Exécution du modèle « {name} »", run_template(name))
+        if name != MEETING_TEMPLATE:
+            s.check(f"Exécution du modèle « {name} »", run_template(name))
     s.check("Lecture de document (OCR, modèle de vision local)", ocr)
     s.check("Transcription vocale (modèle local)", transcription)
+    s.check("Synthèse vocale (voix locale : Assistant, API développeur, dictée)", speech)
+    s.check("Réunion : intervenants par voix, compte rendu, validation", meeting)
     s.check("Extraction : facture PDF et scannée ⇒ table « Factures »", extraction)
     s.check("Copilote : description ⇒ workflow exécuté", copilot)
     s.check("Budgets : refus au plafond, reprise après relèvement", budgets)

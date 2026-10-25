@@ -51,14 +51,14 @@ class TestAssignSpeakers:
 
     def test_a_word_outside_every_turn_takes_the_nearest_turn_within_a_second_and_a_half(self):
         # Arrange: "voilà" starts 0.5 s after the first turn ended and 3 s before the second begins
-        words = _words((0.0, 0.5, " Oui"), (2.0, 2.5, " c'est"), (3.5, 3.9, " voilà"), (6.5, 7.0, " Non"))
+        words = _words((0.0, 0.5, " Oui"), (0.9, 1.4, " c'est"), (1.8, 2.3, " et"), (2.9, 3.0, " puis"), (3.5, 3.9, " voilà"), (6.5, 7.0, " Non"))
         turns = [SpeakerTurn(start=0.0, end=3.0, speaker=1), SpeakerTurn(start=6.5, end=7.5, speaker=2)]
 
         # Act
         segments = assign_speakers(words, turns)
 
         # Assert
-        assert [(s.speaker, s.text) for s in segments] == [("speaker_1", "Oui c'est voilà"), ("speaker_2", "Non")]
+        assert [(s.speaker, s.text) for s in segments] == [("speaker_1", "Oui c'est et puis voilà"), ("speaker_2", "Non")]
 
     def test_a_word_far_from_any_turn_keeps_the_previous_speaker_never_none(self):
         # Arrange

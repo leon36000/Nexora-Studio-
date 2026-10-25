@@ -82,11 +82,29 @@ describe('Compte rendu de réunion', () => {
       'stt_v2',
       'agent',
       'human_in_the_loop_v2',
+      'condition',
       'smtp',
     ])
     expect(state.edges.map((edge) => [edge.source, edge.target])).toEqual(
       blocks.slice(1).map((block, index) => [blocks[index].id, block.id])
     )
+  })
+
+  it('sends the e-mail only when the person approved: a refusal ends the workflow', () => {
+    const [condition] = byType('condition')
+    const branches = JSON.parse(String(condition.subBlocks.conditions.value)) as {
+      id: string
+      title: string
+      value: string
+    }[]
+    expect(branches.map((branch) => branch.title)).toEqual(['if', 'else'])
+    expect(branches[0].value).toContain('<validation.approuve>')
+    expect(branches[0].value).toContain('=== "true"')
+    expect(branches[1].value).toBe('')
+    const toEmail = state.edges.find((edge) => edge.target === byType('smtp')[0].id)
+    expect(toEmail?.source).toBe(condition.id)
+    expect(toEmail?.sourceHandle).toBe(`condition-${condition.id}-if`)
+    expect(state.edges.filter((edge) => edge.source === condition.id)).toHaveLength(1)
   })
 
   it('asks for the recording as a file, and for the people it concerns', () => {
