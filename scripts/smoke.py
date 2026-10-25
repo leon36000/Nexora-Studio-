@@ -16,6 +16,7 @@ import base64
 import http.cookiejar
 import json
 import os
+from pathlib import Path
 import secrets
 import sys
 import time
@@ -570,8 +571,12 @@ def main() -> int:
             require(status == 200, f"state save returned HTTP {status}")
             pdf_lines = ["Facture FA-2026-0142", "Date : 12/03/2026", "Atelier Dubois SARL",
                          "Total HT : 1 250,00 EUR", "TVA 20 % : 250,00 EUR", "Total TTC : 1 500,00 EUR"]
+            # The scan is a real rendering (150 dpi, slight skew and blur) from the K4 test set: a
+            # synthetic bitmap font is not something a 3B vision model reads reliably.
+            k4 = Path(__file__).resolve().parent.parent / "docs" / "verification" / "k4-factures"
+            scan = json.loads((k4 / "attendu.json").read_text(encoding="utf-8"))["facture-06-scan.png"]
             documents = [("facture.pdf", "application/pdf", text_pdf(pdf_lines)),
-                         ("facture-scannee.png", "image/png", text_png("\n".join(INVOICE_LINES), scale=4))]
+                         ("facture-06-scan.png", "image/png", (k4 / "facture-06-scan.png").read_bytes())]
             for name, mime, data in documents:
                 status, run = s.call("POST", f"/api/workflows/{wf}/execute", {"useDraftState": True, "stream": False,
                                      "input": {"document": [{"name": name, "mimeType": mime, "data": base64.b64encode(data).decode()}]}}, timeout=900)
@@ -579,10 +584,13 @@ def main() -> int:
             status, body = s.call("GET", f"/api/table/{table}/rows?workspaceId={state['ws']}&limit=10")
             rows = [{column_names.get(k, k): v for k, v in (row.get("data") or {}).items()} for row in (body.get("data") or {}).get("rows", [])]
             require(status == 200 and len(rows) == 2, f"expected 2 rows in the table, got HTTP {status}: {str(body)[:200]}")
-            expected = ("FA-2026-0142", "2026-03-12", "ATELIER DUBOIS SARL", 1250, 250, 1500)
-            for row in rows:
-                got = (str(row.get("numero")), str(row.get("date"))[:10], str(row.get("fournisseur")).upper(), row.get("total_ht"), row.get("total_tva"), row.get("total_ttc"))
-                require(got == expected, f"unexpected row: {got} (attendu {expected}) ; lignes de la table : {[(r.get('numero'), r.get('total_ttc')) for r in rows]}")
+            wanted = {"FA-2026-0142": ("2026-03-12", "ATELIER DUBOIS SARL", 1250, 250, 1500),
+                      scan["numero"]: (scan["date"], scan["fournisseur"].upper(), scan["total_ht"], scan["total_tva"], scan["total_ttc"])}
+            by_number = {str(row.get("numero")): row for row in rows}
+            require(set(by_number) == set(wanted), f"numéros lus {sorted(by_number)}, attendus {sorted(wanted)}")
+            for number, row in by_number.items():
+                got = (str(row.get("date"))[:10], str(row.get("fournisseur")).upper(), row.get("total_ht"), row.get("total_tva"), row.get("total_ttc"))
+                require(got == wanted[number], f"{number} : lu {got}, attendu {wanted[number]}")
                 require(row.get("a_verifier") is False, f"row flagged « à vérifier »: {row.get('motifs')}")
             return "facture PDF et facture scannée : six champs exacts, deux lignes dans la table, rien « à vérifier »"
         finally:
