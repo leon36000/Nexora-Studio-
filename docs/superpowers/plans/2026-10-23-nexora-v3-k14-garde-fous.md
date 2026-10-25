@@ -110,10 +110,10 @@
   - `readDataProtection(organizationId): Promise<DataProtectionPolicy>` ; `updateDataProtection(organizationId, change)` sous verrou de ligne ; `loadPolicyCached(): Promise<DataProtectionPolicy>` (LRU 30 s, vidée à l'écriture dans le processus)
   - Route `GET|PUT /api/nexora/data-protection` réservée aux administrateurs de l'instance, réponse : politique + espaces (id, nom) + état du service (`piiConfigured`, `piiReachable`).
 
-- [ ] **Étape 1 : tests rouges** : analyse tolérante (valeur inconnue ⇒ `allow`, espace supprimé ignoré, JSON absurde ⇒ défauts) ; `resolveMode` (espace prioritaire, `null` ⇒ instance) ; fusion qui laisse `nexoraBudgets` intact ; cas d'usage : membre simple refusé, espace inconnu ⇒ 422 « validation », audit écrit avec l'ancienne et la nouvelle valeur ; route : 401/403/200.
-- [ ] **Étape 2 : voir échouer.**
-- [ ] **Étape 3 : implémenter** sur le modèle exact de `consumption/budgets.ts` et de ses opérations (capacité `none` avec `// permission-group-exempt:`), état du service par un `GET {PII_URL}/health` borné à 2 s (mis en cache 15 s).
-- [ ] **Étape 4 : tests verts** + `bun run check:api-validation:strict` + `check:permission-group-enforcement`.
+- [x] **Étape 1 : tests rouges** : analyse tolérante (valeur inconnue ⇒ `allow`, espace supprimé ignoré, JSON absurde ⇒ défauts) ; `resolveMode` (espace prioritaire, `null` ⇒ instance) ; fusion qui laisse `nexoraBudgets` intact ; cas d'usage : membre simple refusé, espace inconnu ⇒ 422 « validation », audit écrit avec l'ancienne et la nouvelle valeur ; route : 401/403/200.
+- [x] **Étape 2 : voir échouer.**
+- [x] **Étape 3 : implémenter** sur le modèle exact de `consumption/budgets.ts` et de ses opérations (capacité `none` avec `// permission-group-exempt:`), état du service par un `GET {PII_URL}/health` borné à 2 s (mis en cache 15 s).
+- [x] **Étape 4 : tests verts** + `bun run check:api-validation:strict` + `check:permission-group-enforcement`.
 - [ ] **Étape 5 : commit** `feat(k14): politique de données personnelles par espace (stockage, route, audit)`.
 
 ## Tâche 5 : Moteur — localisation du modèle, masquage, garde, notes

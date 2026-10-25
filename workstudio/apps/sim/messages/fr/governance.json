@@ -231,6 +231,9 @@
         "budgets": {
           "updated": "Budgets mensuels modifiés"
         },
+        "data_protection": {
+          "updated": "Politique de données personnelles modifiée"
+        },
         "trace_settings": {
           "updated": "Réglages des traces modifiés"
         },
