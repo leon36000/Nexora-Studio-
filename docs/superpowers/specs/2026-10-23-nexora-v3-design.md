@@ -25,7 +25,7 @@ Au-delà de Mistral : tout reste installable chez le client en une commande, en 
 - Toutes les règles de la v2 : pas de code `ee/` d'origine, français via next-intl et `check-i18n`, marque Nexora, conventions du dépôt, audits verts, aucun secret dans Git, TDD, revue finale par jalon, preuves dans le ledger, push sur `main`.
 - Rien ne sort de l'instance sans action explicite d'un administrateur ; un modèle hors instance est affiché comme tel.
 - Chaque jalon ajoute ses contrôles à `scripts/smoke.py`.
-- **Double vérification** : chaque « Terminé quand » est vérifié sur pc6 avec le modèle par défaut **GLM 5.3** (`cloud-glm-5-3`) **et**, pour ce qui dépend de la vitesse, avec un modèle local CPU (`qwen2.5:7b`) ; GLM masque la lenteur du CPU.
+- **Double vérification** : chaque « Terminé quand » est vérifié sur pc6 avec le modèle par défaut **GLM 5.3** (`cloud-glm-5-3`) **et** avec un second modèle cloud du LiteLLM de pc1 (DeepSeek, Muse Spark ou GLM 5.3 Flash au choix) ; aucun modèle local n'est exigé (décision du fondateur, 25/10 : ne pas tester ni livrer de 7B local).
 - pc6 : instance de test (projet compose `nexora`, :3200). GLM 5.3 y est branché comme service « compatible OpenAI » par un tunnel SSH utilisateur (`~/.config/systemd/user/nexora-litellm-pc1-tunnel.service`, 172.17.0.1:18090 → pc1:4400) ; la clé de la passerelle reste hors du dépôt.
 - Ne jamais arrêter un processus ou conteneur non lancé par ce travail ; surveiller le disque de pc6.
 
@@ -75,4 +75,4 @@ Analyse d'écart §3.3 (fine-tuning, GEPA, agents vocaux temps réel et téléph
 
 ## 6. Terminé quand (v3)
 
-Tous les jalons K1–K14 sont cochés dans leurs plans, leurs critères passent réellement sur pc6 (double vérification), la fumée complète est verte avec GLM 5.3 puis avec `qwen2.5:7b` par défaut, tout est poussé sur GitHub.
+Tous les jalons K1–K14 sont cochés dans leurs plans, leurs critères passent réellement sur pc6 (double vérification), la fumée complète est verte avec GLM 5.3 puis avec un second modèle cloud du LiteLLM de pc1, tout est poussé sur GitHub.
