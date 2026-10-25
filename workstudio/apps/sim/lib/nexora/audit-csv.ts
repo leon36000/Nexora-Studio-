@@ -71,11 +71,16 @@ function frenchDate(date: Date, timeZone: string): string {
 let frenchTranslator: AuditTranslator | undefined
 
 function auditTranslator(): AuditTranslator {
-  frenchTranslator ??= createTranslator({
-    locale: 'fr',
-    messages: { auditLogs: frGovernance.auditLogs },
-    namespace: 'auditLogs',
-  }) as unknown as AuditTranslator
+  if (!frenchTranslator) {
+    const translate = createTranslator({
+      locale: 'fr',
+      messages: { auditLogs: frGovernance.auditLogs },
+      namespace: 'auditLogs',
+    })
+    frenchTranslator = Object.assign((key: string) => translate(key as never), {
+      has: (key: string) => translate.has(key as never),
+    })
+  }
   return frenchTranslator
 }
 
