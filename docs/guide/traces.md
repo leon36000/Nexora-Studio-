@@ -27,6 +27,8 @@ Choisissez une trace dans la liste. Le panneau de droite montre :
 
 Une étape en erreur est marquée en rouge. Un bloc dont l'erreur a été traitée par un chemin d'erreur du workflow n'est pas une erreur.
 
+Les campagnes d’[évaluations](evaluations.md) laissent aussi leurs traces, nommées « Évaluation : … » (une pour la réponse de la cible, une pour le juge quand c’est un modèle). À l’inverse, des traces peuvent devenir un **jeu de tests** : dans Évaluations, la source *Traces* reprend la question et la réponse de chaque trace que vous pouvez lire.
+
 ## Filtrer
 
 Statut, origine, modèle, agent, clé d'API, durée (plus de 1 s, 5 s, 10 s ou 30 s), période, et recherche de texte dans les questions et les réponses. Les filtres sont dans l'adresse de la page : copiez-la pour partager une vue.

@@ -373,6 +373,26 @@
         "version_created": "Prompt version created",
         "label_moved": "Prompt label moved",
         "deleted": "Prompt deleted"
+      },
+      "evaluation_dataset": {
+        "created": "Test set created",
+        "deleted": "Test set deleted"
+      },
+      "evaluation_judge": {
+        "saved": "Judge saved",
+        "deleted": "Judge deleted"
+      },
+      "evaluation_campaign": {
+        "launched": "Evaluation campaign launched",
+        "cancelled": "Evaluation campaign cancelled",
+        "deleted": "Evaluation campaign deleted"
+      },
+      "evaluation_schedule": {
+        "saved": "Scheduled campaign saved",
+        "deleted": "Scheduled campaign deleted"
+      },
+      "evaluation_alert": {
+        "acknowledged": "Evaluation alert acknowledged"
       }
     },
     "resourceTypes": {
@@ -415,7 +435,8 @@
       "webhook": "Webhook",
       "workflow": "Workflow",
       "workspace": "Workspace",
-      "prompt": "Prompt"
+      "prompt": "Prompt",
+      "evaluation": "Evaluation"
     }
   },
   "consumption": {

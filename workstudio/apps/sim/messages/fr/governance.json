@@ -373,6 +373,26 @@
         "version_created": "Nouvelle version de prompt",
         "label_moved": "Étiquette de prompt déplacée",
         "deleted": "Prompt supprimé"
+      },
+      "evaluation_dataset": {
+        "created": "Jeu de tests créé",
+        "deleted": "Jeu de tests supprimé"
+      },
+      "evaluation_judge": {
+        "saved": "Juge enregistré",
+        "deleted": "Juge supprimé"
+      },
+      "evaluation_campaign": {
+        "launched": "Campagne d’évaluation lancée",
+        "cancelled": "Campagne d’évaluation annulée",
+        "deleted": "Campagne d’évaluation supprimée"
+      },
+      "evaluation_schedule": {
+        "saved": "Campagne planifiée enregistrée",
+        "deleted": "Campagne planifiée supprimée"
+      },
+      "evaluation_alert": {
+        "acknowledged": "Alerte d’évaluation acquittée"
       }
     },
     "resourceTypes": {
@@ -415,7 +435,8 @@
       "webhook": "Webhook",
       "workflow": "Workflow",
       "workspace": "Espace",
-      "prompt": "Prompt"
+      "prompt": "Prompt",
+      "evaluation": "Évaluation"
     }
   },
   "consumption": {

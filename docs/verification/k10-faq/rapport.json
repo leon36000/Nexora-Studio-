@@ -1,0 +1,177 @@
+{
+  "date": "2026-10-25T04:39:56.338456+00:00",
+  "checks": {
+    "accord_juge": {
+      "total": 10,
+      "matched": 10,
+      "rate": 1,
+      "secondes": 6.4,
+      "lignes": [
+        {
+          "question": "Combien coûte le forfait Pro ?",
+          "humain": "pass",
+          "juge": "pass",
+          "note_juge": "Le montant de 29 € HT par mois correspond exactement à la réponse attendue.",
+          "justification_humaine": "Montant et période exacts."
+        },
+        {
+          "question": "Combien coûte le forfait Équipe ?",
+          "humain": "fail",
+          "juge": "fail",
+          "note_juge": "Le montant annoncé (89 €) ne correspond pas au prix réel du forfait Équipe (79 € HT par mois).",
+          "justification_humaine": "89 € au lieu de 79 € : le prix est faux."
+        },
+        {
+          "question": "Combien d'utilisateurs sont inclus dans le forfait Pro ?",
+          "humain": "pass",
+          "juge": "pass",
+          "note_juge": "La réponse indique 5 utilisateurs, conforme à la réponse attendue.",
+          "justification_humaine": "Le nombre est exact."
+        },
+        {
+          "question": "Combien coûte un utilisateur supplémentaire sur le forfait Pro ?",
+          "humain": "fail",
+          "juge": "fail",
+          "note_juge": "Le montant annoncé (4 €) ne correspond pas au tarif attendu (6 € HT par mois).",
+          "justification_humaine": "4 € est le tarif du forfait Équipe ; sur Pro c'est 6 €."
+        },
+        {
+          "question": "Combien de temps dure l'essai gratuit ?",
+          "humain": "fail",
+          "juge": "fail",
+          "note_juge": "La réponse indique 30 jours au lieu de 14 jours.",
+          "justification_humaine": "C'est 14 jours, pas 30."
+        },
+        {
+          "question": "Faut-il une carte bancaire pour l'essai gratuit ?",
+          "humain": "pass",
+          "juge": "pass",
+          "note_juge": "La réponse confirme correctement qu'aucune carte bancaire n'est requise, conformément à la réponse attendue.",
+          "justification_humaine": "Réponse juste et complète."
+        },
+        {
+          "question": "À partir de quel prix démarre le forfait Entreprise ?",
+          "humain": "pass",
+          "juge": "pass",
+          "note_juge": "Le montant de 250 € par mois et la mention « sur devis » correspondent à la réponse attendue ; l'omission de « HT » n'est pas pénalisante.",
+          "justification_humaine": "Montant et « sur devis » justes ; « HT » omis, sans conséquence ici."
+        },
+        {
+          "question": "Les associations ont-elles une réduction ?",
+          "humain": "pass",
+          "juge": "pass",
+          "note_juge": "La remise de 20 % sur les forfaits Pro et Équipe correspond exactement à la réponse attendue.",
+          "justification_humaine": "Taux et forfaits concernés exacts."
+        },
+        {
+          "question": "L'API est-elle disponible sur le forfait Pro ?",
+          "humain": "fail",
+          "juge": "fail",
+          "note_juge": "L'API n'est pas disponible sur le forfait Pro ; elle commence au forfait Équipe. La réponse affirme le contraire.",
+          "justification_humaine": "L'API n'existe qu'à partir du forfait Équipe."
+        },
+        {
+          "question": "Combien coûte l'application mobile ?",
+          "humain": "fail",
+          "juge": "fail",
+          "note_juge": "La réponse invente un prix (5 € HT par mois) alors que l'information n'est pas disponible ; elle devait renvoyer vers l'équipe commerciale.",
+          "justification_humaine": "Invention : la grille ne donne aucun prix pour une application mobile."
+        }
+      ]
+    },
+    "campagne": {
+      "id": "b7deb415-c13f-439a-896a-730c4b048bd2",
+      "secondes": 95.5,
+      "cibles": [
+        {
+          "cle": "t1",
+          "libelle": "« FAQ tarifs » v2 · qwen2.5:7b",
+          "total": 30,
+          "finished": 30,
+          "passed": 26,
+          "failed": 4,
+          "errors": 0,
+          "passRate": 0.8666666666666667,
+          "meanScore": null,
+          "latencyP50": 1769.5,
+          "latencyP95": 2920.8,
+          "inputTokens": 21734,
+          "outputTokens": 702,
+          "kgCo2eq": 3.821e-05
+        },
+        {
+          "cle": "t2",
+          "libelle": "« FAQ tarifs » v1 · cloud-glm-5-3",
+          "total": 30,
+          "finished": 30,
+          "passed": 29,
+          "failed": 1,
+          "errors": 0,
+          "passRate": 0.9666666666666667,
+          "meanScore": null,
+          "latencyP50": 1193,
+          "latencyP95": 2180.9,
+          "inputTokens": 16977,
+          "outputTokens": 3606,
+          "kgCo2eq": null
+        },
+        {
+          "cle": "t3",
+          "libelle": "« FAQ tarifs » v2 · cloud-glm-5-3",
+          "total": 30,
+          "finished": 30,
+          "passed": 30,
+          "failed": 0,
+          "errors": 0,
+          "passRate": 1,
+          "meanScore": null,
+          "latencyP50": 511,
+          "latencyP95": 1346.5499999999988,
+          "inputTokens": 20487,
+          "outputTokens": 949,
+          "kgCo2eq": null
+        }
+      ]
+    },
+    "comparaison_v1_v2": {
+      "a": "« FAQ tarifs » v1 · cloud-glm-5-3",
+      "b": "« FAQ tarifs » v2 · cloud-glm-5-3",
+      "improved": 1,
+      "regressed": 0,
+      "same": 29,
+      "onlyA": 0,
+      "onlyB": 0
+    },
+    "comparaison_local_cloud": {
+      "a": "« FAQ tarifs » v2 · qwen2.5:7b",
+      "b": "« FAQ tarifs » v2 · cloud-glm-5-3",
+      "improved": 4,
+      "regressed": 0,
+      "same": 26,
+      "onlyA": 0,
+      "onlyB": 0
+    },
+    "campagne_planifiee": {
+      "asOf": "2026-10-26T02:00:30Z",
+      "campagne": "e08e4eb4-65a6-4f2c-a232-7cc54bd2622b",
+      "reussite": 0.8666666666666667,
+      "seuil": 0.95,
+      "alertes": [
+        {
+          "id": "f0ff9773-cb62-4dce-8397-f9040f2d28ef",
+          "campaignId": "e08e4eb4-65a6-4f2c-a232-7cc54bd2622b",
+          "campaignName": "FAQ tarifs, chaque nuit · 26/10/2026 03:00",
+          "targetKey": "t1",
+          "targetLabel": "« FAQ tarifs » v2 · qwen2.5:7b",
+          "kind": "below_threshold",
+          "passRate": 0.8666667,
+          "threshold": 0.95,
+          "createdAt": "2026-10-25T04:42:46.334Z",
+          "acknowledgedAt": null
+        }
+      ],
+      "email_mailpit": true
+    }
+  },
+  "workspaceId": "225cb745-628d-44c3-92e2-8398d37ec0de"
+}

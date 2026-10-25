@@ -1353,6 +1353,107 @@ def main() -> int:
                 s.call("DELETE", f"/api/workspaces/{state['ws']}/api-keys/{key_id}")
             s.call("DELETE", f"/api/nexora/prompts/{prompt_id}?workspaceId={state['ws']}")
 
+    def evaluations():
+        """K10: a test set, a judge and a campaign comparing two targets run in the background; the
+        statistics and the row-by-row comparison are read, a failing target under its threshold
+        raises an alert, a campaign can be cancelled, and a schedule launches its campaign."""
+        base = "/api/nexora/evaluations"
+        ws = state["ws"]
+        model = os.environ.get("NEXORA_SMOKE_EVAL_MODEL", "vllm/nexora-default")
+        lines = [
+            {"question": "Combien font 2+2 ? Réponds par un seul chiffre.", "attendu": "4",
+             "réponse": "OK: 4", "verdict": "pass", "justification": "Le bon chiffre."},
+            {"question": "Quelle est la capitale de la France ? Réponds en un mot.", "attendu": "Paris"},
+            {"question": "De quelle couleur est le ciel par temps clair ? Réponds en un mot.", "attendu": "bleu"},
+        ]
+        text = "\n".join(json.dumps(line, ensure_ascii=False) for line in lines)
+        suffix = secrets.token_hex(3)
+        status, body = s.call("POST", f"{base}/datasets", {"workspaceId": ws, "name": f"Fumée jeu {suffix}", "source": {"kind": "jsonl", "text": text}})
+        require(status == 200 and body["dataset"]["rowCount"] == 3 and body["dataset"]["annotatedCount"] == 1,
+                f"dataset import returned HTTP {status}: {str(body)[:200]}")
+        dataset_id = body["dataset"]["id"]
+        status, body = s.call("POST", f"{base}/judges", {"workspaceId": ws, "name": f"Fumée juge {suffix}",
+                                                          "config": {"kind": "contains", "value": "OK:", "caseSensitive": False}})
+        require(status == 200, f"judge creation returned HTTP {status}: {str(body)[:200]}")
+        judge_id = body["judge"]["id"]
+        long_dataset_id = None
+        try:
+            status, body = s.call("POST", f"{base}/judges/try", {"workspaceId": ws, "datasetId": dataset_id, "limit": 10,
+                                                                  "config": {"kind": "contains", "value": "OK:", "caseSensitive": False}})
+            require(status == 200 and body["agreement"]["total"] == 1 and body["agreement"]["rate"] == 1.0,
+                    f"judge trial returned HTTP {status}: {str(body)[:300]}")
+
+            def wait(campaign_id: str, seconds: int = 240) -> dict:
+                deadline = time.time() + seconds
+                while time.time() < deadline:
+                    status, body = s.call("GET", f"{base}/campaigns/{campaign_id}?workspaceId={ws}")
+                    require(status == 200, f"campaign read returned HTTP {status}")
+                    if body["campaign"]["status"] not in ("pending", "running"):
+                        return body
+                    time.sleep(2)
+                raise AssertionError(f"campaign {campaign_id} did not finish in {seconds} s")
+
+            # The judge looks for the marker « OK: »: only the first target is told to write it.
+            targets = [{"kind": "model", "model": model, "system": "Chaque réponse doit commencer exactement par OK: suivi de la réponse la plus brève possible (exemple : OK: Paris)."},
+                       {"kind": "model", "model": model}]
+            status, body = s.call("POST", f"{base}/campaigns", {"workspaceId": ws, "name": f"Fumée campagne {suffix}", "datasetId": dataset_id,
+                                                                 "judgeId": judge_id, "targets": targets, "concurrency": 2, "alertThreshold": 0.9})
+            require(status == 200, f"campaign launch returned HTTP {status}: {str(body)[:200]}")
+            campaign_id = body["campaign"]["id"]
+            result = wait(campaign_id)
+            require(result["campaign"]["status"] == "completed", f"campaign ended {result['campaign']['status']}: {result['campaign'].get('error')}")
+            stats = {entry["targetKey"]: entry["summary"] for entry in result["summaries"]}
+            require(stats["t1"]["finished"] == 3 and stats["t2"]["finished"] == 3, f"unexpected counts: {stats}")
+            require(stats["t1"]["passRate"] == 1.0 and stats["t2"]["passRate"] == 0.0,
+                    f"pass rates: t1={stats['t1']['passRate']} t2={stats['t2']['passRate']}")
+            require(stats["t1"]["latencyP50"] is not None and stats["t1"]["inputTokens"] > 0, "latency or tokens missing")
+            status, body = s.call("GET", f"{base}/compare?workspaceId={ws}&a={campaign_id}:t2&b={campaign_id}:t1")
+            require(status == 200 and body["counts"]["improved"] == 3 and body["counts"]["regressed"] == 0,
+                    f"comparison returned HTTP {status}: {str(body.get('counts') or body)[:200]}")
+            status, body = s.call("GET", f"{base}/alerts?workspaceId={ws}")
+            alerts = [a for a in body["alerts"] if a["campaignId"] == campaign_id]
+            require(status == 200 and len(alerts) == 1 and alerts[0]["targetKey"] == "t2" and alerts[0]["passRate"] == 0.0,
+                    f"alerts returned HTTP {status}: {str(alerts)[:200]}")
+            status, _ = s.call("POST", f"{base}/alerts/{alerts[0]['id']}/acknowledge", {"workspaceId": ws})
+            require(status == 200, f"acknowledge returned HTTP {status}")
+
+            # A long campaign (84 items, one at a time) is still running when it is cancelled.
+            status, body = s.call("POST", f"{base}/datasets", {"workspaceId": ws, "name": f"Fumée long jeu {suffix}",
+                                                                "source": {"kind": "jsonl", "text": "\n".join([text] * 14)}})
+            require(status == 200 and body["dataset"]["rowCount"] == 42, f"long dataset returned HTTP {status}: {str(body)[:200]}")
+            long_dataset_id = body["dataset"]["id"]
+            status, body = s.call("POST", f"{base}/campaigns", {"workspaceId": ws, "name": f"Fumée annulée {suffix}", "datasetId": long_dataset_id,
+                                                                 "judgeId": judge_id, "targets": targets, "concurrency": 1})
+            require(status == 200, f"second launch returned HTTP {status}")
+            cancelled_id = body["campaign"]["id"]
+            status, body = s.call("POST", f"{base}/campaigns/{cancelled_id}/cancel", {"workspaceId": ws})
+            require(status == 200 and body["campaign"]["status"] == "cancelled", f"cancel returned HTTP {status}: {str(body)[:200]}")
+            time.sleep(3)
+            status, body = s.call("GET", f"{base}/campaigns/{cancelled_id}?workspaceId={ws}")
+            require(body["campaign"]["status"] == "cancelled", f"a cancelled campaign became {body['campaign']['status']}")
+
+            status, body = s.call("POST", f"{base}/schedules", {"workspaceId": ws, "name": f"Fumée nuit {suffix}", "cron": "0 3 * * *", "timezone": "Europe/Paris",
+                                                                 "datasetId": dataset_id, "judgeId": judge_id, "targets": targets[:1], "alertThreshold": 0.5})
+            require(status == 200 and body["schedule"]["nextRunAt"], f"schedule creation returned HTTP {status}: {str(body)[:200]}")
+            schedule_id = body["schedule"]["id"]
+            status, body = s.call("POST", f"{base}/schedules/{schedule_id}/run", {"workspaceId": ws})
+            require(status == 200, f"schedule run returned HTTP {status}: {str(body)[:200]}")
+            scheduled = wait(body["campaign"]["id"])
+            require(scheduled["campaign"]["status"] == "completed" and scheduled["campaign"]["scheduleId"] == schedule_id,
+                    f"scheduled campaign: {scheduled['campaign']['status']}")
+            status, body = s.call("DELETE", f"{base}/schedules/{schedule_id}?workspaceId={ws}")
+            require(status == 200, f"schedule deletion returned HTTP {status}")
+            return (f"jeu de 3 lignes, 2 cibles : réussite {int(stats['t1']['passRate'] * 100)} % et {int(stats['t2']['passRate'] * 100)} %, "
+                    "comparaison 3 améliorations, alerte levée puis acquittée, annulation, planification lancée")
+        finally:
+            for campaign in s.call("GET", f"{base}/campaigns?workspaceId={ws}")[1].get("campaigns", []):
+                if campaign["name"].startswith("Fumée") and campaign["name"].endswith(suffix) or f"Fumée nuit {suffix}" in campaign["name"]:
+                    s.call("DELETE", f"{base}/campaigns/{campaign['id']}?workspaceId={ws}")
+            s.call("DELETE", f"{base}/judges/{judge_id}?workspaceId={ws}")
+            for leftover in (dataset_id, long_dataset_id):
+                if leftover:
+                    s.call("DELETE", f"{base}/datasets/{leftover}?workspaceId={ws}")
+
     if args.quick:
         # On demand (operators): the platform answers in French, a workspace gets its templates, a
         # template runs through the model. Needs no admin credentials, but signs up an account:
@@ -1382,6 +1483,7 @@ def main() -> int:
     s.check("Assistant : conversation en flux, historique, cloisonnement", assistant)
     s.check("API développeur : clé, modèle et agent au format OpenAI, refus 401 et 403", developer_api)
     s.check("Traces : arbre, IBAN masqué, durée > 10 s, collecteur OTLP, purge, cloisonnement", traces)
+    s.check("Évaluations : campagne, statistiques, comparaison, alerte, annulation, planification", evaluations)
     if os.environ.get("NEXORA_SMOKE_WEB_SEARCH") == "1":
         s.check("Recherche web (SearXNG)", web_search)
     for name in TEMPLATE_INPUTS:

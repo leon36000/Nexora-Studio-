@@ -55,3 +55,5 @@ workstudio/apps/sim/app/workspace/[workspaceId]/providers/workspace-permissions-
 # K3 API des développeurs
 workstudio/apps/sim/app/workspace/[workspaceId]/developpeurs
 workstudio/apps/sim/app/workspace/[workspaceId]/prompts
+# K10 Évaluations
+workstudio/apps/sim/app/workspace/[workspaceId]/evaluations
