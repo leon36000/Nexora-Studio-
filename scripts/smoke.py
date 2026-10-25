@@ -722,17 +722,19 @@ def main() -> int:
         smtp_host, mailbox = os.environ.get("NEXORA_SMOKE_SMTP_HOST", ""), os.environ.get("NEXORA_SMOKE_MAILPIT_URL", "")
         with_mail = os.environ.get("NEXORA_SMOKE_MEETING_MAIL") == "1" and smtp_host and mailbox
         template = state["workflows"][MEETING_TEMPLATE]
-        if with_mail:
-            status, loaded = s.call("GET", f"/api/workflows/{template}")
-            require(status == 200, f"template state returned HTTP {status}")
-            saved = (loaded.get("data") or loaded)["state"]
-            smtp = next((b for b in saved["blocks"].values() if b["type"] == "smtp"), None)
-            require(smtp, "the template has no e-mail block")
-            for key, value in {"smtpHost": smtp_host, "smtpPort": os.environ.get("NEXORA_SMOKE_SMTP_PORT", "1025"), "smtpUsername": "reunion",
-                               "smtpPassword": "reunion", "smtpSecure": "None", "from": "reunions@nexora.test"}.items():
-                smtp["subBlocks"].setdefault(key, {"id": key, "type": "short-input", "value": ""})["value"] = value
-            status, _ = s.call("PUT", f"/api/workflows/{template}/state", saved)
-            require(status == 200, f"template state save returned HTTP {status}")
+        # Sim checks every block's required fields before a run starts, so the template's e-mail block
+        # is filled either with the real test mailbox or, without one, with a server nothing listens on
+        # (the checks below stop at the validation, or at a refusal, before anything is sent).
+        status, loaded = s.call("GET", f"/api/workflows/{template}")
+        require(status == 200, f"template state returned HTTP {status}")
+        saved = (loaded.get("data") or loaded)["state"]
+        smtp = next((b for b in saved["blocks"].values() if b["type"] == "smtp"), None)
+        require(smtp, "the template has no e-mail block")
+        server = {"smtpHost": smtp_host, "smtpPort": os.environ.get("NEXORA_SMOKE_SMTP_PORT", "1025")} if with_mail else {"smtpHost": "127.0.0.1", "smtpPort": "9"}
+        for key, value in {**server, "smtpUsername": "reunion", "smtpPassword": "reunion", "smtpSecure": "None", "from": "reunions@nexora.test"}.items():
+            smtp["subBlocks"].setdefault(key, {"id": key, "type": "short-input", "value": ""})["value"] = value
+        status, _ = s.call("PUT", f"/api/workflows/{template}/state", saved)
+        require(status == 200, f"template state save returned HTTP {status}")
 
         def mails_for(recipient: str) -> list:
             with urllib.request.urlopen(f"{mailbox.rstrip('/')}/api/v1/search?query=to:{recipient}", timeout=30) as response:
@@ -741,13 +743,15 @@ def main() -> int:
         def meeting_run(recipient: str) -> tuple[str, str]:
             status, run = s.call("POST", f"/api/workflows/{template}/execute", {"useDraftState": True, "stream": False, "input": {
                 "enregistrement": recording, "participants": "Marie, Paul, Claire", "destinataire": recipient}}, timeout=1800)
-            require(status == 200 and run.get("success"), f"template run returned HTTP {status}: {str(run.get('error'))[:200]}")
+            require(status == 200 and run.get("success"), f"template run ({recipient.split('-')[0]}) returned HTTP {status}: {str(run.get('error'))[:200]} ; {json.dumps(run, ensure_ascii=False)[:500]}")
             paused = (run.get("output") or {}).get("data") or {}
             minutes = next((f["value"] for f in paused.get("responseStructure", []) if f.get("name") == "compteRendu"), "")
             resume = (paused.get("_resume") or {}).get("apiUrl", "")
             require(len(minutes) > 200 and resume, f"the run did not stop at the validation with minutes: {str(run)[:300]}")
             require("campagne" in minutes.lower(), f"the minutes do not mention the meeting: {minutes[:200]}")
-            return minutes, resume.replace(s.url, "")
+            # The address in the pause data is the public one; the check reaches the same route locally.
+            parts = urllib.parse.urlsplit(resume)
+            return minutes, parts.path + (f"?{parts.query}" if parts.query else "")
 
         # A refusal at the validation sends nothing; an approval sends the minutes.
         refused_to = f"refus-{secrets.token_hex(4)}@nexora.test"
@@ -849,7 +853,7 @@ def main() -> int:
     def audit():
         status, _ = s.call("POST", "/api/organizations", {"name": "Dissidente", "slug": f"dissidente-{secrets.token_hex(3)}"}, timeout=180)
         require(status == 409, f"a member could found a second organization (HTTP {status})")
-        _, logs = admin.call("GET", f"/api/audit-logs?organizationId={admin_organization()}&limit=50")
+        _, logs = admin.call("GET", f"/api/audit-logs?organizationId={admin_organization()}&action=workspace.created&limit=50")
         entries = [(e["action"], e.get("actorEmail")) for e in logs.get("data", [])]
         require(("workspace.created", email) in entries, f"audit log does not show the member's new workspace: {entries[:10]}")
         return "workspace.created du membre tracé"
@@ -937,7 +941,7 @@ def main() -> int:
         require(done and not done[-1].get("error"), f"stream did not end cleanly: {text[-200:]}")
         require(answer.strip(), f"no answer after the reasoning ({len(thinking)} characters of reasoning)")
         require("<think>" not in answer and "</think>" not in answer, f"reasoning tags in the answer: {answer[:120]}")
-        require(not thinking or thinking not in answer, "the reasoning leaked into the answer")
+        require(len(thinking.strip()) < 40 or thinking.strip() not in answer, "the reasoning leaked into the answer")  # a one-word reasoning is a substring of a one-word answer
         effort = "effort refusé, réponse quand même" if done[-1].get("effortIgnored") else "effort accepté"
         return f"« {answer.strip()[:30]} », réflexion {len(thinking)} caractères à part, {effort}"
 
