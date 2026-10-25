@@ -9,9 +9,17 @@ export async function generateMetadata(): Promise<Metadata> {
 
 export default async function ConnectorPage({
   params,
+  searchParams,
 }: {
   params: Promise<{ workspaceId: string; service: string }>
+  searchParams: Promise<{ scope?: string }>
 }) {
-  const { workspaceId, service } = await params
-  return <ConnectorDetail workspaceId={workspaceId} service={service} />
+  const [{ workspaceId, service }, { scope }] = await Promise.all([params, searchParams])
+  return (
+    <ConnectorDetail
+      workspaceId={workspaceId}
+      service={service}
+      scope={scope === 'personal' ? 'personal' : 'workspace'}
+    />
+  )
 }

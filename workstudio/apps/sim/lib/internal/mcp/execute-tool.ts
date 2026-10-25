@@ -27,6 +27,8 @@ import {
   McpToolsNotAllowedError,
 } from '@/lib/mcp/application/execute-tool'
 import { McpOauthRedirectRequired } from '@/lib/mcp/oauth'
+import { resolveActingMember } from '@/lib/nexora/acting-member'
+import { PersonalConnectUnavailableError } from '@/lib/nexora/personal-connect'
 import { McpOauthAuthorizationRequiredError } from '@/lib/mcp/types'
 import {
   categorizeError,
@@ -214,9 +216,16 @@ export const executeMcpTool: InternalToolOperationHandler = async (request) => {
     }
     let result: ExecuteMcpToolResult
     if (target.kind === 'shared_server') {
+      const actingMemberId = await resolveActingMember({
+        executionId: request.context.executionId,
+        workflowId: request.context.workflowId,
+        workspaceId: request.context.workspaceId,
+        actorUserId: request.context.userId,
+      })
       const input: ExecuteMcpToolInput = {
         ...commonInput,
         serverId: target.serverId,
+        ...(actingMemberId ? { actingMemberId } : {}),
         onResolvedSecretTraceProvenance: provenance
           ? (value) => provenance?.record(value)
           : undefined,
@@ -325,6 +334,19 @@ export const executeMcpTool: InternalToolOperationHandler = async (request) => {
       )
     }
 
+    if (error instanceof PersonalConnectUnavailableError) {
+      return createResponse(
+        {
+          success: false,
+          error:
+            'Your personal connections are unavailable right now. Nothing was done; try again later.',
+        },
+        503,
+        provenance,
+        request.context.resolvedSecretTraceRegistry,
+        request.toolId
+      )
+    }
     const categorized = categorizeError(error)
     if (categorized.status === 408) provenance?.markIncomplete('mcp-tool-execution-timeout')
     logger.error('MCP tool execution failed', {

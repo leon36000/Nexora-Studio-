@@ -19,6 +19,8 @@ import { generateRequestId } from '@/lib/core/utils/request'
 import { withRouteHandler } from '@/lib/core/utils/with-route-handler'
 import { preprocessExecution } from '@/lib/execution/preprocessing'
 import { LoggingSession } from '@/lib/logs/execution/logging-session'
+import { registerRunMember } from '@/lib/nexora/acting-member'
+import { prepareAssistantInput } from '@/lib/nexora/assistant/prepare-input'
 import { memberMemoryKey } from '@/lib/nexora/member-memory'
 import { registerConfirmationSink } from '@/lib/nexora/tool-confirmation/sinks'
 import { ChatFiles } from '@/lib/uploads'
@@ -280,7 +282,17 @@ export const POST = withRouteHandler(
           memberChatUserId && conversationId
             ? memberMemoryKey(memberChatUserId, conversationId)
             : conversationId
-        const workflowInput: any = { input, conversationId: memoryConversationId }
+        // Nexora edition: a member's Assistant question carries its project and the skills it names.
+        const prepared =
+          memberChatUserId && typeof input === 'string'
+            ? await prepareAssistantInput({
+                workspaceId,
+                userId: memberChatUserId,
+                conversationId,
+                text: input,
+              })
+            : null
+        const workflowInput: any = { input: prepared?.text ?? input, conversationId: memoryConversationId }
         if (files && Array.isArray(files) && files.length > 0) {
           const executionContext = {
             workspaceId,
@@ -371,8 +383,12 @@ export const POST = withRouteHandler(
             const unregisterConfirmations = clientAcceptsAgentStreamProtocol(request.headers)
               ? registerConfirmationSink(executionId, emitFrame)
               : undefined
+            // Nexora edition: the run's tool calls act as the member who is talking.
+            const unregisterMember = memberChatUserId
+              ? registerRunMember(executionId, memberChatUserId)
+              : undefined
             try {
-              return await executeWorkflow(
+              const result = await executeWorkflow(
                 workflowForExecution,
                 requestId,
                 workflowInput,
@@ -410,8 +426,11 @@ export const POST = withRouteHandler(
                 },
                 executionId
               )
+              if (result?.success) await prepared?.commit()
+              return result
             } finally {
               unregisterConfirmations?.()
+              unregisterMember?.()
             }
           },
         })

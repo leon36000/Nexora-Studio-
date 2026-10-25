@@ -71,9 +71,16 @@ const createMockStream = () => {
   })
 }
 
-const { mockValidateChatAuth, mockSetChatAuthCookie } = vi.hoisted(() => ({
-  mockValidateChatAuth: vi.fn().mockResolvedValue({ authorized: true }),
-  mockSetChatAuthCookie: vi.fn(),
+const { mockValidateChatAuth, mockSetChatAuthCookie, mockPrepareAssistantInput } = vi.hoisted(
+  () => ({
+    mockValidateChatAuth: vi.fn().mockResolvedValue({ authorized: true }),
+    mockSetChatAuthCookie: vi.fn(),
+    mockPrepareAssistantInput: vi.fn(),
+  })
+)
+
+vi.mock('@/lib/nexora/assistant/prepare-input', () => ({
+  prepareAssistantInput: mockPrepareAssistantInput,
 }))
 
 const mockCreateCodedErrorResponse = workflowsApiUtilsMockFns.mockCreateCodedErrorResponse
@@ -114,6 +121,7 @@ vi.mock('@/lib/core/rate-limiter', () => rateLimiterMock)
 
 import { RATE_LIMITS } from '@/lib/core/rate-limiter/types'
 import { preprocessExecution } from '@/lib/execution/preprocessing'
+import { resolveActingMember } from '@/lib/nexora/acting-member'
 import { executeWorkflow } from '@/lib/workflows/executor/execute-workflow'
 import { createStreamingResponse } from '@/lib/workflows/streaming/streaming'
 import { POST } from '@/app/api/chat/[identifier]/route'
@@ -163,6 +171,10 @@ describe('Chat Identifier API Route', () => {
   ]
 
   beforeEach(() => {
+    mockPrepareAssistantInput.mockImplementation(async ({ text }: { text: string }) => ({
+      text,
+      commit: vi.fn(),
+    }))
     executionPreprocessingMockFns.mockPreprocessExecution.mockResolvedValue({
       success: true,
       actorUserId: 'test-user-id',
@@ -400,6 +412,56 @@ describe('Chat Identifier API Route', () => {
         const [, , , , options] = await runWith('workspace', 'conversation-of-b')
 
         expect(options).toMatchObject({ memberChatUserId: 'member-b' })
+      })
+
+      it('lets the run’s tool calls act as the member while it runs, and no longer afterwards', async () => {
+        const noDeps = { taskOwner: async () => null, executionTrigger: async () => null }
+        let actingDuring: string | null = null
+        vi.mocked(executeWorkflow).mockImplementationOnce(async (...args: unknown[]) => {
+          actingDuring = await resolveActingMember(
+            { executionId: String(args[5]), workspaceId: 'workspace-1' },
+            noDeps
+          )
+          return { success: true, output: {} } as never
+        })
+        const [, , , , , executionId] = await runWith('workspace', 'conversation-of-b')
+
+        expect(actingDuring).toBe('member-b')
+        await expect(
+          resolveActingMember({ executionId: String(executionId), workspaceId: 'workspace-1' }, noDeps)
+        ).resolves.toBeNull()
+      })
+
+      it('gives the agent the question prepared for the member, and records the context once the run succeeded', async () => {
+        const commit = vi.fn()
+        mockPrepareAssistantInput.mockResolvedValueOnce({ text: 'CONTEXTE\n\nBonjour', commit })
+        vi.mocked(executeWorkflow).mockResolvedValueOnce({ success: true, output: {} } as never)
+        const [, , input] = await runWith('workspace', 'conversation-of-b')
+
+        expect(mockPrepareAssistantInput).toHaveBeenCalledWith({
+          workspaceId: 'test-workspace-id',
+          userId: 'member-b',
+          conversationId: 'conversation-of-b',
+          text: 'Bonjour',
+        })
+        expect(input).toMatchObject({ input: 'CONTEXTE\n\nBonjour' })
+        expect(commit).toHaveBeenCalledTimes(1)
+      })
+
+      it('does not record the context of a run that failed', async () => {
+        const commit = vi.fn()
+        mockPrepareAssistantInput.mockResolvedValueOnce({ text: 'CONTEXTE\n\nBonjour', commit })
+        vi.mocked(executeWorkflow).mockResolvedValueOnce({ success: false, output: {} } as never)
+        await runWith('workspace', 'conversation-of-b')
+
+        expect(commit).not.toHaveBeenCalled()
+      })
+
+      it('prepares nothing for a public chat’s visitor', async () => {
+        const [, , input] = await runWith('public', 'visitor-conversation')
+
+        expect(mockPrepareAssistantInput).not.toHaveBeenCalled()
+        expect(input).toMatchObject({ input: 'Bonjour' })
       })
 
       it('leaves the conversation id of a public chat as the visitor sent it', async () => {

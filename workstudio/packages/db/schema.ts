@@ -8566,6 +8566,10 @@ export const nexoraAssistantConversation = pgTable(
       .references(() => user.id, { onDelete: 'cascade' }),
     workflowId: text('workflow_id').references(() => workflow.id, { onDelete: 'set null' }),
     title: text('title').notNull(),
+    /** The project whose instructions and files the conversation shares; no foreign key (detached in code). */
+    projectId: text('project_id'),
+    /** The project version last placed in front of the agent, so unchanged context is not repeated. */
+    projectVersion: integer('project_version'),
     createdAt: timestamp('created_at').notNull().defaultNow(),
     updatedAt: timestamp('updated_at').notNull().defaultNow(),
   },
@@ -8588,9 +8592,117 @@ export const nexoraAssistantMessage = pgTable(
     usage: jsonb('usage').$type<{ promptTokens: number; completionTokens: number }>(),
     /** The answer stopped before its end (stream cut, error). */
     interrupted: boolean('interrupted').notNull().default(false),
+    /** `null` for text; `workflow_run` or `task` for a card the thread shows from `payload`. */
+    kind: text('kind'),
+    payload: jsonb('payload').$type<Record<string, unknown>>(),
     createdAt: timestamp('created_at').notNull().defaultNow(),
   },
   (t) => [index('nexora_assistant_message_conversation_idx').on(t.conversationId, t.createdAt)]
+)
+
+/** Nexora edition: an Assistant project, private to its author — instructions and files shared by its conversations. */
+export const nexoraAssistantProject = pgTable(
+  'nexora_assistant_project',
+  {
+    id: text('id').primaryKey(),
+    workspaceId: text('workspace_id')
+      .notNull()
+      .references(() => workspace.id, { onDelete: 'cascade' }),
+    userId: text('user_id')
+      .notNull()
+      .references(() => user.id, { onDelete: 'cascade' }),
+    name: text('name').notNull(),
+    instructions: text('instructions').notNull().default(''),
+    /** Incremented whenever the instructions or the files change. */
+    version: integer('version').notNull().default(1),
+    createdAt: timestamp('created_at').notNull().defaultNow(),
+    updatedAt: timestamp('updated_at').notNull().defaultNow(),
+  },
+  (t) => [index('nexora_assistant_project_owner_idx').on(t.workspaceId, t.userId, t.updatedAt)]
+)
+
+/** A project's file, kept as its extracted text. */
+export const nexoraAssistantProjectFile = pgTable(
+  'nexora_assistant_project_file',
+  {
+    id: text('id').primaryKey(),
+    projectId: text('project_id')
+      .notNull()
+      .references(() => nexoraAssistantProject.id, { onDelete: 'cascade' }),
+    name: text('name').notNull(),
+    type: text('type').notNull(),
+    size: integer('size').notNull(),
+    text: text('text').notNull(),
+    createdAt: timestamp('created_at').notNull().defaultNow(),
+  },
+  (t) => [index('nexora_assistant_project_file_project_idx').on(t.projectId, t.createdAt)]
+)
+
+/** A scheduled task created from an Assistant conversation: the person's own workflow, with its schedule. */
+export const nexoraAssistantTask = pgTable(
+  'nexora_assistant_task',
+  {
+    id: text('id').primaryKey(),
+    workspaceId: text('workspace_id')
+      .notNull()
+      .references(() => workspace.id, { onDelete: 'cascade' }),
+    userId: text('user_id')
+      .notNull()
+      .references(() => user.id, { onDelete: 'cascade' }),
+    workflowId: text('workflow_id')
+      .notNull()
+      .references(() => workflow.id, { onDelete: 'cascade' }),
+    title: text('title').notNull(),
+    /** What the person asked for, in their words. */
+    request: text('request').notNull(),
+    createdAt: timestamp('created_at').notNull().defaultNow(),
+  },
+  (t) => [
+    uniqueIndex('nexora_assistant_task_workflow_idx').on(t.workflowId),
+    index('nexora_assistant_task_owner_idx').on(t.workspaceId, t.userId, t.createdAt),
+  ]
+)
+
+/** A deployed workflow a writer made available in the Assistant. */
+export const nexoraAssistantWorkflow = pgTable(
+  'nexora_assistant_workflow',
+  {
+    workspaceId: text('workspace_id')
+      .notNull()
+      .references(() => workspace.id, { onDelete: 'cascade' }),
+    workflowId: text('workflow_id')
+      .notNull()
+      .references(() => workflow.id, { onDelete: 'cascade' }),
+    publishedBy: text('published_by').references(() => user.id, { onDelete: 'set null' }),
+    publishedAt: timestamp('published_at').notNull().defaultNow(),
+  },
+  (t) => [primaryKey({ columns: [t.workspaceId, t.workflowId] })]
+)
+
+/**
+ * A member's own Nexora Connect runtime token for one workspace: it grants their personal
+ * connections plus the workspace's for services they did not connect themselves. Only the server
+ * reads it, to call Connect on their behalf; the token is encrypted and never returned.
+ */
+export const nexoraPersonalConnectToken = pgTable(
+  'nexora_personal_connect_token',
+  {
+    id: text('id').primaryKey(),
+    userId: text('user_id')
+      .notNull()
+      .references(() => user.id, { onDelete: 'cascade' }),
+    workspaceId: text('workspace_id')
+      .notNull()
+      .references(() => workspace.id, { onDelete: 'cascade' }),
+    /** The token's identifier in Nexora Connect (not its secret). */
+    connectTokenId: text('connect_token_id').notNull(),
+    tokenEncrypted: text('token_encrypted').notNull(),
+    /** Fingerprint of the connections the token currently grants. */
+    grantHash: text('grant_hash').notNull(),
+    createdAt: timestamp('created_at').notNull().defaultNow(),
+    updatedAt: timestamp('updated_at').notNull().defaultNow(),
+  },
+  (t) => [uniqueIndex('nexora_personal_connect_token_member_idx').on(t.userId, t.workspaceId)]
 )
 
 /**

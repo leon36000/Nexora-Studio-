@@ -28,6 +28,10 @@ export interface AssistantConversationRecord {
   userId: string
   workflowId: string | null
   title: string
+  /** The project whose instructions and files the conversation shares, when it is in one. */
+  projectId: string | null
+  /** The project version last placed in front of the agent. */
+  projectVersion: number | null
   createdAt: Date
   updatedAt: Date
 }
@@ -57,6 +61,8 @@ const conversationColumns = {
   userId: nexoraAssistantConversation.userId,
   workflowId: nexoraAssistantConversation.workflowId,
   title: nexoraAssistantConversation.title,
+  projectId: nexoraAssistantConversation.projectId,
+  projectVersion: nexoraAssistantConversation.projectVersion,
   createdAt: nexoraAssistantConversation.createdAt,
   updatedAt: nexoraAssistantConversation.updatedAt,
 }
@@ -104,6 +110,7 @@ export async function insertConversation(values: {
   userId: string
   workflowId: string
   title: string
+  projectId?: string
 }): Promise<AssistantConversationRecord> {
   const now = new Date()
   const [row] = await db

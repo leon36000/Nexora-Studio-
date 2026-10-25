@@ -5,6 +5,7 @@ import { defineAuthorizedWorkspaceUseCase } from '@/lib/core/application/authori
 import { OrchestrationError } from '@/lib/core/orchestration/types'
 import { type AssistantAgent, findPublishedAgent } from '@/lib/nexora/assistant/agents'
 import { assistantOperations } from '@/lib/nexora/assistant/operations'
+import { loadProject } from '@/lib/nexora/assistant/projects/repository'
 import {
   type AssistantConversationRecord,
   type AssistantMessageRecord,
@@ -58,6 +59,8 @@ interface WorkspaceInput {
 interface CreateConversationInput extends WorkspaceInput {
   workflowId: string
   firstMessage: string
+  /** One of the caller's own projects of the workspace. */
+  projectId?: string
 }
 
 interface ConversationInput {
@@ -116,11 +119,22 @@ export const createAssistantConversation = defineAuthorizedWorkspaceUseCase({
   async execute({ principal, context, input }) {
     const agent = await findPublishedAgent(context.workspaceId, input.workflowId)
     if (!agent) throw new AssistantAgentUnpublishedError()
+    if (input.projectId) {
+      const project = await loadProject(input.projectId)
+      if (
+        !project ||
+        project.userId !== principal.userId ||
+        project.workspaceId !== context.workspaceId
+      ) {
+        throw new OrchestrationError('not_found', 'Project not found')
+      }
+    }
     const conversation = await insertConversation({
       workspaceId: context.workspaceId,
       userId: principal.userId,
       workflowId: agent.workflowId,
       title: deriveConversationTitle(input.firstMessage),
+      projectId: input.projectId,
     })
     return { conversation }
   },

@@ -19,6 +19,7 @@ import {
 import { SettingsSection } from '@/app/workspace/[workspaceId]/settings/components/settings-section/settings-section'
 import {
   type ConnectorDetail as ConnectorDetailData,
+  type ConnectorScope,
   getConnectorErrorCode,
   useConnector,
   useDisconnectConnector,
@@ -45,6 +46,8 @@ function connectMethods(auth: ConnectorDetailData['auth']): ConnectMethod[] {
 interface ConnectorDetailProps {
   workspaceId: string
   service: string
+  /** `personal`: the member's own connection to the service. */
+  scope: ConnectorScope
 }
 
 /**
@@ -52,9 +55,9 @@ interface ConnectorDetailProps {
  * connection. Editors connect it (API key, credentials or OAuth) and disconnect it; other
  * members see the state only.
  */
-export function ConnectorDetail({ workspaceId, service }: ConnectorDetailProps) {
+export function ConnectorDetail({ workspaceId, service, scope }: ConnectorDetailProps) {
   const t = useTranslations('connectors')
-  const { data, error, isPending, isFetching, refetch } = useConnector(workspaceId, service)
+  const { data, error, isPending, isFetching, refetch } = useConnector(workspaceId, service, scope)
   const disconnect = useDisconnectConnector()
   const [confirmingDisconnect, setConfirmingDisconnect] = useState(false)
   const [showActions, setShowActions] = useState(false)
@@ -65,7 +68,7 @@ export function ConnectorDetail({ workspaceId, service }: ConnectorDetailProps) 
 
   const backLink = (
     <ChipLink
-      href={`/workspace/${workspaceId}/connecteurs`}
+      href={`/workspace/${workspaceId}/connecteurs${scope === 'personal' ? '?scope=personal' : ''}`}
       leftIcon={ArrowLeft}
       className='self-start'
     >
@@ -107,7 +110,7 @@ export function ConnectorDetail({ workspaceId, service }: ConnectorDetailProps) 
 
   const handleDisconnect = () => {
     disconnect.mutate(
-      { workspaceId, service },
+      { workspaceId, service, scope },
       {
         onSuccess: () => {
           setConfirmingDisconnect(false)
@@ -161,6 +164,7 @@ export function ConnectorDetail({ workspaceId, service }: ConnectorDetailProps) 
         {method.type === 'oauth2' ? (
           <OAuthConnect
             workspaceId={workspaceId}
+            scope={scope}
             service={service}
             serviceName={name}
             oauth={data.oauth}
@@ -169,6 +173,7 @@ export function ConnectorDetail({ workspaceId, service }: ConnectorDetailProps) 
           <CredentialForm
             key={method.type}
             workspaceId={workspaceId}
+            scope={scope}
             service={service}
             serviceName={name}
             authType={method.type}
@@ -221,7 +226,13 @@ export function ConnectorDetail({ workspaceId, service }: ConnectorDetailProps) 
           </p>
         )}
 
-        <SettingsSection label={t('detail.connectionSection')}>{connectionBody}</SettingsSection>
+        <SettingsSection
+          label={
+            scope === 'personal' ? t('detail.personalConnectionSection') : t('detail.connectionSection')
+          }
+        >
+          {connectionBody}
+        </SettingsSection>
 
         <SettingsSection
           label={t('detail.actionsSection')}

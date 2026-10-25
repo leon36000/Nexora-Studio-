@@ -8,6 +8,19 @@ import {
   type AssistantConversationRecord,
   type AssistantMessageRecord,
 } from '@/lib/nexora/assistant'
+import { CopilotGenerationError, CopilotPlanError } from '@/lib/nexora/copilot'
+import {
+  AssistantTaskPlanError,
+  describeCron,
+  type TaskSchedule,
+  type TaskWithSchedule,
+} from '@/lib/nexora/assistant/tasks'
+import {
+  AssistantProjectRefusedError,
+  type ProjectFileRecord,
+  type ProjectRecord,
+  type ProjectSummary,
+} from '@/lib/nexora/assistant/projects'
 
 /**
  * The Assistant routes' errors: an unpublished agent is a 409 carrying the code the page branches
@@ -16,10 +29,31 @@ import {
  */
 export const assistantErrorPolicy = extendInternalErrorPolicy(
   internalOrchestrationErrorPolicy,
-  (error) =>
-    error instanceof AssistantAgentUnpublishedError
-      ? internalErrorResponse(409, { error: error.message, code: error.reason })
-      : null
+  (error) => {
+    if (error instanceof AssistantAgentUnpublishedError) {
+      return internalErrorResponse(409, { error: error.message, code: error.reason })
+    }
+    if (error instanceof AssistantProjectRefusedError) {
+      return internalErrorResponse(400, { error: error.message, code: error.reason })
+    }
+    if (error instanceof AssistantTaskPlanError) {
+      return internalErrorResponse(error.reason === 'no-schedule' ? 422 : 500, {
+        error: error.message,
+        code: error.reason,
+      })
+    }
+    // The Copilot plans a task: its failures carry the codes the Copilot page already words.
+    if (error instanceof CopilotGenerationError) {
+      return internalErrorResponse(error.code === 'unavailable' ? 503 : 422, {
+        error: error.detail,
+        code: error.code,
+      })
+    }
+    if (error instanceof CopilotPlanError) {
+      return internalErrorResponse(422, { error: error.detail, code: 'plan-invalid' })
+    }
+    return null
+  }
 )
 
 export function presentConversation(conversation: AssistantConversationRecord) {
@@ -28,8 +62,57 @@ export function presentConversation(conversation: AssistantConversationRecord) {
     workspaceId: conversation.workspaceId,
     workflowId: conversation.workflowId,
     title: conversation.title,
+    projectId: conversation.projectId,
     createdAt: conversation.createdAt.toISOString(),
     updatedAt: conversation.updatedAt.toISOString(),
+  }
+}
+
+export function presentProject(project: ProjectRecord) {
+  return {
+    id: project.id,
+    workspaceId: project.workspaceId,
+    name: project.name,
+    instructions: project.instructions,
+    version: project.version,
+    createdAt: project.createdAt.toISOString(),
+    updatedAt: project.updatedAt.toISOString(),
+  }
+}
+
+export function presentProjectSummary(project: ProjectSummary) {
+  return { ...presentProject(project), fileCount: project.fileCount }
+}
+
+export function presentProjectFile(file: ProjectFileRecord) {
+  return {
+    id: file.id,
+    name: file.name,
+    type: file.type,
+    size: file.size,
+    createdAt: file.createdAt.toISOString(),
+  }
+}
+
+function presentSchedule(schedule: TaskSchedule) {
+  return {
+    status: schedule.status,
+    cronExpression: schedule.cronExpression,
+    label: schedule.cronExpression ? describeCron(schedule.cronExpression) : '',
+    timezone: schedule.timezone,
+    nextRunAt: schedule.nextRunAt?.toISOString() ?? null,
+    lastRanAt: schedule.lastRanAt?.toISOString() ?? null,
+  }
+}
+
+export function presentTask(task: TaskWithSchedule) {
+  return {
+    id: task.id,
+    workflowId: task.workflowId,
+    title: task.title,
+    request: task.request,
+    createdAt: task.createdAt.toISOString(),
+    schedule: task.schedule ? presentSchedule(task.schedule) : null,
   }
 }
 

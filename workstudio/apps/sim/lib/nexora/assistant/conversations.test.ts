@@ -270,6 +270,51 @@ describe('createAssistantConversation', () => {
   })
 })
 
+describe('createAssistantConversation in a project', () => {
+  const projectRow = {
+    id: 'project-1',
+    workspaceId: WORKSPACE_ID,
+    userId: 'owner',
+    name: 'Offre Lyon',
+    instructions: '',
+    version: 2,
+    createdAt: new Date('2026-10-01T10:00:00.000Z'),
+    updatedAt: new Date('2026-10-01T10:00:00.000Z'),
+  }
+
+  function createIn(projectId: string) {
+    return createAssistantConversation.execute({
+      principal: owner,
+      input: { workspaceId: WORKSPACE_ID, workflowId: 'agent-1', firstMessage: 'Bonjour', projectId },
+    })
+  }
+
+  it('attaches the conversation to one of the caller’s own projects', async () => {
+    queueTableRows(schemaMock.workflow, [publishedAgentRow])
+    queueTableRows(schemaMock.nexoraAssistantProject, [projectRow])
+    dbChainMockFns.returning.mockImplementationOnce(async () => [
+      { ...conversationRow, projectId: 'project-1' },
+    ])
+
+    await createIn('project-1')
+
+    const inserted = dbChainMockFns.values.mock.calls[0]?.[0] as { projectId: string | null }
+    expect(inserted.projectId).toBe('project-1')
+  })
+
+  it.each([
+    ['another member’s', { ...projectRow, userId: 'colleague' }],
+    ['another workspace’s', { ...projectRow, workspaceId: 'workspace-2' }],
+    ['a missing', null],
+  ])('answers not found for %s project and creates nothing', async (_name, row) => {
+    queueTableRows(schemaMock.workflow, [publishedAgentRow])
+    queueTableRows(schemaMock.nexoraAssistantProject, row ? [row] : [])
+
+    await expect(createIn('project-1')).rejects.toMatchObject({ code: 'not_found' })
+    expect(dbChainMockFns.insert).not.toHaveBeenCalled()
+  })
+})
+
 describe('getAssistantConversation', () => {
   it('keeps a conversation readable after its agent was deleted', async () => {
     queueTableRows(schemaMock.nexoraAssistantConversation, [

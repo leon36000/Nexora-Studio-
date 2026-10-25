@@ -16,6 +16,7 @@ import {
 import { mcpServerOperations } from '@/lib/mcp/application/operations'
 import { mcpService } from '@/lib/mcp/service'
 import { compileMcpToolSchema } from '@/lib/mcp/tool-schema'
+import { connectHeadersForMember } from '@/lib/nexora/personal-connect'
 import type { McpTool, McpToolCall, McpToolResult } from '@/lib/mcp/types'
 import {
   assertPermissionsAllowed,
@@ -35,6 +36,11 @@ export interface ExecuteMcpToolInput {
   toolName: string
   arguments?: Record<string, unknown>
   callChain?: string[]
+  /**
+   * Nexora edition: the member the call acts for (set by the executor, never by the model), whose
+   * own Nexora Connect token replaces the server's when the server is Nexora Connect.
+   */
+  actingMemberId?: string
   timeoutMs?: number
   signal?: AbortSignal
   onResolvedSecretTraceProvenance?: (provenance: ResolvedSecretTraceProvenanceV1) => void
@@ -175,10 +181,19 @@ export const executeMcpToolUseCase = defineAuthorizedWorkspaceUseCase({
     validateToolArguments(tool, args)
     input.signal?.throwIfAborted()
     const toolCall: McpToolCall = { name: input.toolName, arguments: args }
-    const extraHeaders =
+    const memberHeaders = input.actingMemberId
+      ? await connectHeadersForMember({
+          serverId: context.server.id,
+          workspaceId: context.workspaceId,
+          memberId: input.actingMemberId,
+        })
+      : undefined
+    const callChainHeaders =
       input.callChain && input.callChain.length > 0
         ? { [SIM_VIA_HEADER]: serializeCallChain(input.callChain) }
         : undefined
+    const extraHeaders =
+      callChainHeaders || memberHeaders ? { ...callChainHeaders, ...memberHeaders } : undefined
     const current = await resolveMcpServerContext(context.workspaceId, context.server.id)
     if (!current.server.enabled || current.server.credentialGroupId)
       throw new OrchestrationError('forbidden', 'MCP server configuration changed during discovery')

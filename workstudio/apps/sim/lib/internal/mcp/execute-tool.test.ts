@@ -28,6 +28,11 @@ const mocks = vi.hoisted(() => ({
   discover: vi.fn(),
   executeUseCase: vi.fn(),
   executeManagedUseCase: vi.fn(),
+  resolveActingMember: vi.fn(),
+}))
+
+vi.mock('@/lib/nexora/acting-member', () => ({
+  resolveActingMember: mocks.resolveActingMember,
 }))
 
 vi.mock('@/blocks', () => ({ ...blocksMock, getBlock: createMockGetBlock({ mcp: McpBlock }) }))
@@ -46,6 +51,7 @@ vi.mock('@/lib/mcp/application/execute-managed-tool', () => ({
 }))
 
 import { executeMcpTool } from '@/lib/internal/mcp/execute-tool'
+import { PersonalConnectUnavailableError } from '@/lib/nexora/personal-connect'
 
 vi.mocked(getToolMetadata).mockImplementation(toolsMetadataMock.getToolMetadata)
 vi.mocked(getToolParams).mockImplementation(toolsMetadataMock.getToolParams)
@@ -101,6 +107,48 @@ describe('executeMcpTool', () => {
     mocks.executeUseCase.mockResolvedValue({
       success: true,
       output: { content: [{ type: 'text', text: 'done' }] },
+    })
+  })
+
+  describe('acting member (Nexora personal connections)', () => {
+    const call = (input: Record<string, unknown>) =>
+      executeMcpTool({
+        toolId: 'mcp-server-lookup',
+        input,
+        headers: new Headers(),
+        context: { ...CONTEXT, executionId: 'exec-1' },
+        requestId: 'request-1',
+      })
+
+    it('tells the use case which member the run serves, from the executor’s record', async () => {
+      mocks.resolveActingMember.mockResolvedValueOnce('alice')
+      await call({ query: 'sim' })
+      expect(mocks.resolveActingMember).toHaveBeenCalledWith({
+        executionId: 'exec-1',
+        workflowId: 'workflow-1',
+        workspaceId: 'workspace-1',
+        actorUserId: 'user-1',
+      })
+      expect(mocks.executeUseCase.mock.calls[0][0].input.actingMemberId).toBe('alice')
+    })
+
+    it('answers 503 and does nothing else when the member’s connections are unavailable', async () => {
+      mocks.resolveActingMember.mockResolvedValueOnce('alice')
+      mocks.executeUseCase.mockRejectedValueOnce(new PersonalConnectUnavailableError())
+      const response = await call({ query: 'sim' })
+      expect(response.status).toBe(503)
+      await expect(response.json()).resolves.toMatchObject({
+        success: false,
+        error: expect.stringContaining('personal connections'),
+      })
+    })
+
+    it('ignores a member named in the model’s arguments', async () => {
+      mocks.resolveActingMember.mockResolvedValueOnce(null)
+      await call({ query: 'sim', actingMemberId: 'bob', memberHeaders: { Authorization: 'x' } })
+      const sent = mocks.executeUseCase.mock.calls[0][0].input
+      expect(sent.actingMemberId).toBeUndefined()
+      expect(sent).not.toHaveProperty('memberHeaders')
     })
   })
 

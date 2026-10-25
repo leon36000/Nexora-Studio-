@@ -23,6 +23,11 @@ import { beforeEach, describe, expect, it, vi } from 'vitest'
 const hoisted = vi.hoisted(() => ({
   loadWorkflow: vi.fn(),
   getServer: vi.fn(),
+  connectHeadersForMember: vi.fn(),
+}))
+
+vi.mock('@/lib/nexora/personal-connect', () => ({
+  connectHeadersForMember: hoisted.connectHeadersForMember,
 }))
 
 vi.mock('@sim/workflow-persistence/load', () => ({
@@ -222,6 +227,55 @@ describe('executeMcpToolUseCase', () => {
     expect(mocks.assertPermissionsAllowed).not.toHaveBeenCalled()
     expect(mocks.discoverServerTools).not.toHaveBeenCalled()
     expect(mocks.executeTool).not.toHaveBeenCalled()
+  })
+
+  describe('acting as a member (Nexora personal connections)', () => {
+    const input = {
+      workspaceId: WORKSPACE.workspaceId,
+      serverId: SERVER.id,
+      toolName: 'lookup',
+      arguments: { count: 1 },
+    }
+
+    it('calls the tool with the member’s own headers on top of the server’s configuration', async () => {
+      mocks.connectHeadersForMember.mockResolvedValueOnce({ Authorization: 'Bearer oct_member' })
+      await executeMcpToolUseCase.execute({
+        principal: PRINCIPAL,
+        input: { ...input, actingMemberId: 'alice' },
+      })
+      expect(mocks.connectHeadersForMember).toHaveBeenCalledWith({
+        serverId: SERVER.id,
+        workspaceId: WORKSPACE.workspaceId,
+        memberId: 'alice',
+      })
+      expect(mocks.executeTool.mock.calls[0][4]).toEqual({ Authorization: 'Bearer oct_member' })
+    })
+
+    it('adds nothing when no member acts', async () => {
+      await executeMcpToolUseCase.execute({ principal: PRINCIPAL, input })
+      expect(mocks.connectHeadersForMember).not.toHaveBeenCalled()
+      expect(mocks.executeTool.mock.calls[0][4]).toBeUndefined()
+    })
+
+    it('adds nothing for a member with no connection of their own', async () => {
+      mocks.connectHeadersForMember.mockResolvedValueOnce(undefined)
+      await executeMcpToolUseCase.execute({
+        principal: PRINCIPAL,
+        input: { ...input, actingMemberId: 'alice' },
+      })
+      expect(mocks.executeTool.mock.calls[0][4]).toBeUndefined()
+    })
+
+    it('never runs the tool when the member’s headers cannot be made', async () => {
+      mocks.connectHeadersForMember.mockRejectedValueOnce(new Error('personal unavailable'))
+      await expect(
+        executeMcpToolUseCase.execute({
+          principal: PRINCIPAL,
+          input: { ...input, actingMemberId: 'alice' },
+        })
+      ).rejects.toThrow('personal unavailable')
+      expect(mocks.executeTool).not.toHaveBeenCalled()
+    })
   })
 
   it('keeps an unattended run connecting as its execution actor', async () => {

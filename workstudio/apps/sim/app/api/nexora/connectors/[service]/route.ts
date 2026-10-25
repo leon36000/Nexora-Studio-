@@ -7,13 +7,21 @@ import {
 import { parseRequest } from '@/lib/api/server'
 import { withRouteHandler } from '@/lib/core/utils/with-route-handler'
 import { reconcileWorkspaceConnect } from '@/lib/nexora/connect'
-import { connectWithCredentials, disconnect, getServiceDetail } from '@/lib/nexora/connect-admin'
+import {
+  connectPersonalWithCredentials,
+  connectWithCredentials,
+  disconnect,
+  disconnectPersonal,
+  getServiceDetail,
+  listPersonalConnections,
+} from '@/lib/nexora/connect-admin'
 import {
   connectorAccess,
   connectorErrorResponse,
   reconciledWorkspaceConnections,
 } from '@/lib/nexora/connectors-access'
 import { isPublicOAuthRedirect } from '@/lib/nexora/oauth-redirect'
+import { forgetPersonalConnectGrants } from '@/lib/nexora/personal-connect'
 
 interface RouteContext {
   params: Promise<{ service: string }>
@@ -24,13 +32,16 @@ export const GET = withRouteHandler(async (request: NextRequest, context: RouteC
   const parsed = await parseRequest(getConnectorContract, request, context)
   if (!parsed.success) return parsed.response
   const { service } = parsed.data.params
-  const { workspaceId } = parsed.data.query
+  const { workspaceId, scope } = parsed.data.query
   const access = await connectorAccess(workspaceId, 'read')
   if (access instanceof NextResponse) return access
+  const personal = scope === 'personal'
   try {
     const [detail, connections] = await Promise.all([
       getServiceDetail(service),
-      reconciledWorkspaceConnections({ workspaceId, userId: access.userId }),
+      personal
+        ? listPersonalConnections(access.userId)
+        : reconciledWorkspaceConnections({ workspaceId, userId: access.userId }),
     ])
     const oauthClient = detail.oauthClient
     const redirectUri =
@@ -52,7 +63,7 @@ export const GET = withRouteHandler(async (request: NextRequest, context: RouteC
         : null,
       actions: detail.actions.slice(0, 200),
       connection: connections.find((c) => c.service === service) ?? null,
-      canManage: access.canManage,
+      canManage: personal || access.canManage,
     })
   } catch (error) {
     const response = connectorErrorResponse(error)
@@ -66,10 +77,21 @@ export const POST = withRouteHandler(async (request: NextRequest, context: Route
   const parsed = await parseRequest(connectConnectorContract, request, context)
   if (!parsed.success) return parsed.response
   const { service } = parsed.data.params
-  const { workspaceId, authType, values } = parsed.data.body
-  const access = await connectorAccess(workspaceId, 'write')
+  const { workspaceId, scope, authType, values } = parsed.data.body
+  const personal = scope === 'personal'
+  const access = await connectorAccess(workspaceId, personal ? 'read' : 'write')
   if (access instanceof NextResponse) return access
   try {
+    if (personal) {
+      const connection = await connectPersonalWithCredentials(
+        access.userId,
+        service,
+        authType,
+        values
+      )
+      forgetPersonalConnectGrants(access.userId)
+      return NextResponse.json({ connection })
+    }
     const connection = await connectWithCredentials(workspaceId, service, authType, values)
     await reconcileWorkspaceConnect({ workspaceId, userId: access.userId })
     return NextResponse.json({ connection })
@@ -84,10 +106,16 @@ export const DELETE = withRouteHandler(async (request: NextRequest, context: Rou
   const parsed = await parseRequest(disconnectConnectorContract, request, context)
   if (!parsed.success) return parsed.response
   const { service } = parsed.data.params
-  const { workspaceId } = parsed.data.query
-  const access = await connectorAccess(workspaceId, 'write')
+  const { workspaceId, scope } = parsed.data.query
+  const personal = scope === 'personal'
+  const access = await connectorAccess(workspaceId, personal ? 'read' : 'write')
   if (access instanceof NextResponse) return access
   try {
+    if (personal) {
+      await disconnectPersonal(access.userId, service)
+      forgetPersonalConnectGrants(access.userId)
+      return NextResponse.json({ success: true })
+    }
     await disconnect(workspaceId, service)
     await reconcileWorkspaceConnect({ workspaceId, userId: access.userId })
     return NextResponse.json({ success: true })

@@ -35,6 +35,7 @@ export const POST = defineInternalJsonRoute({
     workspaceId: body.workspaceId,
     workflowId: body.workflowId,
     firstMessage: body.firstMessage,
+    projectId: body.projectId,
   }),
   useCase: createAssistantConversation,
   present: ({ conversation }) => ({ conversation: presentConversation(conversation) }),

@@ -28,11 +28,11 @@ const CONNECTOR_CATALOG_PAGE_SIZE = 30
 const connectorKeys = {
   all: ['nexora-connectors'] as const,
   catalogs: () => [...connectorKeys.all, 'catalog'] as const,
-  catalog: (workspaceId?: string, query = '', category = '', pageSize = 0) =>
-    [...connectorKeys.catalogs(), workspaceId ?? '', query, category, pageSize] as const,
+  catalog: (workspaceId?: string, query = '', category = '', pageSize = 0, scope = 'workspace') =>
+    [...connectorKeys.catalogs(), workspaceId ?? '', query, category, pageSize, scope] as const,
   details: () => [...connectorKeys.all, 'detail'] as const,
-  detail: (workspaceId?: string, service?: string) =>
-    [...connectorKeys.details(), workspaceId ?? '', service ?? ''] as const,
+  detail: (workspaceId?: string, service?: string, scope = 'workspace') =>
+    [...connectorKeys.details(), workspaceId ?? '', service ?? '', scope] as const,
 }
 
 type ConnectorCatalogPage = ContractJsonResponse<typeof listConnectorsContract>
@@ -61,9 +61,13 @@ export function getConnectorErrorCode(error: unknown): ConnectorErrorCode {
   return isValidationError(error) ? 'invalid' : 'unknown'
 }
 
+/** `personal`: the signed-in member's own connections instead of the workspace's. */
+export type ConnectorScope = 'workspace' | 'personal'
+
 interface ConnectorCatalogFilters {
   query: string
   category: string
+  scope?: ConnectorScope
 }
 
 /**
@@ -72,15 +76,16 @@ interface ConnectorCatalogFilters {
  */
 export function useConnectorCatalog(
   workspaceId: string | undefined,
-  { query, category }: ConnectorCatalogFilters,
+  { query, category, scope = 'workspace' }: ConnectorCatalogFilters,
   pageSize = CONNECTOR_CATALOG_PAGE_SIZE
 ) {
   return useInfiniteQuery({
-    queryKey: connectorKeys.catalog(workspaceId, query, category, pageSize),
+    queryKey: connectorKeys.catalog(workspaceId, query, category, pageSize, scope),
     queryFn: ({ pageParam, signal }) =>
       requestJson(listConnectorsContract, {
         query: {
           workspaceId: workspaceId as string,
+          ...(scope === 'personal' ? { scope } : {}),
           ...(query ? { q: query } : {}),
           ...(category ? { category } : {}),
           offset: pageParam,
@@ -100,13 +105,20 @@ export function useConnectorCatalog(
 }
 
 /** One service: how to connect it, its actions, and the workspace's connection. */
-export function useConnector(workspaceId: string | undefined, service: string | undefined) {
+export function useConnector(
+  workspaceId: string | undefined,
+  service: string | undefined,
+  scope: ConnectorScope = 'workspace'
+) {
   return useQuery({
-    queryKey: connectorKeys.detail(workspaceId, service),
+    queryKey: connectorKeys.detail(workspaceId, service, scope),
     queryFn: ({ signal }) =>
       requestJson(getConnectorContract, {
         params: { service: service as string },
-        query: { workspaceId: workspaceId as string },
+        query: {
+          workspaceId: workspaceId as string,
+          ...(scope === 'personal' ? { scope } : {}),
+        },
         signal,
       }),
     enabled: Boolean(workspaceId && service),
@@ -117,14 +129,17 @@ export function useConnector(workspaceId: string | undefined, service: string | 
 interface ConnectorTarget {
   workspaceId: string
   service: string
+  scope?: ConnectorScope
 }
 
 /** A connection changes the service's page and the catalog's « Connecté » marks. */
 function useInvalidateConnector() {
   const queryClient = useQueryClient()
-  return ({ workspaceId, service }: ConnectorTarget) =>
+  return ({ workspaceId, service, scope }: ConnectorTarget) =>
     Promise.all([
-      queryClient.invalidateQueries({ queryKey: connectorKeys.detail(workspaceId, service) }),
+      queryClient.invalidateQueries({
+        queryKey: connectorKeys.detail(workspaceId, service, scope),
+      }),
       queryClient.invalidateQueries({ queryKey: connectorKeys.catalogs() }),
     ])
 }
@@ -137,10 +152,10 @@ interface ConnectWithCredentialsVariables extends ConnectorTarget {
 export function useConnectConnector() {
   const invalidate = useInvalidateConnector()
   return useMutation({
-    mutationFn: ({ workspaceId, service, authType, values }: ConnectWithCredentialsVariables) =>
+    mutationFn: ({ workspaceId, service, scope, authType, values }: ConnectWithCredentialsVariables) =>
       requestJson(connectConnectorContract, {
         params: { service },
-        body: { workspaceId, authType, values },
+        body: { workspaceId, ...(scope === 'personal' ? { scope } : {}), authType, values },
       }),
     onSuccess: (_data, variables) => invalidate(variables),
   })
@@ -149,10 +164,10 @@ export function useConnectConnector() {
 export function useDisconnectConnector() {
   const invalidate = useInvalidateConnector()
   return useMutation({
-    mutationFn: ({ workspaceId, service }: ConnectorTarget) =>
+    mutationFn: ({ workspaceId, service, scope }: ConnectorTarget) =>
       requestJson(disconnectConnectorContract, {
         params: { service },
-        query: { workspaceId },
+        query: { workspaceId, ...(scope === 'personal' ? { scope } : {}) },
       }),
     onSuccess: (_data, variables) => invalidate(variables),
   })
@@ -175,12 +190,14 @@ export function useConnectConnectorWithOAuth() {
     mutationFn: async ({
       workspaceId,
       service,
+      scope,
       popup,
       signal,
     }: ConnectWithOAuthVariables): Promise<ConnectorOAuthOutcome> => {
+      const scoped = scope === 'personal' ? { scope } : {}
       const { requestId, authorizationUrl } = await requestJson(startConnectorOAuthContract, {
         params: { service },
-        body: { workspaceId },
+        body: { workspaceId, ...scoped },
         signal,
       })
       popup.location.href = authorizationUrl
@@ -188,7 +205,7 @@ export function useConnectConnectorWithOAuth() {
         fetchStatus: () =>
           requestJson(connectorOAuthStatusContract, {
             params: { requestId },
-            query: { workspaceId },
+            query: { workspaceId, ...scoped },
             signal,
           }),
         isPopupClosed: () => popup.closed,

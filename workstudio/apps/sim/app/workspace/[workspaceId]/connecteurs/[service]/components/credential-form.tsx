@@ -10,10 +10,15 @@ import {
   credentialFieldPlaceholder,
   readCredentialValues,
 } from '@/lib/nexora/connector-credentials'
-import { getConnectorErrorCode, useConnectConnector } from '@/hooks/queries/nexora-connectors'
+import {
+  type ConnectorScope,
+  getConnectorErrorCode,
+  useConnectConnector,
+} from '@/hooks/queries/nexora-connectors'
 
 interface CredentialFormProps {
   workspaceId: string
+  scope: ConnectorScope
   service: string
   serviceName: string
   authType: 'api_key' | 'custom_credential'
@@ -26,6 +31,7 @@ interface CredentialFormProps {
  */
 export function CredentialForm({
   workspaceId,
+  scope,
   service,
   serviceName,
   authType,
@@ -47,7 +53,7 @@ export function CredentialForm({
     setErrors(read.errors)
     if (Object.keys(read.errors).length > 0) return
     connect.mutate(
-      { workspaceId, service, authType, values: read.values },
+      { workspaceId, service, scope, authType, values: read.values },
       {
         onSuccess: () => {
           setValues({})

@@ -23,6 +23,9 @@ const catalogServiceSchema = z.object({
   connected: z.boolean(),
 })
 
+/** `personal`: the signed-in member's own connections instead of the workspace's. */
+const scopeSchema = z.enum(['workspace', 'personal']).optional()
+
 const connectionSchema = z.object({ id: z.string(), service: z.string(), authType: z.string() })
 
 /** The Nexora Connect catalog, searched, with the workspace's connections marked. */
@@ -31,6 +34,7 @@ export const listConnectorsContract = defineRouteContract({
   path: '/api/nexora/connectors',
   query: z.object({
     workspaceId: workspaceIdSchema,
+    scope: scopeSchema,
     q: z.string().max(100, 'search is too long').optional(),
     category: z.string().max(80, 'category is too long').optional(),
     offset: z.coerce.number().int().min(0).max(5000).optional(),
@@ -62,7 +66,7 @@ export const getConnectorContract = defineRouteContract({
   method: 'GET',
   path: '/api/nexora/connectors/[service]',
   params: serviceParamsSchema,
-  query: z.object({ workspaceId: workspaceIdSchema }),
+  query: z.object({ workspaceId: workspaceIdSchema, scope: scopeSchema }),
   response: {
     mode: 'json',
     schema: z.object({
@@ -95,6 +99,7 @@ export const connectConnectorContract = defineRouteContract({
   params: serviceParamsSchema,
   body: z.object({
     workspaceId: workspaceIdSchema,
+    scope: scopeSchema,
     authType: z.enum(['api_key', 'custom_credential']),
     values: z
       .record(
@@ -112,7 +117,7 @@ export const disconnectConnectorContract = defineRouteContract({
   method: 'DELETE',
   path: '/api/nexora/connectors/[service]',
   params: serviceParamsSchema,
-  query: z.object({ workspaceId: workspaceIdSchema }),
+  query: z.object({ workspaceId: workspaceIdSchema, scope: scopeSchema }),
   response: { mode: 'json', schema: z.object({ success: z.literal(true) }) },
 })
 
@@ -120,7 +125,7 @@ export const startConnectorOAuthContract = defineRouteContract({
   method: 'POST',
   path: '/api/nexora/connectors/[service]/oauth',
   params: serviceParamsSchema,
-  body: z.object({ workspaceId: workspaceIdSchema }),
+  body: z.object({ workspaceId: workspaceIdSchema, scope: scopeSchema }),
   response: {
     mode: 'json',
     schema: z.object({ requestId: z.string(), authorizationUrl: z.string() }),
@@ -134,7 +139,7 @@ export const connectorOAuthStatusContract = defineRouteContract({
   params: z.object({
     requestId: z.string().regex(/^[\w-]{1,128}\.[0-9a-f]{64}$/, 'invalid request id'),
   }),
-  query: z.object({ workspaceId: workspaceIdSchema }),
+  query: z.object({ workspaceId: workspaceIdSchema, scope: scopeSchema }),
   response: {
     mode: 'json',
     schema: z.object({

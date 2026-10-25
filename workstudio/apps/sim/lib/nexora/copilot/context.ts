@@ -38,7 +38,10 @@ async function connectedServices(workspaceId: string): Promise<string[]> {
  * Connect » MCP server with the services connected to it (absent when the server is not
  * registered or disabled). The caller has authorized the workspace.
  */
-export async function loadCopilotCompileContext(workspaceId: string): Promise<CompileContext> {
+export async function loadCopilotCompileContext(
+  workspaceId: string,
+  options: { extraServices?: string[] } = {}
+): Promise<CompileContext> {
   const [knowledgeBases, [server]] = await Promise.all([
     db
       .select({ id: knowledgeBase.id, name: knowledgeBase.name })
@@ -62,7 +65,12 @@ export async function loadCopilotCompileContext(workspaceId: string): Promise<Co
     model: COPILOT_AGENT_MODEL,
     knowledgeBases,
     connect: server
-      ? { serverId: server.id, services: await connectedServices(workspaceId) }
+      ? {
+          serverId: server.id,
+          services: [
+            ...new Set([...(await connectedServices(workspaceId)), ...(options.extraServices ?? [])]),
+          ],
+        }
       : undefined,
   }
 }

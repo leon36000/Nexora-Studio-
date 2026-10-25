@@ -36,6 +36,8 @@ const assistantConversationSchema = z.object({
   /** `null` once the agent's workflow was deleted. */
   workflowId: z.string().nullable(),
   title: z.string(),
+  /** The project whose instructions and files the conversation shares, when it is in one. */
+  projectId: z.string().nullable(),
   createdAt: z.string(),
   updatedAt: z.string(),
 })
@@ -93,6 +95,8 @@ export const listAssistantConversationsContract = defineRouteContract({
 const createAssistantConversationBodySchema = z.object({
   workspaceId: workspaceIdSchema,
   workflowId: workflowIdSchema,
+  /** One of the caller's own projects of the workspace. */
+  projectId: z.string().min(1).max(128).optional(),
   /** Only names the conversation; the page appends the question itself once it is sent. */
   firstMessage: z
     .string()
