@@ -8,15 +8,25 @@ export const MAX_FIELD_CHARS = 8000
 export const MAX_SPANS = 500
 export const TRUNCATION_MARK = ' …[tronqué]'
 
-function cutText(text: string | null, state: { cut: boolean }): string | null {
-  if (text === null || text.length <= MAX_FIELD_CHARS) return text
+/** Rewrites a text before it is cut, so that nothing the rewrite recognises is cut in two. */
+type TextRewrite = (text: string) => string
+
+interface CutState {
+  cut: boolean
+  rewrite?: TextRewrite
+}
+
+function cutText(text: string | null, state: CutState): string | null {
+  if (text === null) return text
+  const whole = state.rewrite ? state.rewrite(text) : text
+  if (whole.length <= MAX_FIELD_CHARS) return whole
   state.cut = true
-  return truncateAtCodePoint(text, MAX_FIELD_CHARS, TRUNCATION_MARK)
+  return truncateAtCodePoint(whole, MAX_FIELD_CHARS, TRUNCATION_MARK)
 }
 
 function cutAttributes(
   attributes: Record<string, unknown>,
-  state: { cut: boolean }
+  state: CutState
 ): Record<string, unknown> {
   const capped: Record<string, unknown> = {}
   for (const [key, value] of Object.entries(attributes)) {
@@ -25,9 +35,13 @@ function cutAttributes(
   return capped
 }
 
-/** D9: bounds what one trace stores; `truncated` tells the screen when something was cut. */
-export function capDraft(draft: TraceDraft): TraceDraft {
-  const state = { cut: draft.truncated }
+/**
+ * D9: bounds what one trace stores; `truncated` tells the screen when something was cut. With a
+ * `rewrite` (the masking of personal data), each text is rewritten whole first and cut after, so
+ * an IBAN or an address straddling the limit is masked, not left as a fragment no pattern knows.
+ */
+export function capDraft(draft: TraceDraft, rewrite?: TextRewrite): TraceDraft {
+  const state: CutState = { cut: draft.truncated, rewrite }
   const kept = draft.spans.slice(0, MAX_SPANS)
   if (kept.length < draft.spans.length) state.cut = true
   const spans = kept.map(

@@ -204,6 +204,13 @@ async function maskNamesInDraft(
     add(span.output, (value) => {
       span.output = value
     })
+    span.attributes = { ...span.attributes }
+    for (const [key, value] of Object.entries(span.attributes)) {
+      if (typeof value !== 'string' || STRUCTURAL_ATTRIBUTES.has(key)) continue
+      add(value, (masked) => {
+        span.attributes[key] = masked
+      })
+    }
   }
   if (texts.length === 0) return { draft, masked: 0 }
   try {
@@ -246,13 +253,23 @@ export async function recordTrace(
   try {
     const settings = await deps.loadSettings()
     if (!settings.enabled) return
-    const capped = capDraft(draft)
+    const premask = settings.redaction === 'standard' ? { masked: 0 } : null
+    const capped = capDraft(
+      draft,
+      premask
+        ? (text) => {
+            const outcome = redactText(text, 'standard')
+            premask.masked += outcome.masked
+            return outcome.text
+          }
+        : undefined
+    )
     const named =
       settings.redaction === 'standard'
         ? await maskNamesInDraft(capped, deps)
         : { draft: capped, masked: 0 }
     const stored = buildStored(named.draft, settings.redaction, await carbon(deps, capped))
-    stored.trace.maskedCount = (stored.trace.maskedCount ?? 0) + named.masked
+    stored.trace.maskedCount = (stored.trace.maskedCount ?? 0) + named.masked + (premask?.masked ?? 0)
     const inserted = await deps.insert(stored)
     if (inserted && settings.otlp.enabled && settings.otlp.endpoint) {
       await deps.exportTrace(settings.otlp, stored)

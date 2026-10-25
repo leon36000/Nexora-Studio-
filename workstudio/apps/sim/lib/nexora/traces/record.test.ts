@@ -130,6 +130,55 @@ describe('recordTrace — masquage', () => {
   })
 })
 
+describe('recordTrace — masquage avant plafond', () => {
+  it('masque un IBAN que le plafond de 8 000 caractères aurait coupé en deux', async () => {
+    const filler = `${'a'.repeat(7989)} `
+    const { all, stored } = deps()
+    await recordTrace(
+      draft({
+        spans: [
+          span({
+            input: `${filler}${IBAN}`,
+            output: `${filler}jean@exemple.fr`,
+            attributes: { reasoning: `${filler}${IBAN}` },
+          }),
+        ],
+      }),
+      all
+    )
+    const written = JSON.stringify(stored)
+    expect(written).not.toContain('FR76 30')
+    expect(written).not.toContain('FR7630')
+    expect(written).not.toContain('jean@exe')
+    expect(stored[0].spans[0].input).toBe(`${filler}[IBAN]`)
+    expect(stored[0].spans[0].output).toBe(`${filler}[E-MAIL]`)
+    expect(stored[0].trace.truncated).toBe(false)
+  })
+
+  it('compte ces masques une seule fois', async () => {
+    const filler = `${'a'.repeat(7989)} `
+    const { all, stored } = deps()
+    await recordTrace(
+      draft({
+        error: null,
+        input: null,
+        output: null,
+        spans: [span({ input: `${filler}${IBAN}`, output: null, attributes: {} })],
+      }),
+      all
+    )
+    expect(stored[0].trace.maskedCount).toBe(1)
+  })
+
+  it('ne masque rien en mode « none » et plafonne comme avant', async () => {
+    const filler = `${'a'.repeat(7989)} `
+    const { all, stored } = deps({ redaction: 'none' })
+    await recordTrace(draft({ spans: [span({ input: `${filler}${IBAN}`, attributes: {} })] }), all)
+    expect(stored[0].spans[0].input).toContain('FR76 30')
+    expect(stored[0].trace.truncated).toBe(true)
+  })
+})
+
 describe('recordTrace — lignes écrites', () => {
   it('calcule modèles, nombre d’outils, CO₂, aperçus bornés et texte de recherche borné', async () => {
     const long = 'x'.repeat(5000)
@@ -297,6 +346,37 @@ describe('recordTrace — le service de données personnelles complète les moti
     expect(stored[0].trace.inputPreview).toBe('Écris à <PERSON>')
     expect(stored[0].spans[0].input).toBe('user: <PERSON>')
     expect(stored[0].trace.maskedCount).toBe(4)
+  })
+
+  it('masque aussi les noms du raisonnement et de l’erreur d’une étape, texte écrit par un modèle', async () => {
+    const { all, stored } = deps({}, { maskNames })
+    await recordTrace(
+      draft({
+        input: null,
+        output: null,
+        error: null,
+        status: 'ok',
+        spans: [
+          span({
+            input: null,
+            output: null,
+            attributes: {
+              reasoning: 'Marie Dupont veut un devis',
+              error: 'Échec pour Marie Dupont',
+              finishReason: 'Marie Dupont',
+              toolCalls: ['crm_search'],
+            },
+          }),
+        ],
+      }),
+      all
+    )
+    const { attributes } = stored[0].spans[0]
+    expect(attributes.reasoning).toBe('<PERSON> veut un devis')
+    expect(attributes.error).toBe('Échec pour <PERSON>')
+    expect(attributes.finishReason).toBe('Marie Dupont')
+    expect(attributes.toolCalls).toEqual(['crm_search'])
+    expect(stored[0].trace.maskedCount).toBe(2)
   })
 
   it('écrit les marques des traces ([IBAN], [E-MAIL]) et non celles du service, comme sans service', async () => {
