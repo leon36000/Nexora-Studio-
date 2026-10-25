@@ -54,3 +54,4 @@ workstudio/apps/sim/app/workspace/[workspaceId]/w/hooks
 workstudio/apps/sim/app/workspace/[workspaceId]/providers/workspace-permissions-provider.tsx
 # K3 API des développeurs
 workstudio/apps/sim/app/workspace/[workspaceId]/developpeurs
+workstudio/apps/sim/app/workspace/[workspaceId]/prompts

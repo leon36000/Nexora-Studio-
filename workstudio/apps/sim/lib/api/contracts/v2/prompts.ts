@@ -63,7 +63,7 @@ const v2PromptLabelsSchema = z
   })
   .describe('Where each label points.')
 
-export const v2PromptSummarySchema = z
+const v2PromptSummarySchema = z
   .object({
     id: z.string().describe('Unique prompt identifier.'),
     name: z.string().describe('Name, unique within the workspace regardless of case.'),
@@ -82,7 +82,7 @@ export const v2PromptSummarySchema = z
   })
 export type V2PromptSummary = z.output<typeof v2PromptSummarySchema>
 
-export const v2PromptSchema = v2PromptSummarySchema
+const v2PromptSchema = v2PromptSummarySchema
   .extend({
     version: z
       .object({
@@ -105,10 +105,9 @@ const v2PromptParamsSchema = z.object({
   promptId: nonEmptyIdSchema.describe('Prompt identifier, or its name.'),
 })
 
-export const v2PromptSortFields = ['name', 'createdAt', 'updatedAt'] as const
-export type V2PromptSortBy = (typeof v2PromptSortFields)[number]
+const v2PromptSortFields = ['name', 'createdAt', 'updatedAt'] as const
 
-export const v2ListPromptsQuerySchema = z
+const v2ListPromptsQuerySchema = z
   .object({
     workspaceId: workspaceIdSchema.describe('Workspace that owns the prompts.'),
     search: v2SearchSchema.describe('Case-insensitive substring match against the prompt name.'),
@@ -159,7 +158,6 @@ const v2CreatePromptBodySchema = z
     note: promptNoteSchema.default('').describe('Note of version 1.'),
   })
   .strict()
-export type V2CreatePromptBody = z.input<typeof v2CreatePromptBodySchema>
 
 const v2CreatePromptVersionBodySchema = z
   .object({
@@ -175,7 +173,6 @@ const v2CreatePromptVersionBodySchema = z
     note: promptNoteSchema.default('').describe('What changed in this version.'),
   })
   .strict()
-export type V2CreatePromptVersionBody = z.input<typeof v2CreatePromptVersionBodySchema>
 
 export const v2ListPromptsContract = defineRouteContract({
   method: 'GET',

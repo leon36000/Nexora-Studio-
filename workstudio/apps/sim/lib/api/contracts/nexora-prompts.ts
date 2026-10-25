@@ -3,7 +3,6 @@ import { nonEmptyIdSchema, workspaceIdSchema } from '@/lib/api/contracts/primiti
 import { defineRouteContract } from '@/lib/api/contracts/types'
 import {
   PROMPT_LABELS,
-  PROMPT_SELECTORS,
   PROMPT_VARIABLE_TYPES,
 } from '@/lib/nexora/prompts/template'
 
@@ -34,7 +33,6 @@ export const promptNoteSchema = z
 export const promptLabelSchema = z.enum(PROMPT_LABELS, {
   error: `label: expected one of ${PROMPT_LABELS.map((label) => `"${label}"`).join(' | ')}`,
 })
-export const promptSelectorSchema = z.enum(PROMPT_SELECTORS)
 
 export const promptVariableSchema = z
   .object({
@@ -50,7 +48,7 @@ export const promptVariableSchema = z
     defaultValue: z.string().max(2000).optional(),
   })
   .strict()
-export const promptVariablesSchema = z
+const promptVariablesSchema = z
   .array(promptVariableSchema)
   .max(MAX_PROMPT_VARIABLES, `At most ${MAX_PROMPT_VARIABLES} variables`)
 

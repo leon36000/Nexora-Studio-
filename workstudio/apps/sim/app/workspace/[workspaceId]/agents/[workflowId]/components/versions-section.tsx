@@ -9,6 +9,7 @@ import { FormField } from '@/app/workspace/[workspaceId]/agents/components/form-
 import { SettingsSection } from '@/app/workspace/[workspaceId]/settings/components/settings-section/settings-section'
 import { useActivateDeploymentVersion, useDeploymentVersions } from '@/hooks/queries/deployments'
 import { useKnowledgeBasesQuery } from '@/hooks/queries/kb/knowledge'
+import { useNexoraPrompts } from '@/hooks/queries/nexora-prompts'
 import { useDeploymentVersionState, useRevertToVersion } from '@/hooks/queries/workflows'
 
 const logger = createLogger('NexoraAgentVersions')
@@ -169,6 +170,11 @@ function VersionDiff({ workspaceId, workflowId, from, to }: VersionDiffProps) {
     () => new Map((bases ?? []).map((base) => [base.id, base.name])),
     [bases]
   )
+  const { data: prompts } = useNexoraPrompts(workspaceId)
+  const promptNames = useMemo(
+    () => new Map((prompts ?? []).map((prompt) => [prompt.id, prompt.name])),
+    [prompts]
+  )
 
   if (fromLoading || toLoading) {
     return (
@@ -209,6 +215,15 @@ function VersionDiff({ workspaceId, workflowId, from, to }: VersionDiffProps) {
         return t(
           `playground.efforts.${config.reasoningEffort === 'auto' ? 'default' : config.reasoningEffort}`
         )
+      case 'instructionsPrompt':
+        return config.instructionsPrompt
+          ? t('editor.instructionsPrompt.versionSummary', {
+              name:
+                promptNames.get(config.instructionsPrompt.promptId) ??
+                config.instructionsPrompt.promptId,
+              label: config.instructionsPrompt.label,
+            })
+          : t('editor.instructionsPrompt.written')
       default:
         return config[field]
     }

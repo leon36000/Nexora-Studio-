@@ -489,7 +489,7 @@ const SKILL_EXAMPLE = {
 } as const
 
 const PROMPT_SUMMARY_EXAMPLE = {
-  id: 'b3e1f0a2-7c4d-4e9a-8f21-5d6c7e8f9a01',
+  id: 'c4e8a1f6-2b9d-4f70-8e35-a7d1b6c09e52',
   name: 'Support client',
   description: 'Tone and structure of customer support replies',
   labels: { production: 2, test: 3 },

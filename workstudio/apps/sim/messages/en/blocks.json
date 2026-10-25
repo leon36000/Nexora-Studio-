@@ -16,6 +16,21 @@
         "title": "Messages",
         "placeholder": "Enter messages..."
       },
+      "promptId": {
+        "title": "Instructions prompt",
+        "placeholder": "Use the system message above"
+      },
+      "promptLabel": {
+        "title": "Prompt version",
+        "options": {
+          "production": "production",
+          "test": "test",
+          "latest": "Latest version"
+        }
+      },
+      "promptVariables": {
+        "title": "Prompt variables"
+      },
       "model": {
         "title": "Model",
         "placeholder": "Type or select a model...",

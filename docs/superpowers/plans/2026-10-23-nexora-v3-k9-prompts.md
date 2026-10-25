@@ -121,11 +121,11 @@
 - Modifier : `workstudio/apps/sim/lib/selectors/manifest.ts`, `lib/selectors/server/internal.ts` (sélecteur `workspace.prompts`)
 - Créer : `workstudio/apps/sim/hooks/queries/nexora-prompts.ts` (+ `hooks/queries/utils/nexora-prompt-keys.ts` si un module serveur l'importe)
 
-- [ ] Contrats (internes : `{ prompts }`, `{ prompt }` ; v2 : enveloppes) ; `?label` et `?version` exclusifs (400 en anglais nommant les champs, comme le reste de la v2).
-- [ ] Routes internes (`defineInternalJsonRoute`, `internalSessionAuth`) et v2 (`defineV2JsonRoute`, `v2ApiKeyAuth`, `createV2ResourceConcealmentPolicy`) ; 409 pour un nom pris.
-- [ ] Documentation OpenAPI et fichiers générés ; `check:openapi`, `check:v2-route-table`, `check:cli-api`, `check:mcp-operations`, `check:api-validation:strict` verts.
-- [ ] Sélecteur `workspace.prompts` (liste et détail).
-- [ ] Hooks React Query (clés hiérarchiques, `staleTime` nommés, invalidation des listes et du détail).
+- [x] Contrats (internes : `{ prompts }`, `{ prompt }` ; v2 : enveloppes) ; `?label` et `?version` exclusifs (400 en anglais nommant les champs, comme le reste de la v2).
+- [x] Routes internes (`defineInternalJsonRoute`, `internalSessionAuth`) et v2 (`defineV2JsonRoute`, `v2ApiKeyAuth`, `createV2ResourceConcealmentPolicy`) ; 409 pour un nom pris.
+- [x] Documentation OpenAPI et fichiers générés ; `check:openapi`, `check:v2-route-table`, `check:cli-api`, `check:mcp-operations`, `check:api-validation:strict` verts.
+- [x] Sélecteur `workspace.prompts` (liste et détail).
+- [x] Hooks React Query (clés hiérarchiques, `staleTime` nommés, invalidation des listes et du détail).
 
 ### Tâche 6 : bloc Agent, gestionnaire, formulaire (TDD)
 
@@ -141,10 +141,10 @@
 - `readPromptReference(inputs: AgentInputs): PromptReference | null` ; `applyResolvedPrompt(inputs: AgentInputs, prompt: ResolvedPrompt): AgentInputs` (remplace le premier message `system`, sinon l'ajoute en tête) ; `withPromptOutput(output, prompt)` (sortie normale et `StreamingExecution`).
 - `AgentConfig.instructionsPrompt: { promptId: string; label: PromptSelector; variables: Record<string, string> } | null`.
 
-- [ ] Tests rouges `prompt-reference.test.ts` : référence absente ⇒ entrées inchangées ; présente ⇒ premier `system` remplacé, autres messages intacts ; sans `system` ⇒ ajouté en tête ; table de variables `{cells:{Key,Value}}` lue comme un objet ; sortie en flux reçoit `prompt`.
-- [ ] Implémenter, brancher dans `execute` ; garde secrets sur `promptVariables` (refus français) ; verts.
-- [ ] Tests rouges `agents.test.ts` : aller-retour `buildAgentWorkflow`/`readAgentWorkflow` avec `instructionsPrompt` ; agent sans sous-blocs prompt ⇒ `instructionsPrompt: null` ; diff de versions signale le changement de prompt.
-- [ ] Implémenter `agents.ts` ; champ Consignes du formulaire (bascule « Texte » / « Prompt », choix du prompt, étiquette, valeurs des variables, résumé « Consignes : prompt X @production »).
+- [x] Tests rouges `prompt-reference.test.ts` : référence absente ⇒ entrées inchangées ; présente ⇒ premier `system` remplacé, autres messages intacts ; sans `system` ⇒ ajouté en tête ; table de variables `{cells:{Key,Value}}` lue comme un objet ; sortie en flux reçoit `prompt`.
+- [x] Implémenter, brancher dans `execute` ; garde secrets sur `promptVariables` (refus français) ; verts.
+- [x] Tests rouges `agents.test.ts` : aller-retour `buildAgentWorkflow`/`readAgentWorkflow` avec `instructionsPrompt` ; agent sans sous-blocs prompt ⇒ `instructionsPrompt: null` ; diff de versions signale le changement de prompt.
+- [x] Implémenter `agents.ts` ; champ Consignes du formulaire (bascule « Texte » / « Prompt », choix du prompt, étiquette, valeurs des variables, résumé « Consignes : prompt X @production »).
 
 ### Tâche 7 : page Prompts, barre latérale, Playground
 

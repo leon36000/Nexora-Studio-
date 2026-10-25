@@ -30,6 +30,7 @@ import {
   Dashboard,
   Database,
   Files,
+  FileText,
   Integration,
   MessageSquareText,
   MoreHorizontal,
@@ -805,6 +806,14 @@ export const Sidebar = memo(function Sidebar({ organizationHref, desktopExecutor
           label: t('nav.agents'),
           icon: Sparkles,
           href: `/workspace/${workspaceId}/agents`,
+          hidden: chatEnabled,
+        },
+        {
+          // Nexora edition: versioned prompts that agents read at run time.
+          id: 'prompts',
+          label: t('nav.prompts'),
+          icon: FileText,
+          href: `/workspace/${workspaceId}/prompts`,
           hidden: chatEnabled,
         },
         {

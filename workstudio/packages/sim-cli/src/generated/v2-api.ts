@@ -6785,6 +6785,7 @@ export type GetSelectorBody = {
     | 'table.columns'
     | 'table.outputColumns'
     | 'workspace.secretNames'
+    | 'workspace.prompts'
     | 'workspace.sandboxes'
     | 'providers.ollamaEmbeddingModels'
     | 'providers.openrouterEmbeddingModels'
@@ -9691,6 +9692,7 @@ export type ListSelectorBody = {
     | 'table.columns'
     | 'table.outputColumns'
     | 'workspace.secretNames'
+    | 'workspace.prompts'
     | 'workspace.sandboxes'
     | 'providers.ollamaEmbeddingModels'
     | 'providers.openrouterEmbeddingModels'
@@ -18535,6 +18537,7 @@ export const V2_OPERATIONS = {
           'table.columns',
           'table.outputColumns',
           'workspace.secretNames',
+          'workspace.prompts',
           'workspace.sandboxes',
           'providers.ollamaEmbeddingModels',
           'providers.openrouterEmbeddingModels',
@@ -20899,6 +20902,7 @@ export const V2_OPERATIONS = {
           'table.columns',
           'table.outputColumns',
           'workspace.secretNames',
+          'workspace.prompts',
           'workspace.sandboxes',
           'providers.ollamaEmbeddingModels',
           'providers.openrouterEmbeddingModels',

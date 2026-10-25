@@ -48,6 +48,7 @@ const APPROVED: Record<string, string> = {
   'a91c4b2e-6d3f-4e8a-b5c7-0d9e2f1a8c64': 'the shared workspace id placeholder',
   'b2d4f8a0-1c3e-4a5b-9d7c-2e6f0a8b4c12': 'KNOWLEDGE_DOCUMENT_ID',
   'b8c2e60f-1a47-4d35-9e8b-3f0d5a7c2e19': 'executionId on the failed-execution example',
+  'c4e8a1f6-2b9d-4f70-8e35-a7d1b6c09e52': 'prompt id in the v2 prompt examples',
   'c7a92e15-3f4b-4d8c-a1e6-9b0d5f2c8e74': 'executionId returned by the execute example',
   'd5e1a3c7-8f60-4b29-9c4d-2a6e0f8b3d17': 'executionId on the paused-execution example',
   'e4f8d2b6-9a1c-4e3d-8b7f-5c0a2d9e6f13': 'the shared run id placeholder',

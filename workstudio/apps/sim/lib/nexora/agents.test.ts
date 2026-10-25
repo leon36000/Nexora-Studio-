@@ -20,6 +20,7 @@ const base: AgentConfig = {
   knowledgeBaseIds: [],
   memory: false,
   reasoningEffort: 'auto',
+  instructionsPrompt: null,
   welcomeMessage: 'Bonjour, que puis-je pour vous ?',
 }
 
@@ -341,6 +342,65 @@ const storedToolsFixture = [
     usageControl: 'auto',
   },
 ]
+
+describe('agent instructions taken from a versioned prompt', () => {
+  const fromPrompt: AgentConfig = {
+    ...base,
+    instructionsPrompt: { promptId: 'prompt-1', label: 'test', variables: { client: 'Martin' } },
+  }
+
+  it('round-trips the prompt, its label and the values of its variables', () => {
+    expect(readAgentWorkflow(buildAgentWorkflow(fromPrompt))).toEqual(fromPrompt)
+  })
+
+  it('stores the reference where the Agent block reads it, variables as table rows', () => {
+    const agent = agentBlock(buildAgentWorkflow(fromPrompt))
+    expect(agent.subBlocks.promptId.value).toBe('prompt-1')
+    expect(agent.subBlocks.promptLabel.value).toBe('test')
+    expect(agent.subBlocks.promptVariables.value).toEqual([
+      { id: expect.any(String), cells: { Key: 'client', Value: 'Martin' } },
+    ])
+  })
+
+  it('reads an agent saved before prompts existed as using its own instructions', () => {
+    const state = buildAgentWorkflow(base)
+    const agent = agentBlock(state)
+    const {
+      promptId: _id,
+      promptLabel: _label,
+      promptVariables: _variables,
+      ...older
+    } = agent.subBlocks
+    agent.subBlocks = older
+    expect(readOrFail(state).instructionsPrompt).toBeNull()
+  })
+
+  it('clears the reference when the form goes back to written instructions', () => {
+    const written = buildAgentWorkflow(base, buildAgentWorkflow(fromPrompt))
+    expect(agentBlock(written).subBlocks.promptId.value).toBe('')
+    expect(readOrFail(written).instructionsPrompt).toBeNull()
+  })
+
+  it('refuses a label the form cannot show', () => {
+    const state = buildAgentWorkflow(fromPrompt)
+    agentBlock(state).subBlocks.promptLabel.value = 'staging'
+    expect(readAgentWorkflow(state)).toBeNull()
+  })
+
+  it('counts a change of prompt or label as a change between versions', () => {
+    const moved: AgentConfig = {
+      ...fromPrompt,
+      instructionsPrompt: {
+        promptId: 'prompt-1',
+        label: 'production',
+        variables: { client: 'Martin' },
+      },
+    }
+    expect(diffAgentVersions(fromPrompt, moved).map(({ field }) => field)).toEqual([
+      'instructionsPrompt',
+    ])
+  })
+})
 
 describe('saving an agent over what the database stores', () => {
   const configured: AgentConfig = {

@@ -21,6 +21,12 @@ export interface AgentInputs {
   responseFormat?: string | object
   tools?: ToolInput[]
   skills?: SkillInput[]
+  /** Nexora edition: a versioned prompt of the workspace used as the system message. */
+  promptId?: string
+  /** `production`, `test` or `latest`; `production` when unset. */
+  promptLabel?: string
+  /** Values of the prompt's `{{variables}}`: table rows (`Key`, `Value`) or an object. */
+  promptVariables?: unknown
   // Legacy inputs (backward compatible)
   systemPrompt?: string
   userPrompt?: string | object

@@ -13,7 +13,7 @@ export const PROMPT_SELECTORS = [...PROMPT_LABELS, 'latest'] as const
 export type PromptSelector = (typeof PROMPT_SELECTORS)[number]
 
 export const PROMPT_VARIABLE_TYPES = ['text', 'number', 'boolean'] as const
-export type PromptVariableType = (typeof PROMPT_VARIABLE_TYPES)[number]
+type PromptVariableType = (typeof PROMPT_VARIABLE_TYPES)[number]
 
 export interface PromptVariable {
   name: string

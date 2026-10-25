@@ -541,7 +541,8 @@
       "knowledgeBases": "Knowledge bases",
       "tests": "Tests",
       "logs": "Logs",
-      "organization": "Organization"
+      "organization": "Organization",
+      "prompts": "Prompts"
     },
     "unknownWorkflow": "Unknown workflow",
     "ariaLabel": "Workspace sidebar",
