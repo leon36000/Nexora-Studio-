@@ -4,7 +4,6 @@ import { toRecord } from '@sim/utils/object'
 import { escapeRegExp, truncate } from '@sim/utils/string'
 import { env } from '@/lib/core/config/env'
 import { isNexoraOnlyModels } from '@/lib/core/config/env-flags'
-import { type CallTrace, type CallTraceContext, beginCallTrace } from '@/lib/nexora/traces/call'
 import {
   createThinkTagSplitter,
   isReasoningEffortRejection,
@@ -13,6 +12,7 @@ import {
   readDeltaReasoning,
   readMessageReasoning,
 } from '@/lib/nexora/reasoning'
+import { beginCallTrace, type CallTrace, type CallTraceContext } from '@/lib/nexora/traces/call'
 
 /** How much of an answer (and of its reasoning) a streamed call's trace keeps while it streams. */
 const TRACE_TEXT_LIMIT = 12_000
@@ -173,10 +173,7 @@ function failureReason(error: unknown): string {
   return getErrorMessage(error, 'Échec de la génération')
 }
 
-function beginTrace(
-  settings: CompletionSettings,
-  messages: WandMessage[]
-): CallTrace | null {
+function beginTrace(settings: CompletionSettings, messages: WandMessage[]): CallTrace | null {
   return settings.trace
     ? beginCallTrace(settings.trace, settings.model ?? NEXORA_DEFAULT_MODEL_ALIAS, messages)
     : null

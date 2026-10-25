@@ -373,14 +373,17 @@ export const POST = withRouteHandler(async (req: NextRequest) => {
       } as const
       try {
         if (stream) {
-          return new Response(await nexoraWandStream({ messages, onUsage: recordWandUsage, trace }), {
-            headers: {
-              'Content-Type': 'text/event-stream',
-              'Cache-Control': 'no-cache, no-transform',
-              Connection: 'keep-alive',
-              'X-Accel-Buffering': 'no',
-            },
-          })
+          return new Response(
+            await nexoraWandStream({ messages, onUsage: recordWandUsage, trace }),
+            {
+              headers: {
+                'Content-Type': 'text/event-stream',
+                'Cache-Control': 'no-cache, no-transform',
+                Connection: 'keep-alive',
+                'X-Accel-Buffering': 'no',
+              },
+            }
+          )
         }
         const { text, usage } = await nexoraWandComplete({ messages, trace })
         if (!text) {

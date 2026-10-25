@@ -41,6 +41,13 @@ describe('co2ForSpans', () => {
     expect(result).toEqual([null, null, null])
   })
 
+  it('rend null pour un modèle dont Nexora API ne mesure aucun impact (0 kgCO2eq reporté)', async () => {
+    const result = await co2ForSpans([{ model: 'cloud-glm-5-3', tokens: 1000 }], async () => [
+      { ...glm, kgCO2eq: 0, kWh: 0 },
+    ])
+    expect(result).toEqual([null])
+  })
+
   it('rend null partout (jamais 0) quand Nexora API ne répond pas', async () => {
     const result = await co2ForSpans([{ model: 'cloud-glm-5-3', tokens: 1000 }], async () => null)
     expect(result).toEqual([null])

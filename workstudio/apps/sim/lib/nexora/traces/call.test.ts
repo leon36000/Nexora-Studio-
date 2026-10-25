@@ -31,7 +31,11 @@ function setup(times: number[]) {
 describe('beginCallTrace', () => {
   it('enregistre la durée entre le début et la fin, la réponse et les jetons', () => {
     const { recorded, begin } = setup([1000, 3500])
-    begin().finish({ answer: 'Salut', usage: { promptTokens: 4, completionTokens: 2 }, error: null })
+    begin().finish({
+      answer: 'Salut',
+      usage: { promptTokens: 4, completionTokens: 2 },
+      error: null,
+    })
     expect(recorded).toHaveLength(1)
     expect(recorded[0]).toMatchObject({
       source: 'playground',
@@ -58,7 +62,10 @@ describe('beginCallTrace', () => {
   it('enregistre une erreur et une interruption', () => {
     const failed = setup([0, 5])
     failed.begin().finish({ answer: null, usage: null, error: 'Le modèle a refusé la demande' })
-    expect(failed.recorded[0]).toMatchObject({ status: 'error', error: 'Le modèle a refusé la demande' })
+    expect(failed.recorded[0]).toMatchObject({
+      status: 'error',
+      error: 'Le modèle a refusé la demande',
+    })
 
     const stopped = setup([0, 5])
     stopped.begin().finish({ answer: 'début', usage: null, error: null, interrupted: true })

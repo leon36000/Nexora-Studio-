@@ -21,5 +21,8 @@ export function canReadTrace(viewer: TraceViewer, trace: TraceOwnership): boolea
   if (trace.workspaceId === null) return viewer.isInstanceAdmin
   if (viewer.workspacePermission === null) return false
   if (trace.visibility === 'workspace') return true
-  return viewer.workspacePermission === 'admin' || (trace.userId !== null && trace.userId === viewer.userId)
+  return (
+    viewer.workspacePermission === 'admin' ||
+    (trace.userId !== null && trace.userId === viewer.userId)
+  )
 }

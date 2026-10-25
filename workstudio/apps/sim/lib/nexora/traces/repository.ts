@@ -114,7 +114,9 @@ function encodeCursor(row: { startedAt: Date; id: string }): string {
 
 function decodeCursor(cursor: string): { startedAt: Date; id: string } | null {
   try {
-    const [startedAt, id] = JSON.parse(Buffer.from(cursor, 'base64url').toString('utf8')) as unknown[]
+    const [startedAt, id] = JSON.parse(
+      Buffer.from(cursor, 'base64url').toString('utf8')
+    ) as unknown[]
     const date = typeof startedAt === 'string' ? new Date(startedAt) : null
     return date && !Number.isNaN(date.getTime()) && typeof id === 'string'
       ? { startedAt: date, id }
@@ -241,7 +243,10 @@ export async function getTraceWithSpans(
     .from(nexoraTraceSpan)
     .where(eq(nexoraTraceSpan.traceId, traceId))
     .orderBy(nexoraTraceSpan.position)
-  return { trace, spans: spans.map((span) => ({ ...span, attributes: toAttributes(span.attributes) })) }
+  return {
+    trace,
+    spans: spans.map((span) => ({ ...span, attributes: toAttributes(span.attributes) })),
+  }
 }
 
 function toAttributes(value: unknown): Record<string, unknown> {
@@ -258,7 +263,10 @@ export interface TraceFacets {
 }
 
 /** The values the filters offer: what the reader's visible traces of the last month actually hold. */
-export async function listFacets(workspaceId: string | null, scope: TraceScope): Promise<TraceFacets> {
+export async function listFacets(
+  workspaceId: string | null,
+  scope: TraceScope
+): Promise<TraceFacets> {
   const visible = and(
     visibleTo(workspaceId, scope),
     gte(nexoraTrace.startedAt, new Date(Date.now() - FACET_WINDOW_MS))
@@ -282,7 +290,11 @@ export async function listFacets(workspaceId: string | null, scope: TraceScope):
       .where(visible)
       .orderBy(nexoraApiKey.name)
       .limit(FACET_LIMIT),
-    db.selectDistinct({ source: nexoraTrace.source }).from(nexoraTrace).where(visible).limit(FACET_LIMIT),
+    db
+      .selectDistinct({ source: nexoraTrace.source })
+      .from(nexoraTrace)
+      .where(visible)
+      .limit(FACET_LIMIT),
   ])
   return {
     agents: agents.flatMap((row) => (row.id ? [{ id: row.id, name: row.name ?? row.id }] : [])),

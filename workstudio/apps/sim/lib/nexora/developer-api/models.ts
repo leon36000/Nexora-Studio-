@@ -13,14 +13,14 @@ import { keyModelConfig } from '@/lib/nexora/developer-api/key-model-policy'
 import { keyModelRefusal } from '@/lib/nexora/developer-api/model-gate'
 import { agentRefusal, estimateCallTokens, modelRefusal } from '@/lib/nexora/developer-api/policy'
 import { type RelayedText, relayWithUsage } from '@/lib/nexora/developer-api/sse'
-import { readMessageReasoning } from '@/lib/nexora/reasoning'
-import { beginCallTrace } from '@/lib/nexora/traces/call'
 import {
   callUpstream,
   listUpstreamModels,
   routerResolver,
   upstreamError,
 } from '@/lib/nexora/developer-api/upstream'
+import { readMessageReasoning } from '@/lib/nexora/reasoning'
+import { beginCallTrace } from '@/lib/nexora/traces/call'
 
 const OWNED_BY_AGENT = 'nexora-agent'
 
@@ -137,7 +137,11 @@ export async function relayChatCompletion(
       signal,
     })
   } catch (error) {
-    trace.finish({ answer: null, usage: null, error: getErrorMessage(error, 'Appel refusé par le modèle') })
+    trace.finish({
+      answer: null,
+      usage: null,
+      error: getErrorMessage(error, 'Appel refusé par le modèle'),
+    })
     throw error
   }
 
@@ -172,7 +176,9 @@ export async function relayChatCompletion(
     throw error
   })
   const usage = toRecord(toRecord(completion).usage)
-  const reading = readMessageReasoning(toRecord(toRecord(arrayFirst(toRecord(completion).choices)).message))
+  const reading = readMessageReasoning(
+    toRecord(toRecord(arrayFirst(toRecord(completion).choices)).message)
+  )
   await reservation.settle({
     promptTokens: tokens(usage.prompt_tokens),
     completionTokens: tokens(usage.completion_tokens),
@@ -180,7 +186,10 @@ export async function relayChatCompletion(
   trace.finish({
     answer: reading.content || null,
     reasoning: reading.reasoning || null,
-    usage: { promptTokens: tokens(usage.prompt_tokens), completionTokens: tokens(usage.completion_tokens) },
+    usage: {
+      promptTokens: tokens(usage.prompt_tokens),
+      completionTokens: tokens(usage.completion_tokens),
+    },
     error: null,
   })
   return Response.json(completion, { headers: call.headers })

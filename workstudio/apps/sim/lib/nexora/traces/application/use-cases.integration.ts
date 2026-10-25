@@ -50,11 +50,20 @@ async function seedUser(label: string): Promise<string> {
 async function seedWorkspace(ownerId: string): Promise<string> {
   const id = generateId()
   workspaceIds.push(id)
-  await insertWorkspaceFixture(db, { id, name: 'Accès aux traces', ownerId, billedAccountUserId: ownerId })
+  await insertWorkspaceFixture(db, {
+    id,
+    name: 'Accès aux traces',
+    ownerId,
+    billedAccountUserId: ownerId,
+  })
   return id
 }
 
-async function grant(userId: string, workspaceId: string, permissionType: 'read' | 'write' | 'admin') {
+async function grant(
+  userId: string,
+  workspaceId: string,
+  permissionType: 'read' | 'write' | 'admin'
+) {
   await db.insert(permissions).values({
     id: generateId(),
     userId,
@@ -112,7 +121,18 @@ async function world() {
     searchText: 'dossier confidentiel',
   })
   const elsewhere = await addTrace(otherWorkspaceId, { name: 'ailleurs' })
-  return { workspaceId, otherWorkspaceId, alice, bob, reader, admin, outsider, shared, privateOfAlice, elsewhere }
+  return {
+    workspaceId,
+    otherWorkspaceId,
+    alice,
+    bob,
+    reader,
+    admin,
+    outsider,
+    shared,
+    privateOfAlice,
+    elsewhere,
+  }
 }
 
 const filters = { limit: 50 }
@@ -122,7 +142,12 @@ describe('listWorkspaceTraces', () => {
   it('chaque lecteur ne voit que ce qui lui revient', async () => {
     const w = await world()
     const names = async (userId: string) =>
-      (await listWorkspaceTraces.execute({ principal: as(userId), input: { workspaceId: w.workspaceId, filters } })).traces
+      (
+        await listWorkspaceTraces.execute({
+          principal: as(userId),
+          input: { workspaceId: w.workspaceId, filters },
+        })
+      ).traces
         .map((t) => t.name)
         .sort()
     expect(await names(w.alice)).toEqual(['partagée', 'privée d’Alice'])
@@ -148,7 +173,10 @@ describe('listWorkspaceTraces', () => {
   it('refuse un non-membre de l’espace', async () => {
     const w = await world()
     await expect(
-      listWorkspaceTraces.execute({ principal: as(w.outsider), input: { workspaceId: w.workspaceId, filters } })
+      listWorkspaceTraces.execute({
+        principal: as(w.outsider),
+        input: { workspaceId: w.workspaceId, filters },
+      })
     ).rejects.toMatchObject({ code: expect.stringMatching(/forbidden|not_found/) })
   })
 })
@@ -166,7 +194,9 @@ describe('getWorkspaceTrace', () => {
   it('répond « introuvable » pour la trace privée d’un autre membre, comme pour une trace absente', async () => {
     const w = await world()
     const refused = await detail(w.bob, w.workspaceId, w.privateOfAlice).catch((error) => error)
-    const missing = await detail(w.bob, w.workspaceId, generateRandomHex(32)).catch((error) => error)
+    const missing = await detail(w.bob, w.workspaceId, generateRandomHex(32)).catch(
+      (error) => error
+    )
     expect(refused).toMatchObject({ code: 'not_found' })
     expect(refused.message).toBe(missing.message)
   })
@@ -179,8 +209,12 @@ describe('getWorkspaceTrace', () => {
 
   it('ne livre jamais la trace d’un autre espace, même à son administrateur ou par l’identifiant', async () => {
     const w = await world()
-    await expect(detail(w.admin, w.workspaceId, w.elsewhere)).rejects.toMatchObject({ code: 'not_found' })
-    await expect(detail(w.outsider, w.otherWorkspaceId, w.shared)).rejects.toMatchObject({ code: 'not_found' })
+    await expect(detail(w.admin, w.workspaceId, w.elsewhere)).rejects.toMatchObject({
+      code: 'not_found',
+    })
+    await expect(detail(w.outsider, w.otherWorkspaceId, w.shared)).rejects.toMatchObject({
+      code: 'not_found',
+    })
   })
 })
 
@@ -188,7 +222,10 @@ describe('listWorkspaceTraceFacets', () => {
   it('n’offre pas les agents, modèles ou sources des traces privées d’un autre membre', async () => {
     const w = await world()
     const facets = (userId: string) =>
-      listWorkspaceTraceFacets.execute({ principal: as(userId), input: { workspaceId: w.workspaceId } })
+      listWorkspaceTraceFacets.execute({
+        principal: as(userId),
+        input: { workspaceId: w.workspaceId },
+      })
     expect((await facets(w.bob)).agents.map((agent) => agent.id)).not.toContain('wf-alice')
     expect((await facets(w.bob)).sources).not.toContain('assistant')
     expect((await facets(w.admin)).agents.map((agent) => agent.id)).toContain('wf-alice')

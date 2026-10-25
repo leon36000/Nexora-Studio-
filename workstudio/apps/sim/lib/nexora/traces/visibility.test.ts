@@ -44,7 +44,9 @@ describe('canReadTrace', () => {
 
   it('une trace sans espace (clé d’instance) ne se lit que d’un administrateur d’instance', () => {
     const trace = { visibility: 'workspace' as const, userId: null, workspaceId: null }
-    expect(canReadTrace(member({ isInstanceAdmin: true, workspacePermission: null }), trace)).toBe(true)
+    expect(canReadTrace(member({ isInstanceAdmin: true, workspacePermission: null }), trace)).toBe(
+      true
+    )
     expect(canReadTrace(member(), trace)).toBe(false)
   })
 

@@ -12,11 +12,11 @@ export type TraceSource =
   | 'api_key'
 
 /** `workspace`: every member of the workspace; `private`: its author and the workspace admins. */
-export type TraceVisibility = 'workspace' | 'private'
+type TraceVisibility = 'workspace' | 'private'
 
 export type SpanKind = 'model' | 'tool' | 'knowledge' | 'delegation' | 'step'
 
-export type TraceStatus = 'ok' | 'error'
+type TraceStatus = 'ok' | 'error'
 
 export interface SpanDraft {
   /** 16 hex characters (OTLP span id). */
@@ -67,4 +67,9 @@ export interface RunOriginHint {
   apiKeyId: string
 }
 
-export const PRIVATE_SOURCES: readonly TraceSource[] = ['assistant', 'playground', 'copilot', 'wand']
+export const PRIVATE_SOURCES: readonly TraceSource[] = [
+  'assistant',
+  'playground',
+  'copilot',
+  'wand',
+]

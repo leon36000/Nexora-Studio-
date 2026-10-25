@@ -3,14 +3,16 @@
  */
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
-const { mockAdmit, mockReserve, mockCallUpstream, mockRecord, settle, release } = vi.hoisted(() => ({
-  mockAdmit: vi.fn(),
-  mockReserve: vi.fn(),
-  mockCallUpstream: vi.fn(),
-  mockRecord: vi.fn(),
-  settle: vi.fn(),
-  release: vi.fn(),
-}))
+const { mockAdmit, mockReserve, mockCallUpstream, mockRecord, settle, release } = vi.hoisted(
+  () => ({
+    mockAdmit: vi.fn(),
+    mockReserve: vi.fn(),
+    mockCallUpstream: vi.fn(),
+    mockRecord: vi.fn(),
+    settle: vi.fn(),
+    release: vi.fn(),
+  })
+)
 
 vi.mock('@/lib/nexora/developer-api/gateway', () => ({
   admitModel: mockAdmit,
@@ -20,11 +22,14 @@ vi.mock('@/lib/nexora/developer-api/upstream', async (importOriginal) => ({
   ...(await importOriginal<typeof import('@/lib/nexora/developer-api/upstream')>()),
   callUpstream: mockCallUpstream,
 }))
-vi.mock('@/lib/nexora/developer-api/agents', () => ({ agentModelIds: vi.fn(), listApiAgents: vi.fn() }))
+vi.mock('@/lib/nexora/developer-api/agents', () => ({
+  agentModelIds: vi.fn(),
+  listApiAgents: vi.fn(),
+}))
 vi.mock('@/lib/nexora/traces/record', () => ({ recordTrace: mockRecord }))
 
-import { relayChatCompletion } from '@/lib/nexora/developer-api/models'
 import type { GatewayCall } from '@/lib/nexora/developer-api/gateway'
+import { relayChatCompletion } from '@/lib/nexora/developer-api/models'
 
 const call = {
   key: { id: 'key-1', name: 'Clé de test', scope: 'workspace', workspaceId: 'ws-1' },
@@ -43,7 +48,11 @@ async function readAll(response: Response) {
 describe('relayChatCompletion — trace', () => {
   beforeEach(() => {
     mockAdmit.mockResolvedValue('cloud-glm-5-3')
-    mockReserve.mockResolvedValue({ estimate: { promptTokens: 5, completionTokens: 5 }, settle, release })
+    mockReserve.mockResolvedValue({
+      estimate: { promptTokens: 5, completionTokens: 5 },
+      settle,
+      release,
+    })
   })
 
   it('trace un appel sans flux : clé, espace, réponse, jetons', async () => {
@@ -88,22 +97,34 @@ describe('relayChatCompletion — trace', () => {
         { status: 200 }
       )
     )
-    const response = await relayChatCompletion(call, { ...body, stream: true }, new AbortController().signal)
+    const response = await relayChatCompletion(
+      call,
+      { ...body, stream: true },
+      new AbortController().signal
+    )
     expect(await readAll(response)).toBe(chunks.join(''))
     expect(mockRecord).toHaveBeenCalledTimes(1)
-    expect(mockRecord.mock.calls[0][0]).toMatchObject({ output: 'Salut', inputTokens: 8, outputTokens: 3 })
+    expect(mockRecord.mock.calls[0][0]).toMatchObject({
+      output: 'Salut',
+      inputTokens: 8,
+      outputTokens: 3,
+    })
   })
 
   it('trace aussi le refus du modèle en amont, comme une erreur', async () => {
     mockCallUpstream.mockResolvedValue(new Response('{"detail":"trop long"}', { status: 400 }))
-    await expect(relayChatCompletion(call, body, new AbortController().signal)).rejects.toBeDefined()
+    await expect(
+      relayChatCompletion(call, body, new AbortController().signal)
+    ).rejects.toBeDefined()
     expect(mockRecord).toHaveBeenCalledTimes(1)
     expect(mockRecord.mock.calls[0][0]).toMatchObject({ status: 'error' })
   })
 
   it('ne trace rien quand la clé est refusée avant l’appel (modèle interdit)', async () => {
     mockAdmit.mockRejectedValue(new Error('model_not_allowed'))
-    await expect(relayChatCompletion(call, body, new AbortController().signal)).rejects.toBeDefined()
+    await expect(
+      relayChatCompletion(call, body, new AbortController().signal)
+    ).rejects.toBeDefined()
     expect(mockRecord).not.toHaveBeenCalled()
   })
 

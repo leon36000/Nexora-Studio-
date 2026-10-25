@@ -8,7 +8,6 @@ import {
   compilePlan,
   promptName,
 } from '@/lib/nexora/copilot/compile'
-import type { CallTraceContext } from '@/lib/nexora/traces/call'
 import { normalizePlanCandidate } from '@/lib/nexora/copilot/normalize-plan'
 import {
   type CopilotPlan,
@@ -16,6 +15,7 @@ import {
   type CopilotTrigger,
   copilotPlanSchema,
 } from '@/lib/nexora/copilot/plan'
+import type { CallTraceContext } from '@/lib/nexora/traces/call'
 import {
   isNexoraWandAvailable,
   NexoraWandRejectedError,

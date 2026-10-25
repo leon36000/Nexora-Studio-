@@ -1,8 +1,8 @@
 import { db } from '@sim/db'
 import { workflow } from '@sim/db/schema'
 import { createLogger } from '@sim/logger'
-import { getErrorMessage } from '@sim/utils/errors'
 import { toNumberOrNull, toStringOrNull } from '@sim/utils/coerce'
+import { getErrorMessage } from '@sim/utils/errors'
 import { toRecord } from '@sim/utils/object'
 import { eq } from 'drizzle-orm'
 import type { WorkflowExecutionLog } from '@/lib/logs/types'
@@ -72,11 +72,14 @@ export async function recordRunTrace(
         durationMs: log.totalDurationMs,
         startedAt: new Date(log.startedAt),
         error: failed
-          ? (data.error ?? data.completionFailure ?? (status === 'cancelled' ? 'Exécution annulée' : null))
+          ? (data.error ??
+            data.completionFailure ??
+            (status === 'cancelled' ? 'Exécution annulée' : null))
           : null,
         workflowInput: (data as Record<string, unknown>).workflowInput,
         finalOutput: (data as Record<string, unknown>).finalOutput,
-        tokens: input !== null || output !== null ? { input: input ?? 0, output: output ?? 0 } : null,
+        tokens:
+          input !== null || output !== null ? { input: input ?? 0, output: output ?? 0 } : null,
         hint,
       })
     )

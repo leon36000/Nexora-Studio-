@@ -1,5 +1,5 @@
-import { recordTrace } from '@/lib/nexora/traces/record'
 import { draftFromCall } from '@/lib/nexora/traces/from-call'
+import { recordTrace } from '@/lib/nexora/traces/record'
 import type { TraceDraft, TraceSource } from '@/lib/nexora/traces/types'
 
 /** Who made a direct model call, and from where. */

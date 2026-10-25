@@ -80,7 +80,10 @@ function stored(): StoredTrace {
   }
 }
 
-function attr(span: { attributes: { key: string; value: Record<string, unknown> }[] }, key: string) {
+function attr(
+  span: { attributes: { key: string; value: Record<string, unknown> }[] },
+  key: string
+) {
   return span.attributes.find((entry) => entry.key === key)?.value
 }
 
@@ -98,7 +101,9 @@ describe('buildOtlpPayload', () => {
       endTimeUnixNano: '1792922402000000000',
     })
     expect(spans[1].parentSpanId).toBe('1'.repeat(16))
-    expect(spans.every((s) => /^[0-9a-f]{32}$/.test(s.traceId) && /^[0-9a-f]{16}$/.test(s.spanId))).toBe(true)
+    expect(
+      spans.every((s) => /^[0-9a-f]{32}$/.test(s.traceId) && /^[0-9a-f]{16}$/.test(s.spanId))
+    ).toBe(true)
     expect(payload.resourceSpans[0].resource.attributes).toContainEqual({
       key: 'service.name',
       value: { stringValue: 'nexora-workstudio' },
@@ -142,7 +147,10 @@ describe('exportTrace', () => {
     const [url, init] = fetchFn.mock.calls[0] as unknown as [string, RequestInit]
     expect(url).toBe('http://collecteur.local:4318/v1/traces')
     expect(init.method).toBe('POST')
-    expect(init.headers).toMatchObject({ 'Content-Type': 'application/json', Authorization: 'Basic abc' })
+    expect(init.headers).toMatchObject({
+      'Content-Type': 'application/json',
+      Authorization: 'Basic abc',
+    })
     expect(init.signal).toBeInstanceOf(AbortSignal)
     expect(JSON.parse(init.body as string).resourceSpans).toHaveLength(1)
   })
@@ -195,12 +203,17 @@ describe('sendTestSpan', () => {
       fetchFn as unknown as typeof fetch
     )
     expect(result.ok).toBe(true)
-    const body = JSON.parse((fetchFn.mock.calls[0] as unknown as [string, RequestInit])[1].body as string)
+    const body = JSON.parse(
+      (fetchFn.mock.calls[0] as unknown as [string, RequestInit])[1].body as string
+    )
     expect(body.resourceSpans[0].scopeSpans[0].spans[0].name).toBe('nexora.test')
   })
 
   it('refuse sans adresse', async () => {
-    const result = await sendTestSpan({ enabled: false, endpoint: '', headers: [] }, vi.fn() as unknown as typeof fetch)
+    const result = await sendTestSpan(
+      { enabled: false, endpoint: '', headers: [] },
+      vi.fn() as unknown as typeof fetch
+    )
     expect(result.ok).toBe(false)
   })
 })

@@ -1,11 +1,11 @@
 import { isOrgAdminRole } from '@sim/platform-authz/workspace'
 import { getUserOrganization } from '@/lib/billing/organizations/membership'
-import { getInstanceOrganizationId } from '@/lib/organizations/instance-org'
 import type { TraceViewer } from '@/lib/nexora/traces/visibility'
+import { getInstanceOrganizationId } from '@/lib/organizations/instance-org'
 import { getUserEntityPermissions } from '@/lib/workspaces/permissions/utils'
 
 /** Whether the person owns or administers the instance organization. */
-export async function isInstanceAdminUser(userId: string): Promise<boolean> {
+async function isInstanceAdminUser(userId: string): Promise<boolean> {
   const [membership, instanceOrganizationId] = await Promise.all([
     getUserOrganization(userId),
     getInstanceOrganizationId(),

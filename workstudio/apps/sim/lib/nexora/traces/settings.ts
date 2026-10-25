@@ -161,9 +161,7 @@ export async function applyTraceSettingsChange(
   if (change.retentionDays !== undefined) {
     const days = wholeDays(change.retentionDays, MAX_RETENTION_DAYS)
     if (days === null) {
-      throw new TraceSettingsError(
-        `La rétention des traces va de 1 à ${MAX_RETENTION_DAYS} jours.`
-      )
+      throw new TraceSettingsError(`La rétention des traces va de 1 à ${MAX_RETENTION_DAYS} jours.`)
     }
     next.retentionDays = days
   }
@@ -191,7 +189,9 @@ export async function applyTraceSettingsChange(
     if (otlp.endpoint !== undefined) {
       const endpoint = otlp.endpoint.trim()
       if (endpoint !== '' && !validEndpoint(endpoint)) {
-        throw new TraceSettingsError('L’adresse du collecteur doit commencer par http:// ou https://.')
+        throw new TraceSettingsError(
+          'L’adresse du collecteur doit commencer par http:// ou https://.'
+        )
       }
       next.otlp.endpoint = endpoint
     }
@@ -310,9 +310,4 @@ export async function saveTraceSettings(
   })
   settingsCache.clear()
   return presentTraceSettings(saved)
-}
-
-/** Drops the cached settings. Test seam. */
-export function resetTraceSettingsCache(): void {
-  settingsCache.clear()
 }

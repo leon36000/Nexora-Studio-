@@ -3,10 +3,13 @@
  */
 import { describe, expect, it, vi } from 'vitest'
 import type { WorkflowExecutionLog } from '@/lib/logs/types'
-import { recordRunTrace, type RunTraceDeps } from '@/lib/nexora/traces/from-run'
+import { type RunTraceDeps, recordRunTrace } from '@/lib/nexora/traces/from-run'
 import type { TraceDraft } from '@/lib/nexora/traces/types'
 
-function log(over: Partial<WorkflowExecutionLog['executionData']> = {}, trigger = 'chat'): WorkflowExecutionLog {
+function log(
+  over: Partial<WorkflowExecutionLog['executionData']> = {},
+  trigger = 'chat'
+): WorkflowExecutionLog {
   return {
     id: 'log-1',
     workflowId: 'wf-1',
@@ -18,7 +21,12 @@ function log(over: Partial<WorkflowExecutionLog['executionData']> = {}, trigger 
     endedAt: '2026-10-25T10:00:02.000Z',
     totalDurationMs: 2000,
     executionData: {
-      trigger: { type: 'chat', source: 'chat', timestamp: '2026-10-25T10:00:00.000Z', data: { memberChatUserId: 'member-1' } },
+      trigger: {
+        type: 'chat',
+        source: 'chat',
+        timestamp: '2026-10-25T10:00:00.000Z',
+        data: { memberChatUserId: 'member-1' },
+      },
       traceSpans: [],
       tokens: { input: 10, output: 5 },
       finalOutput: { content: 'Réponse' },
@@ -86,7 +94,10 @@ describe('recordRunTrace', () => {
 
   it('une exécution en échec ou annulée donne une trace en erreur avec son motif', async () => {
     const failed = deps()
-    await recordRunTrace(input({ status: 'failed', log: log({ error: 'Modèle indisponible' }) }), failed.all)
+    await recordRunTrace(
+      input({ status: 'failed', log: log({ error: 'Modèle indisponible' }) }),
+      failed.all
+    )
     expect(failed.recorded[0]).toMatchObject({ status: 'error', error: 'Modèle indisponible' })
 
     const cancelled = deps()
@@ -100,7 +111,11 @@ describe('recordRunTrace', () => {
       input({ log: log({ trigger: { type: 'api', source: 'api', timestamp: 'x' } }, 'api') }),
       all
     )
-    expect(recorded[0]).toMatchObject({ source: 'api_key', apiKeyId: 'key-1', visibility: 'workspace' })
+    expect(recorded[0]).toMatchObject({
+      source: 'api_key',
+      apiKeyId: 'key-1',
+      visibility: 'workspace',
+    })
   })
 
   it('nomme la trace d’après l’identifiant quand le workflow est introuvable', async () => {

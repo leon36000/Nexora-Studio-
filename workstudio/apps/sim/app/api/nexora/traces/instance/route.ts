@@ -6,11 +6,11 @@ import {
   internalSessionAuth,
 } from '@/lib/api/server/routes'
 import { listInstanceTraces } from '@/lib/nexora/traces/application/use-cases'
-import { presentTrace, toFilters } from '@/app/api/nexora/traces/surface'
 import {
   instanceOrganizationInput,
   requireInstanceAdmin,
 } from '@/app/api/nexora/consumption/surface'
+import { presentTrace, toFilters } from '@/app/api/nexora/traces/surface'
 
 export const dynamic = 'force-dynamic'
 
@@ -22,7 +22,10 @@ export const GET = defineInternalJsonRoute({
   rateLimit: internalRateLimits.none({ reason: 'Instance-admin read-only screen' }),
   errorPolicy: internalOrchestrationErrorPolicy,
   beforeParse: requireInstanceAdmin,
-  mapInput: async ({ query }) => ({ ...(await instanceOrganizationInput()), filters: toFilters(query) }),
+  mapInput: async ({ query }) => ({
+    ...(await instanceOrganizationInput()),
+    filters: toFilters(query),
+  }),
   useCase: listInstanceTraces,
   present: ({ traces, nextCursor }) => ({ traces: traces.map(presentTrace), nextCursor }),
 })

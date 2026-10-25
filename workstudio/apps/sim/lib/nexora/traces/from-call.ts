@@ -1,10 +1,6 @@
 import { generateRandomHex } from '@sim/utils/random'
 import { lastUserText, messagesToText, modelLabel } from '@/lib/nexora/traces/text'
-import {
-  PRIVATE_SOURCES,
-  type TraceDraft,
-  type TraceSource,
-} from '@/lib/nexora/traces/types'
+import { PRIVATE_SOURCES, type TraceDraft, type TraceSource } from '@/lib/nexora/traces/types'
 
 interface CallInput {
   source: TraceSource

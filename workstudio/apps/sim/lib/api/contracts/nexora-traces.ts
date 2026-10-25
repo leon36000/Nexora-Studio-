@@ -3,8 +3,8 @@ import { workspaceIdSchema } from '@/lib/api/contracts/primitives'
 import { defineRouteContract } from '@/lib/api/contracts/types'
 
 /** Traces a page holds, at most. */
-export const NEXORA_TRACES_MAX_PAGE = 100
-export const NEXORA_TRACES_DEFAULT_PAGE = 50
+const NEXORA_TRACES_MAX_PAGE = 100
+const NEXORA_TRACES_DEFAULT_PAGE = 50
 /** Where a trace came from; the order the Traces screen's filter lists them in. */
 export const NEXORA_TRACE_SOURCES = [
   'assistant',
@@ -15,7 +15,7 @@ export const NEXORA_TRACE_SOURCES = [
   'workflow',
   'api_key',
 ] as const
-export const NEXORA_TRACE_SPAN_KINDS = ['model', 'tool', 'knowledge', 'delegation', 'step'] as const
+const NEXORA_TRACE_SPAN_KINDS = ['model', 'tool', 'knowledge', 'delegation', 'step'] as const
 
 const sourceSchema = z.enum(NEXORA_TRACE_SOURCES)
 const statusSchema = z.enum(['ok', 'error'])
@@ -224,7 +224,11 @@ export const testTraceExportContract = defineRouteContract({
   path: '/api/nexora/traces/settings/test-export',
   response: {
     mode: 'json',
-    schema: z.object({ ok: z.boolean(), status: z.number().optional(), error: z.string().optional() }),
+    schema: z.object({
+      ok: z.boolean(),
+      status: z.number().optional(),
+      error: z.string().optional(),
+    }),
   },
 })
 

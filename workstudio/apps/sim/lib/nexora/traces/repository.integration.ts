@@ -5,7 +5,14 @@
  * (list, text search, facets).
  */
 import { db } from '@sim/db'
-import { nexoraApiKey, nexoraTrace, nexoraTraceSpan, permissions, user, workspace } from '@sim/db/schema'
+import {
+  nexoraApiKey,
+  nexoraTrace,
+  nexoraTraceSpan,
+  permissions,
+  user,
+  workspace,
+} from '@sim/db/schema'
 import { deleteWorkspaceFixture, insertWorkspaceFixture } from '@sim/db/testing/workspace-fixtures'
 import { generateId } from '@sim/utils/id'
 import { generateRandomHex } from '@sim/utils/random'
@@ -121,9 +128,14 @@ describe('insertTrace', () => {
     expect(await insertTrace(replay)).toBe(false)
     const rows = await db.select().from(nexoraTrace).where(eq(nexoraTrace.workspaceId, workspaceId))
     expect(rows).toHaveLength(1)
-    const spans = await db.select().from(nexoraTraceSpan).where(eq(nexoraTraceSpan.traceId, first.trace.id))
+    const spans = await db
+      .select()
+      .from(nexoraTraceSpan)
+      .where(eq(nexoraTraceSpan.traceId, first.trace.id))
     expect(spans).toHaveLength(2)
-    expect(await db.select().from(nexoraTraceSpan).where(eq(nexoraTraceSpan.traceId, replay.trace.id))).toHaveLength(0)
+    expect(
+      await db.select().from(nexoraTraceSpan).where(eq(nexoraTraceSpan.traceId, replay.trace.id))
+    ).toHaveLength(0)
   })
 
   it('rend les spans dans l’ordre de l’arbre et supprime tout avec la trace', async () => {
@@ -135,16 +147,20 @@ describe('insertTrace', () => {
     expect(read?.spans.map((span) => span.position)).toEqual([0, 1])
     expect(read?.spans[1].attributes).toEqual({ finishReason: 'stop' })
     await db.delete(nexoraTrace).where(eq(nexoraTrace.id, trace.trace.id))
-    expect(await db.select().from(nexoraTraceSpan).where(eq(nexoraTraceSpan.traceId, trace.trace.id))).toHaveLength(0)
+    expect(
+      await db.select().from(nexoraTraceSpan).where(eq(nexoraTraceSpan.traceId, trace.trace.id))
+    ).toHaveLength(0)
   })
 
   it('une trace qui échoue au milieu n’en laisse aucune trace', async () => {
     const owner = await seedUser('propriétaire')
     const workspaceId = await seedWorkspace(owner)
     const trace = stored({ workspaceId })
-    trace.spans[1] = { ...trace.spans[1], kind: null as unknown as string }
+    trace.spans[1] = { ...trace.spans[1], id: trace.spans[0].id }
     await expect(insertTrace(trace)).rejects.toThrow()
-    expect(await db.select().from(nexoraTrace).where(eq(nexoraTrace.id, trace.trace.id))).toHaveLength(0)
+    expect(
+      await db.select().from(nexoraTrace).where(eq(nexoraTrace.id, trace.trace.id))
+    ).toHaveLength(0)
   })
 })
 
@@ -164,14 +180,50 @@ describe('listTraces — filtres', () => {
       keySuffix: 'abcd',
     })
     const day = (d: number) => new Date(Date.UTC(2026, 9, d, 12))
-    await insertTrace(stored({ workspaceId, name: 'lente', durationMs: 12_000, startedAt: day(20), searchText: 'Facture de la société Durand' }))
+    await insertTrace(
+      stored({
+        workspaceId,
+        name: 'lente',
+        durationMs: 12_000,
+        startedAt: day(20),
+        searchText: 'Facture de la société Durand',
+      })
+    )
     await insertTrace(stored({ workspaceId, name: 'rapide', durationMs: 800, startedAt: day(21) }))
-    await insertTrace(stored({ workspaceId, name: 'en erreur', status: 'error', startedAt: day(22) }))
-    await insertTrace(stored({ workspaceId, name: 'autre modèle', models: ['qwen2.5:7b'], model: 'qwen2.5:7b', startedAt: day(23) }))
-    await insertTrace(stored({ workspaceId, name: 'agent b', agentId: 'wf-b', agentName: 'Agent B', startedAt: day(24) }))
-    await insertTrace(stored({ workspaceId, name: 'par clé', source: 'api_key', apiKeyId: keyId, startedAt: day(25) }))
+    await insertTrace(
+      stored({ workspaceId, name: 'en erreur', status: 'error', startedAt: day(22) })
+    )
+    await insertTrace(
+      stored({
+        workspaceId,
+        name: 'autre modèle',
+        models: ['qwen2.5:7b'],
+        model: 'qwen2.5:7b',
+        startedAt: day(23),
+      })
+    )
+    await insertTrace(
+      stored({
+        workspaceId,
+        name: 'agent b',
+        agentId: 'wf-b',
+        agentName: 'Agent B',
+        startedAt: day(24),
+      })
+    )
+    await insertTrace(
+      stored({
+        workspaceId,
+        name: 'par clé',
+        source: 'api_key',
+        apiKeyId: keyId,
+        startedAt: day(25),
+      })
+    )
     const names = async (filters: Partial<Parameters<typeof listTraces>[0]> = {}) =>
-      (await listTraces({ workspaceId, limit: 50, ...filters }, admin(owner))).traces.map((t) => t.name).sort()
+      (await listTraces({ workspaceId, limit: 50, ...filters }, admin(owner))).traces
+        .map((t) => t.name)
+        .sort()
 
     expect(await names()).toHaveLength(6)
     expect(await names({ minDurationMs: 10_000 })).toEqual(['lente'])
@@ -182,7 +234,11 @@ describe('listTraces — filtres', () => {
     expect(await names({ agentId: 'wf-b' })).toEqual(['agent b'])
     expect(await names({ apiKeyId: keyId })).toEqual(['par clé'])
     expect(await names({ source: 'api_key' })).toEqual(['par clé'])
-    expect(await names({ from: day(22), to: day(24) })).toEqual(['agent b', 'autre modèle', 'en erreur'])
+    expect(await names({ from: day(22), to: day(24) })).toEqual([
+      'agent b',
+      'autre modèle',
+      'en erreur',
+    ])
     expect(await names({ q: 'durand' })).toEqual(['lente'])
     expect(await names({ q: 'durand', status: 'error' })).toEqual([])
   })
@@ -190,7 +246,9 @@ describe('listTraces — filtres', () => {
   it('traite % et _ du texte cherché comme des caractères, pas comme des jokers', async () => {
     const owner = await seedUser('propriétaire')
     const workspaceId = await seedWorkspace(owner)
-    await insertTrace(stored({ workspaceId, name: 'remise', searchText: 'remise de 100% accordée' }))
+    await insertTrace(
+      stored({ workspaceId, name: 'remise', searchText: 'remise de 100% accordée' })
+    )
     await insertTrace(stored({ workspaceId, name: 'autre', searchText: 'autre sujet' }))
     const search = async (q: string) =>
       (await listTraces({ workspaceId, limit: 10, q }, admin(owner))).traces.map((t) => t.name)
@@ -221,14 +279,20 @@ describe('listTraces — pages', () => {
     const sameInstant = new Date('2026-10-25T09:00:00.000Z')
     const ids: string[] = []
     for (let index = 0; index < 7; index++) {
-      const trace = stored({ workspaceId, startedAt: index < 5 ? sameInstant : new Date(sameInstant.getTime() - index * 1000) })
+      const trace = stored({
+        workspaceId,
+        startedAt: index < 5 ? sameInstant : new Date(sameInstant.getTime() - index * 1000),
+      })
       ids.push(trace.trace.id)
       await insertTrace(trace)
     }
     const seen: string[] = []
     let cursor: string | null = null
     do {
-      const page: Awaited<ReturnType<typeof listTraces>> = await listTraces({ workspaceId, limit: 3, cursor }, admin(owner))
+      const page: Awaited<ReturnType<typeof listTraces>> = await listTraces(
+        { workspaceId, limit: 3, cursor },
+        admin(owner)
+      )
       seen.push(...page.traces.map((t) => t.id))
       cursor = page.nextCursor
     } while (cursor)
@@ -240,7 +304,10 @@ describe('listTraces — pages', () => {
     const owner = await seedUser('propriétaire')
     const workspaceId = await seedWorkspace(owner)
     await insertTrace(stored({ workspaceId }))
-    const page = await listTraces({ workspaceId, limit: 10, cursor: 'pas-un-curseur' }, admin(owner))
+    const page = await listTraces(
+      { workspaceId, limit: 10, cursor: 'pas-un-curseur' },
+      admin(owner)
+    )
     expect(page.traces).toHaveLength(1)
   })
 })
@@ -251,13 +318,26 @@ describe('visibilité', () => {
     const bob = await seedUser('Bob')
     const workspaceId = await seedWorkspace(alice)
     await insertTrace(
-      stored({ workspaceId, userId: alice, visibility: 'private', source: 'assistant', name: 'secret d’Alice', agentId: 'wf-alice', agentName: 'Agent privé', model: 'modele-prive', models: ['modele-prive'], searchText: 'projet confidentiel' })
+      stored({
+        workspaceId,
+        userId: alice,
+        visibility: 'private',
+        source: 'assistant',
+        name: 'secret d’Alice',
+        agentId: 'wf-alice',
+        agentName: 'Agent privé',
+        model: 'modele-prive',
+        models: ['modele-prive'],
+        searchText: 'projet confidentiel',
+      })
     )
     await insertTrace(stored({ workspaceId, userId: bob, name: 'partagée' }))
 
     const bobList = await listTraces({ workspaceId, limit: 50 }, member(bob))
     expect(bobList.traces.map((t) => t.name)).toEqual(['partagée'])
-    expect((await listTraces({ workspaceId, limit: 50, q: 'confidentiel' }, member(bob))).traces).toEqual([])
+    expect(
+      (await listTraces({ workspaceId, limit: 50, q: 'confidentiel' }, member(bob))).traces
+    ).toEqual([])
     const bobFacets = await listFacets(workspaceId, member(bob))
     expect(bobFacets.agents.map((a) => a.id)).not.toContain('wf-alice')
     expect(bobFacets.models).not.toContain('modele-prive')
@@ -267,7 +347,9 @@ describe('visibilité', () => {
     expect(aliceList.traces.map((t) => t.name).sort()).toEqual(['partagée', 'secret d’Alice'])
     const adminList = await listTraces({ workspaceId, limit: 50, q: 'confidentiel' }, admin(bob))
     expect(adminList.traces.map((t) => t.name)).toEqual(['secret d’Alice'])
-    expect((await listFacets(workspaceId, admin(bob))).agents.map((a) => a.id)).toContain('wf-alice')
+    expect((await listFacets(workspaceId, admin(bob))).agents.map((a) => a.id)).toContain(
+      'wf-alice'
+    )
   })
 
   it('ne mélange jamais les espaces', async () => {
@@ -276,7 +358,9 @@ describe('visibilité', () => {
     const second = await seedWorkspace(owner)
     await insertTrace(stored({ workspaceId: first, name: 'du premier' }))
     await insertTrace(stored({ workspaceId: second, name: 'du second' }))
-    expect((await listTraces({ workspaceId: first, limit: 50 }, admin(owner))).traces.map((t) => t.name)).toEqual(['du premier'])
+    expect(
+      (await listTraces({ workspaceId: first, limit: 50 }, admin(owner))).traces.map((t) => t.name)
+    ).toEqual(['du premier'])
   })
 })
 
@@ -284,7 +368,13 @@ describe('charge', () => {
   it('sert la première page parmi 20 000 traces de cinq espaces en moins de 100 ms, par l’index de l’espace', async () => {
     const owner = await seedUser('propriétaire')
     const base = new Date('2026-10-01T00:00:00.000Z').getTime()
-    const spaces = [await seedWorkspace(owner), await seedWorkspace(owner), await seedWorkspace(owner), await seedWorkspace(owner), await seedWorkspace(owner)]
+    const spaces = [
+      await seedWorkspace(owner),
+      await seedWorkspace(owner),
+      await seedWorkspace(owner),
+      await seedWorkspace(owner),
+      await seedWorkspace(owner),
+    ]
     for (const workspaceId of spaces) {
       for (let chunk = 0; chunk < 4; chunk++) {
         const rows = Array.from({ length: 1000 }, (_, index) => ({

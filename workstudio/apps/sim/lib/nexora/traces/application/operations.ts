@@ -41,9 +41,15 @@ export const nexoraTraceOperations = Object.freeze({
     capability: 'none',
   }),
   // permission-group-exempt: instance administrators govern the traces of no workspace.
-  listInstance: defineOrganizationOperation({ ...instancePolicy, id: 'organization.nexora_traces.list' }),
+  listInstance: defineOrganizationOperation({
+    ...instancePolicy,
+    id: 'organization.nexora_traces.list',
+  }),
   // permission-group-exempt: instance administrators govern the traces of no workspace.
-  readInstance: defineOrganizationOperation({ ...instancePolicy, id: 'organization.nexora_traces.read' }),
+  readInstance: defineOrganizationOperation({
+    ...instancePolicy,
+    id: 'organization.nexora_traces.read',
+  }),
   // permission-group-exempt: instance administrators govern the trace settings.
   readSettings: defineOrganizationOperation({
     ...instancePolicy,

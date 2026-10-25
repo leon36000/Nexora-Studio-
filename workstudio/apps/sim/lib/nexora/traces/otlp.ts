@@ -172,7 +172,11 @@ async function post(
       retry: response.status >= 500 || response.status === 429,
     }
   } catch (error) {
-    return { ok: false, error: scrub(getErrorMessage(error, 'request failed'), target), retry: true }
+    return {
+      ok: false,
+      error: scrub(getErrorMessage(error, 'request failed'), target),
+      retry: true,
+    }
   }
 }
 

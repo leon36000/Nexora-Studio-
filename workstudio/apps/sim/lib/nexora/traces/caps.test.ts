@@ -80,7 +80,10 @@ describe('capDraft', () => {
   it('coupe aussi les aperçus de la conversation et les textes d’attributs', () => {
     const long = 'b'.repeat(MAX_FIELD_CHARS * 2)
     const capped = capDraft(
-      draft([span(0, null, { attributes: { reasoning: long, n: 3 } })], { input: long, output: long })
+      draft([span(0, null, { attributes: { reasoning: long, n: 3 } })], {
+        input: long,
+        output: long,
+      })
     )
     expect(capped.input?.length).toBeLessThanOrEqual(MAX_FIELD_CHARS + TRUNCATION_MARK.length)
     expect(capped.output?.length).toBeLessThanOrEqual(MAX_FIELD_CHARS + TRUNCATION_MARK.length)

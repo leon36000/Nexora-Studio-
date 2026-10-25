@@ -8768,10 +8768,7 @@ export const nexoraTrace = pgTable(
     index('nexora_trace_user_started_idx').on(t.userId, t.startedAt),
     index('nexora_trace_api_key_started_idx').on(t.apiKeyId, t.startedAt),
     uniqueIndex('nexora_trace_execution_idx').on(t.executionId),
-    check(
-      'nexora_trace_visibility_check',
-      sql`${t.visibility} IN ('workspace', 'private')`
-    ),
+    check('nexora_trace_visibility_check', sql`${t.visibility} IN ('workspace', 'private')`),
   ]
 )
 

@@ -9,7 +9,7 @@ import { isRecordLike } from '@sim/utils/object'
  */
 export type RedactionMode = 'standard' | 'strict' | 'none'
 
-export const SECRET_MARK = '[SECRET]'
+const SECRET_MARK = '[SECRET]'
 
 export interface RedactedText {
   text: string

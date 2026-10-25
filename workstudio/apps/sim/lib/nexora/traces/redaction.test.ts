@@ -19,7 +19,10 @@ describe('redactText', () => {
   })
 
   it.each([
-    ['écrire à jean.dupont+facture@exemple.fr dès que possible', 'écrire à [E-MAIL] dès que possible'],
+    [
+      'écrire à jean.dupont+facture@exemple.fr dès que possible',
+      'écrire à [E-MAIL] dès que possible',
+    ],
     ['Contact : MARIE@SOCIETE.COM.', 'Contact : [E-MAIL].'],
   ])('masque l’e-mail dans « %s »', (input, expected) => {
     expect(redactText(input, 'standard').text).toBe(expected)
@@ -51,7 +54,8 @@ describe('redactText', () => {
   )
 
   it('laisse intacts les nombres qui ne sont ni carte (Luhn faux), ni téléphone', () => {
-    const text = 'commande 4111 1111 1111 1112, horodatage 1792795162036, total 1 234,56 €, ref 2026-10-23'
+    const text =
+      'commande 4111 1111 1111 1112, horodatage 1792795162036, total 1 234,56 €, ref 2026-10-23'
     expect(redactText(text, 'standard')).toEqual({ text, masked: 0 })
   })
 
@@ -66,7 +70,8 @@ describe('redactText', () => {
   })
 
   it('masque les secrets de type clé, jeton porteur et JWT', () => {
-    const jwt = 'eyJhbGciOiJIUzI1NiJ9.eyJzdWIiOiIxMjM0NTY3ODkwIn0.dozjgNryP4J3jVmNHl0w5N_XgL0n3I9PlFUP0THsR8U'
+    const jwt =
+      'eyJhbGciOiJIUzI1NiJ9.eyJzdWIiOiIxMjM0NTY3ODkwIn0.dozjgNryP4J3jVmNHl0w5N_XgL0n3I9PlFUP0THsR8U'
     const input = `clé sk-nexora-abcdefghijklmnopqrstuvwxyz0123456789ABCD, en-tête Bearer abc.def-123_456, jeton ${jwt}`
     const result = redactText(input, 'standard')
     expect(result.text).toBe('clé [SECRET], en-tête [SECRET], jeton [SECRET]')

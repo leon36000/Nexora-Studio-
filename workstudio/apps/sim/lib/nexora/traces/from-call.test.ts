@@ -76,7 +76,13 @@ describe('draftFromCall', () => {
     const draft = draftFromCall({
       ...base,
       messages: [
-        { role: 'user', content: [{ type: 'text', text: 'Décris' }, { type: 'image_url', image_url: { url: 'data:image/png;base64,AAAA' } }] },
+        {
+          role: 'user',
+          content: [
+            { type: 'text', text: 'Décris' },
+            { type: 'image_url', image_url: { url: 'data:image/png;base64,AAAA' } },
+          ],
+        },
         { role: 'assistant' },
       ],
     })

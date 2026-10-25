@@ -6,7 +6,7 @@ export function modelLabel(name: string): string {
 }
 
 /** The text of a chat message's `content`: a string, or the text parts of a multi-part content. */
-export function contentText(content: unknown): string {
+function contentText(content: unknown): string {
   if (typeof content === 'string') return content
   if (!Array.isArray(content)) return ''
   return content
@@ -45,7 +45,8 @@ export function messagesToText(messages: unknown): string | null {
 export function lastUserText(messages: unknown): string | null {
   const lines = chatLines(messages) ?? []
   for (let index = lines.length - 1; index >= 0; index--) {
-    if (lines[index].role === 'user') return lines[index].text.replace(/\[image\]/g, '').trim() || null
+    if (lines[index].role === 'user')
+      return lines[index].text.replace(/\[image\]/g, '').trim() || null
   }
   return null
 }

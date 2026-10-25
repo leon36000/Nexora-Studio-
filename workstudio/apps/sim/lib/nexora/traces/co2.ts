@@ -46,7 +46,8 @@ export async function co2ForSpans(
   spans: { model: string | null; tokens: number }[],
   loadModels: LoadModels = loadMeasuredModels
 ): Promise<(number | null)[]> {
-  const models = await loadModels()
+  // A model Nexora API reports no impact for (an outside service) has no measure, not a zero one.
+  const models = (await loadModels())?.filter((model) => model.kgCO2eq > 0) ?? null
   const rows = spans.map(({ model, tokens }) => ({
     tokensByModel: model && tokens > 0 ? { [model]: tokens } : {},
   }))

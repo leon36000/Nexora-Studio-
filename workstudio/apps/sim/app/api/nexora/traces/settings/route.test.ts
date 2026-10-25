@@ -74,7 +74,10 @@ describe('trace administration routes', () => {
   })
 
   it('refuse à un membre ordinaire la lecture, le changement, l’essai d’export et la purge', async () => {
-    nexoraAdminAccessMockFns.mockAuthorizeInstanceAdmin.mockResolvedValue({ ok: false, status: 403 })
+    nexoraAdminAccessMockFns.mockAuthorizeInstanceAdmin.mockResolvedValue({
+      ok: false,
+      status: 403,
+    })
     const responses = await Promise.all([
       GET(call('GET', '/api/nexora/traces/settings'), {}),
       PUT(call('PUT', '/api/nexora/traces/settings', { retentionDays: 1 }), {}),
@@ -88,7 +91,10 @@ describe('trace administration routes', () => {
   })
 
   it('refuse un visiteur sans session', async () => {
-    nexoraAdminAccessMockFns.mockAuthorizeInstanceAdmin.mockResolvedValue({ ok: false, status: 401 })
+    nexoraAdminAccessMockFns.mockAuthorizeInstanceAdmin.mockResolvedValue({
+      ok: false,
+      status: 401,
+    })
     expect((await GET(call('GET', '/api/nexora/traces/settings'), {})).status).toBe(401)
   })
 
@@ -102,18 +108,30 @@ describe('trace administration routes', () => {
     expect(mockSave).toHaveBeenCalledWith({ retentionDays: 7 })
   })
 
-  it.each([{ retentionDays: 0 }, { retentionDays: 366 }, { redaction: 'tout' }, { otlp: { headers: [{ name: 'a b', value: 'x' }, ...Array.from({ length: 10 }, () => ({ name: 'X' }))] } }])(
-    'refuse un changement invalide (%j) avant tout enregistrement',
-    async (body) => {
-      const response = await PUT(call('PUT', '/api/nexora/traces/settings', body), {})
-      expect(response.status).toBe(400)
-      expect(mockSave).not.toHaveBeenCalled()
-    }
-  )
+  it.each([
+    { retentionDays: 0 },
+    { retentionDays: 366 },
+    { redaction: 'tout' },
+    {
+      otlp: {
+        headers: [
+          { name: 'a b', value: 'x' },
+          ...Array.from({ length: 10 }, () => ({ name: 'X' })),
+        ],
+      },
+    },
+  ])('refuse un changement invalide (%j) avant tout enregistrement', async (body) => {
+    const response = await PUT(call('PUT', '/api/nexora/traces/settings', body), {})
+    expect(response.status).toBe(400)
+    expect(mockSave).not.toHaveBeenCalled()
+  })
 
   it('purge avec une horloge simulée, limitée à un espace', async () => {
     const response = await purgePost(
-      call('POST', '/api/nexora/traces/purge', { workspaceId: 'ws-1', asOf: '2026-12-01T00:00:00.000Z' }),
+      call('POST', '/api/nexora/traces/purge', {
+        workspaceId: 'ws-1',
+        asOf: '2026-12-01T00:00:00.000Z',
+      }),
       {}
     )
     expect(response.status).toBe(200)

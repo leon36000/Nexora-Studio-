@@ -35,11 +35,19 @@ const plan = {
 
 describe('generatePlan — trace', () => {
   beforeEach(() => {
-    mockComplete.mockResolvedValue({ text: JSON.stringify(plan), usage: { promptTokens: 1, completionTokens: 1 } })
+    mockComplete.mockResolvedValue({
+      text: JSON.stringify(plan),
+      usage: { promptTokens: 1, completionTokens: 1 },
+    })
   })
 
   it('passe à chaque appel du modèle le contexte de trace du Copilote', async () => {
-    const trace = { source: 'copilot' as const, workspaceId: 'ws-1', userId: 'user-1', name: 'Copilote' }
+    const trace = {
+      source: 'copilot' as const,
+      workspaceId: 'ws-1',
+      userId: 'user-1',
+      name: 'Copilote',
+    }
     await generatePlan({ description: 'Relancer les factures', context, trace })
     expect(mockComplete).toHaveBeenCalledWith(expect.objectContaining({ trace }))
   })

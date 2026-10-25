@@ -1,12 +1,7 @@
 import { isRecordLike, toRecord } from '@sim/utils/object'
 import { generateRandomHex } from '@sim/utils/random'
 import type { TraceSpan } from '@/lib/logs/types'
-import {
-  messagesToText,
-  modelLabel,
-  valueToText,
-  lastUserText,
-} from '@/lib/nexora/traces/text'
+import { lastUserText, messagesToText, modelLabel, valueToText } from '@/lib/nexora/traces/text'
 import type {
   RunOriginHint,
   SpanDraft,
@@ -182,7 +177,9 @@ export function draftFromExecution(input: ExecutionInput): TraceDraft {
     apiKeyId: input.hint?.apiKeyId ?? null,
     executionId: input.executionId,
     status: input.status,
-    error: input.error ?? (typeof failure?.attributes.error === 'string' ? failure.attributes.error : null),
+    error:
+      input.error ??
+      (typeof failure?.attributes.error === 'string' ? failure.attributes.error : null),
     startedAt: input.startedAt,
     durationMs: Math.max(0, Math.round(input.durationMs)),
     inputTokens,

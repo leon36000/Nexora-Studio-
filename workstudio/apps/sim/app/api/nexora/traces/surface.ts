@@ -25,6 +25,10 @@ type TraceListQuery = Omit<TraceFilters, 'workspaceId' | 'from' | 'to'> & {
 }
 
 /** A list query as the repository's filters: the dates parsed. */
-export function toFilters({ from, to, ...rest }: TraceListQuery): Omit<TraceFilters, 'workspaceId'> {
+export function toFilters({
+  from,
+  to,
+  ...rest
+}: TraceListQuery): Omit<TraceFilters, 'workspaceId'> {
   return { ...rest, from: from ? new Date(from) : undefined, to: to ? new Date(to) : undefined }
 }

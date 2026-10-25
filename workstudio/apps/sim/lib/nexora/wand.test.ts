@@ -375,11 +375,16 @@ describe('Nexora wand', () => {
     })
 
     it('records a refused or unreachable model as a failed trace, and still reports the failure', async () => {
-      fetchMock.mockResolvedValue(Response.json({ error: { message: 'context too long' } }, { status: 400 }))
+      fetchMock.mockResolvedValue(
+        Response.json({ error: { message: 'context too long' } }, { status: 400 })
+      )
       await expect(nexoraWandComplete({ messages, trace })).rejects.toBeInstanceOf(
         NexoraWandRejectedError
       )
-      expect(lastDraft()).toMatchObject({ status: 'error', error: expect.stringContaining('context too long') })
+      expect(lastDraft()).toMatchObject({
+        status: 'error',
+        error: expect.stringContaining('context too long'),
+      })
 
       fetchMock.mockResolvedValue(new Response('busy', { status: 503 }))
       await expect(nexoraWandStream({ messages, trace })).rejects.toBeInstanceOf(
@@ -391,7 +396,10 @@ describe('Nexora wand', () => {
 
     it('records nothing when the caller gave no trace context', async () => {
       fetchMock.mockResolvedValue(
-        Response.json({ choices: [{ message: { content: 'ok' } }], usage: { prompt_tokens: 1, completion_tokens: 1 } })
+        Response.json({
+          choices: [{ message: { content: 'ok' } }],
+          usage: { prompt_tokens: 1, completion_tokens: 1 },
+        })
       )
       await nexoraWandComplete({ messages })
       expect(recordTrace).not.toHaveBeenCalled()

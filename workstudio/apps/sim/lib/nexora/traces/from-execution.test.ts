@@ -52,7 +52,9 @@ function agentRun(): TraceSpan[] {
               model: 'vllm/nexora-default',
               tokens: { input: 400, output: 20, total: 420 },
               output: { content: '' },
-              modelToolCalls: [{ id: 'call-1', name: 'knowledge_search', arguments: { query: 'livraison' } }],
+              modelToolCalls: [
+                { id: 'call-1', name: 'knowledge_search', arguments: { query: 'livraison' } },
+              ],
             }),
             span({
               id: 't1',
@@ -118,7 +120,12 @@ describe('draftFromExecution', () => {
   it('porte les jetons, la durée et le modèle sans préfixe de fournisseur', () => {
     const draft = draftFromExecution({ ...base, traceSpans: agentRun() })
     const [, , , m1, , m2] = draft.spans
-    expect(m1).toMatchObject({ model: 'nexora-default', inputTokens: 400, outputTokens: 20, durationMs: 800 })
+    expect(m1).toMatchObject({
+      model: 'nexora-default',
+      inputTokens: 400,
+      outputTokens: 20,
+      durationMs: 800,
+    })
     expect(m2).toMatchObject({ inputTokens: 500, outputTokens: 40, output: 'Le samedi.' })
     expect(draft).toMatchObject({ inputTokens: 900, outputTokens: 60, durationMs: 2400 })
     expect(draft.name).toBe('Assistant général')
@@ -154,7 +161,13 @@ describe('draftFromExecution', () => {
             blockId: 'b1',
             children: [
               span({ id: 't', name: 'gmail_send', type: 'tool' }),
-              span({ id: 'w', name: 'Relances', type: 'workflow', blockId: 'b2', childWorkflowId: 'wf-2' }),
+              span({
+                id: 'w',
+                name: 'Relances',
+                type: 'workflow',
+                blockId: 'b2',
+                childWorkflowId: 'wf-2',
+              }),
             ],
           }),
         ],
@@ -167,7 +180,11 @@ describe('draftFromExecution', () => {
   it('un trace sans aucun span garde un span racine', () => {
     const draft = draftFromExecution({ ...base, traceSpans: [] })
     expect(draft.spans).toHaveLength(1)
-    expect(draft.spans[0]).toMatchObject({ parentId: null, name: 'Assistant général', durationMs: 2400 })
+    expect(draft.spans[0]).toMatchObject({
+      parentId: null,
+      name: 'Assistant général',
+      durationMs: 2400,
+    })
   })
 
   it('une erreur gérée par un chemin d’erreur n’est pas une erreur ; une erreur non gérée l’est', () => {
@@ -176,7 +193,16 @@ describe('draftFromExecution', () => {
         id: 'root',
         name: 'Workflow Execution',
         type: 'workflow',
-        children: [span({ id: 'a', name: 'Api', type: 'api', blockId: 'b', status: 'error', errorHandled: true })],
+        children: [
+          span({
+            id: 'a',
+            name: 'Api',
+            type: 'api',
+            blockId: 'b',
+            status: 'error',
+            errorHandled: true,
+          }),
+        ],
       }),
     ]
     const draft = draftFromExecution({ ...base, traceSpans: handled })
@@ -190,11 +216,23 @@ describe('draftFromExecution', () => {
         type: 'workflow',
         status: 'error',
         children: [
-          span({ id: 'a', name: 'Agent', type: 'agent', blockId: 'b', status: 'error', errorMessage: 'Modèle indisponible' }),
+          span({
+            id: 'a',
+            name: 'Agent',
+            type: 'agent',
+            blockId: 'b',
+            status: 'error',
+            errorMessage: 'Modèle indisponible',
+          }),
         ],
       }),
     ]
-    const bad = draftFromExecution({ ...base, status: 'error', error: 'Modèle indisponible', traceSpans: failed })
+    const bad = draftFromExecution({
+      ...base,
+      status: 'error',
+      error: 'Modèle indisponible',
+      traceSpans: failed,
+    })
     expect(bad.status).toBe('error')
     expect(bad.error).toBe('Modèle indisponible')
     expect(bad.spans[1].status).toBe('error')
@@ -203,7 +241,11 @@ describe('draftFromExecution', () => {
   describe('source et visibilité', () => {
     it('un chat réservé aux membres est « assistant », privé, et appartient au membre', () => {
       const draft = draftFromExecution({ ...base, memberChatUserId: 'member-1', traceSpans: [] })
-      expect(draft).toMatchObject({ source: 'assistant', visibility: 'private', userId: 'member-1' })
+      expect(draft).toMatchObject({
+        source: 'assistant',
+        visibility: 'private',
+        userId: 'member-1',
+      })
     })
 
     it('un chat public est « agent », visible de l’espace', () => {
@@ -249,7 +291,12 @@ describe('draftFromExecution', () => {
         name: 'Workflow Execution',
         type: 'workflow',
         children: [
-          { id: 'x', name: 'Bloc', type: 'function', startTime: 'pas une date' } as unknown as TraceSpan,
+          {
+            id: 'x',
+            name: 'Bloc',
+            type: 'function',
+            startTime: 'pas une date',
+          } as unknown as TraceSpan,
           span({ id: 'y', name: 'Autre', type: 'function', duration: -5 }),
         ],
       }),

@@ -15,6 +15,7 @@ Bienvenue dans la documentation de Nexora WorkStudio et de sa plateforme.
 | [Consommation et budgets](consommation.md) | Administrateurs | Qui consomme quoi, empreinte carbone, plafonds mensuels |
 | [Les modèles](modeles.md) | Administrateurs | Modèle par défaut, ajouter un modèle local, Mistral AI ou compatible OpenAI, tester, retirer |
 | [L'API des développeurs](api-developpeurs.md) | Développeurs | Modèles et agents au format OpenAI : clés dans l'interface, exemples Python, TypeScript, cURL et n8n, erreurs |
+| [Les traces](traces.md) | Tous les utilisateurs, administrateurs | Voir ce que chaque appel de modèle a fait, masquage des données personnelles, conservation, export vers Langfuse, Phoenix ou Grafana |
 | [Nexora API](nexora-api.md) | Exploitants | La passerelle de modèles en direct : clés d'administration, configuration |
 | [Les workflows](workflows.md) | Tous les utilisateurs | Créer, tester, déployer (API, chat, MCP, déclencheurs) |
 | [Les blocs](blocs.md) | Tous les utilisateurs | Agent, Routeur, Condition, Fonction, Validation humaine, déclencheurs… |

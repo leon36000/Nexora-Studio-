@@ -2,7 +2,7 @@
  * @vitest-environment node
  */
 import { describe, expect, it, vi } from 'vitest'
-import { recordTrace, type RecordDeps } from '@/lib/nexora/traces/record'
+import { type RecordDeps, recordTrace } from '@/lib/nexora/traces/record'
 import { DEFAULT_TRACE_SETTINGS, type TraceSettings } from '@/lib/nexora/traces/settings'
 import type { StoredTrace } from '@/lib/nexora/traces/stored'
 import type { SpanDraft, TraceDraft } from '@/lib/nexora/traces/types'
@@ -126,7 +126,17 @@ describe('recordTrace — lignes écrites', () => {
         input: long,
         spans: [
           span(),
-          span({ id: '2'.repeat(16), parentId: '1'.repeat(16), kind: 'tool', name: 'knowledge_search', model: null, inputTokens: 0, outputTokens: 0, input: long, output: long }),
+          span({
+            id: '2'.repeat(16),
+            parentId: '1'.repeat(16),
+            kind: 'tool',
+            name: 'knowledge_search',
+            model: null,
+            inputTokens: 0,
+            outputTokens: 0,
+            input: long,
+            output: long,
+          }),
           span({ id: '3'.repeat(16), parentId: '1'.repeat(16), model: 'autre', name: 'autre' }),
         ],
       }),
@@ -151,7 +161,14 @@ describe('recordTrace — lignes écrites', () => {
   })
 
   it('écrit quand même quand le calcul du CO₂ échoue', async () => {
-    const { all, stored } = deps({}, { co2: async () => { throw new Error('Nexora API injoignable') } })
+    const { all, stored } = deps(
+      {},
+      {
+        co2: async () => {
+          throw new Error('Nexora API injoignable')
+        },
+      }
+    )
     await recordTrace(draft(), all)
     expect(stored).toHaveLength(1)
     expect(stored[0].trace.kgCo2eq).toBeNull()
@@ -175,13 +192,27 @@ describe('recordTrace — robustesse', () => {
   })
 
   it('ne lève jamais quand l’écriture échoue', async () => {
-    const { all } = deps({}, { insert: async () => { throw new Error('base indisponible') } })
+    const { all } = deps(
+      {},
+      {
+        insert: async () => {
+          throw new Error('base indisponible')
+        },
+      }
+    )
     await expect(recordTrace(draft(), all)).resolves.toBeUndefined()
     expect(all.exportTrace).not.toHaveBeenCalled()
   })
 
   it('ne lève jamais quand la lecture des réglages échoue', async () => {
-    const { all } = deps({}, { loadSettings: async () => { throw new Error('réglages illisibles') } })
+    const { all } = deps(
+      {},
+      {
+        loadSettings: async () => {
+          throw new Error('réglages illisibles')
+        },
+      }
+    )
     await expect(recordTrace(draft(), all)).resolves.toBeUndefined()
   })
 })
@@ -214,7 +245,14 @@ describe('recordTrace — export OTLP', () => {
   })
 
   it('ne lève pas quand l’export échoue', async () => {
-    const { all } = deps({ otlp }, { exportTrace: async () => { throw new Error('collecteur en panne') } })
+    const { all } = deps(
+      { otlp },
+      {
+        exportTrace: async () => {
+          throw new Error('collecteur en panne')
+        },
+      }
+    )
     await expect(recordTrace(draft(), all)).resolves.toBeUndefined()
   })
 })

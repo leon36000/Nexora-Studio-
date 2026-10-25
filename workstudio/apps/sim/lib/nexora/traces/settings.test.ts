@@ -48,22 +48,37 @@ describe('applyTraceSettingsChange', () => {
   const base = DEFAULT_TRACE_SETTINGS
 
   it.each([0, 366, 1.5, Number.NaN, -1])('refuse une rétention de %s jours', async (days) => {
-    await expect(applyTraceSettingsChange(base, { retentionDays: days }, encrypt)).rejects.toBeInstanceOf(
-      TraceSettingsError
-    )
+    await expect(
+      applyTraceSettingsChange(base, { retentionDays: days }, encrypt)
+    ).rejects.toBeInstanceOf(TraceSettingsError)
   })
 
   it('accepte les bornes 1 et 365', async () => {
-    expect((await applyTraceSettingsChange(base, { retentionDays: 1 }, encrypt)).retentionDays).toBe(1)
-    expect((await applyTraceSettingsChange(base, { retentionDays: 365 }, encrypt)).retentionDays).toBe(365)
+    expect(
+      (await applyTraceSettingsChange(base, { retentionDays: 1 }, encrypt)).retentionDays
+    ).toBe(1)
+    expect(
+      (await applyTraceSettingsChange(base, { retentionDays: 365 }, encrypt)).retentionDays
+    ).toBe(365)
   })
 
   it('règle la rétention des conversations de 1 à 3650 jours, ou la retire avec null', async () => {
-    const withLimit = await applyTraceSettingsChange(base, { conversationRetentionDays: 90 }, encrypt)
+    const withLimit = await applyTraceSettingsChange(
+      base,
+      { conversationRetentionDays: 90 },
+      encrypt
+    )
     expect(withLimit.conversationRetentionDays).toBe(90)
-    expect((await applyTraceSettingsChange(withLimit, { conversationRetentionDays: null }, encrypt)).conversationRetentionDays).toBeNull()
-    await expect(applyTraceSettingsChange(base, { conversationRetentionDays: 0 }, encrypt)).rejects.toBeInstanceOf(TraceSettingsError)
-    await expect(applyTraceSettingsChange(base, { conversationRetentionDays: 3651 }, encrypt)).rejects.toBeInstanceOf(TraceSettingsError)
+    expect(
+      (await applyTraceSettingsChange(withLimit, { conversationRetentionDays: null }, encrypt))
+        .conversationRetentionDays
+    ).toBeNull()
+    await expect(
+      applyTraceSettingsChange(base, { conversationRetentionDays: 0 }, encrypt)
+    ).rejects.toBeInstanceOf(TraceSettingsError)
+    await expect(
+      applyTraceSettingsChange(base, { conversationRetentionDays: 3651 }, encrypt)
+    ).rejects.toBeInstanceOf(TraceSettingsError)
   })
 
   it.each(['ftp://collecteur.local/v1/traces', 'collecteur.local', 'javascript:alert(1)'])(
@@ -76,9 +91,9 @@ describe('applyTraceSettingsChange', () => {
   )
 
   it('refuse d’activer l’export sans adresse', async () => {
-    await expect(applyTraceSettingsChange(base, { otlp: { enabled: true } }, encrypt)).rejects.toBeInstanceOf(
-      TraceSettingsError
-    )
+    await expect(
+      applyTraceSettingsChange(base, { otlp: { enabled: true } }, encrypt)
+    ).rejects.toBeInstanceOf(TraceSettingsError)
   })
 
   it('chiffre les valeurs d’en-têtes et garde celle d’un en-tête laissé vide', async () => {
@@ -96,7 +111,14 @@ describe('applyTraceSettingsChange', () => {
     expect(first.otlp.headers).toEqual([{ name: 'Authorization', value: 'enc(Basic abc)' }])
     const second = await applyTraceSettingsChange(
       first,
-      { otlp: { headers: [{ name: 'authorization', value: '' }, { name: 'x-langfuse-ingestion-version', value: '4' }] } },
+      {
+        otlp: {
+          headers: [
+            { name: 'authorization', value: '' },
+            { name: 'x-langfuse-ingestion-version', value: '4' },
+          ],
+        },
+      },
       encrypt
     )
     expect(second.otlp.headers).toEqual([
@@ -107,15 +129,26 @@ describe('applyTraceSettingsChange', () => {
 
   it('refuse un en-tête sans valeur ni valeur déjà stockée, ou au nom invalide', async () => {
     await expect(
-      applyTraceSettingsChange(base, { otlp: { headers: [{ name: 'Authorization', value: '' }] } }, encrypt)
+      applyTraceSettingsChange(
+        base,
+        { otlp: { headers: [{ name: 'Authorization', value: '' }] } },
+        encrypt
+      )
     ).rejects.toBeInstanceOf(TraceSettingsError)
     await expect(
-      applyTraceSettingsChange(base, { otlp: { headers: [{ name: 'bad name\n', value: 'x' }] } }, encrypt)
+      applyTraceSettingsChange(
+        base,
+        { otlp: { headers: [{ name: 'bad name\n', value: 'x' }] } },
+        encrypt
+      )
     ).rejects.toBeInstanceOf(TraceSettingsError)
   })
 
   it('retire les en-têtes absents de la nouvelle liste', async () => {
-    const withHeader = { ...base, otlp: { ...base.otlp, headers: [{ name: 'X-A', value: 'enc(1)' }] } }
+    const withHeader = {
+      ...base,
+      otlp: { ...base.otlp, headers: [{ name: 'X-A', value: 'enc(1)' }] },
+    }
     const cleared = await applyTraceSettingsChange(withHeader, { otlp: { headers: [] } }, encrypt)
     expect(cleared.otlp.headers).toEqual([])
   })

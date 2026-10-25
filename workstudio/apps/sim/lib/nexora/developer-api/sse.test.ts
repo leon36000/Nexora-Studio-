@@ -119,7 +119,9 @@ describe('relayWithUsage', () => {
   it('stops capturing past its limit instead of growing with a long answer', async () => {
     const capture = { answer: '', reasoning: '' }
     const long = 'x'.repeat(20_000)
-    await drain(relayWithUsage(streamOf([chunk(long), chunk(long), 'data: [DONE]\n\n']), vi.fn(), capture))
+    await drain(
+      relayWithUsage(streamOf([chunk(long), chunk(long), 'data: [DONE]\n\n']), vi.fn(), capture)
+    )
     expect(capture.answer.length).toBeGreaterThanOrEqual(12_000)
     expect(capture.answer.length).toBeLessThanOrEqual(40_000)
   })

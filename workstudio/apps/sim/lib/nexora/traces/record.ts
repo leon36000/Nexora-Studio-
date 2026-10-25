@@ -58,7 +58,12 @@ function masking(mode: RedactionMode): Masking {
   }
 }
 
-function maskSpan(span: SpanDraft, mode: RedactionMode, mask: Masking, counted: { n: number }): SpanDraft {
+function maskSpan(
+  span: SpanDraft,
+  mode: RedactionMode,
+  mask: Masking,
+  counted: { n: number }
+): SpanDraft {
   let attributes: Record<string, unknown>
   if (mode === 'strict') {
     attributes = Object.fromEntries(
@@ -148,7 +153,10 @@ function buildStored(draft: TraceDraft, mode: RedactionMode, co2: (number | null
 async function carbon(deps: RecordDeps, draft: TraceDraft): Promise<(number | null)[]> {
   try {
     return await deps.co2(
-      draft.spans.map((span) => ({ model: span.model, tokens: span.inputTokens + span.outputTokens }))
+      draft.spans.map((span) => ({
+        model: span.model,
+        tokens: span.inputTokens + span.outputTokens,
+      }))
     )
   } catch (error) {
     logger.warn('Trace carbon footprint could not be computed', { error: getErrorMessage(error) })
@@ -161,7 +169,10 @@ async function carbon(deps: RecordDeps, draft: TraceDraft): Promise<(number | nu
  * then handed to the OTLP export when one is set. Fire-and-forget by design: a trace must never
  * slow down or fail the call it describes, so this never throws.
  */
-export async function recordTrace(draft: TraceDraft, deps: RecordDeps = defaultDeps): Promise<void> {
+export async function recordTrace(
+  draft: TraceDraft,
+  deps: RecordDeps = defaultDeps
+): Promise<void> {
   try {
     const settings = await deps.loadSettings()
     if (!settings.enabled) return

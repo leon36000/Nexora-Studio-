@@ -76,7 +76,10 @@ async function addTrace(workspaceId: string, startedAt: Date, withSpan = true): 
 }
 
 async function remaining(workspaceId: string): Promise<string[]> {
-  const rows = await db.select({ id: nexoraTrace.id }).from(nexoraTrace).where(eq(nexoraTrace.workspaceId, workspaceId))
+  const rows = await db
+    .select({ id: nexoraTrace.id })
+    .from(nexoraTrace)
+    .where(eq(nexoraTrace.workspaceId, workspaceId))
   return rows.map((row) => row.id)
 }
 
@@ -98,8 +101,12 @@ describe('purgeTraces', () => {
     const result = await purgeTraces({ now, retentionDays: 30 })
     expect(result.deleted).toBeGreaterThanOrEqual(1)
     expect((await remaining(workspaceId)).sort()).toEqual([atLimit, recent].sort())
-    expect(await db.select().from(nexoraTraceSpan).where(eq(nexoraTraceSpan.traceId, older))).toHaveLength(0)
-    expect(await db.select().from(nexoraTraceSpan).where(eq(nexoraTraceSpan.traceId, atLimit))).toHaveLength(1)
+    expect(
+      await db.select().from(nexoraTraceSpan).where(eq(nexoraTraceSpan.traceId, older))
+    ).toHaveLength(0)
+    expect(
+      await db.select().from(nexoraTraceSpan).where(eq(nexoraTraceSpan.traceId, atLimit))
+    ).toHaveLength(1)
   })
 
   it('avec 1 jour de rétention et une horloge avancée de 2 jours, supprime tout l’espace visé et rien ailleurs', async () => {
@@ -122,17 +129,26 @@ describe('purgeTraces', () => {
   it('supprime tout par lots, et rejouée ne supprime plus rien', async () => {
     const { workspaceId } = await seedWorkspace()
     const old = new Date('2020-01-01T00:00:00.000Z')
-    for (let index = 0; index < 7; index++) await addTrace(workspaceId, new Date(old.getTime() + index * 1000))
-    const first = await purgeTraces({ now: new Date(), retentionDays: 30, workspaceId, batchSize: 2 })
+    for (let index = 0; index < 7; index++)
+      await addTrace(workspaceId, new Date(old.getTime() + index * 1000))
+    const first = await purgeTraces({
+      now: new Date(),
+      retentionDays: 30,
+      workspaceId,
+      batchSize: 2,
+    })
     expect(first.deleted).toBe(7)
     expect(await remaining(workspaceId)).toEqual([])
-    expect((await purgeTraces({ now: new Date(), retentionDays: 30, workspaceId, batchSize: 2 })).deleted).toBe(0)
+    expect(
+      (await purgeTraces({ now: new Date(), retentionDays: 30, workspaceId, batchSize: 2 })).deleted
+    ).toBe(0)
   })
 
   it('deux purges simultanées ne se gênent pas : tout est supprimé, sans erreur', async () => {
     const { workspaceId } = await seedWorkspace()
     const old = new Date('2020-01-01T00:00:00.000Z')
-    for (let index = 0; index < 9; index++) await addTrace(workspaceId, new Date(old.getTime() + index * 1000))
+    for (let index = 0; index < 9; index++)
+      await addTrace(workspaceId, new Date(old.getTime() + index * 1000))
     const options = { now: new Date(), retentionDays: 30, workspaceId, batchSize: 2 }
     const results = await Promise.all([purgeTraces(options), purgeTraces(options)])
     expect(results.reduce((sum, result) => sum + result.deleted, 0)).toBeLessThanOrEqual(9)
@@ -174,7 +190,12 @@ describe('purgeConversations', () => {
       .from(nexoraAssistantConversation)
       .where(eq(nexoraAssistantConversation.workspaceId, workspaceId))
     expect(left.map((row) => row.id)).toEqual([fresh])
-    expect(await db.select().from(nexoraAssistantMessage).where(eq(nexoraAssistantMessage.conversationId, stale))).toHaveLength(0)
+    expect(
+      await db
+        .select()
+        .from(nexoraAssistantMessage)
+        .where(eq(nexoraAssistantMessage.conversationId, stale))
+    ).toHaveLength(0)
   })
 })
 
@@ -197,13 +218,22 @@ describe('runScheduledPurge', () => {
     expect(withoutConversations.deletedTraces).toBeGreaterThanOrEqual(1)
     expect(withoutConversations.deletedConversations).toBe(0)
     expect(
-      await db.select().from(nexoraAssistantConversation).where(eq(nexoraAssistantConversation.id, conversation))
+      await db
+        .select()
+        .from(nexoraAssistantConversation)
+        .where(eq(nexoraAssistantConversation.id, conversation))
     ).toHaveLength(1)
 
-    const withConversations = await runScheduledPurge(now, { ...DEFAULT_TRACE_SETTINGS, conversationRetentionDays: 365 })
+    const withConversations = await runScheduledPurge(now, {
+      ...DEFAULT_TRACE_SETTINGS,
+      conversationRetentionDays: 365,
+    })
     expect(withConversations.deletedConversations).toBeGreaterThanOrEqual(1)
     expect(
-      await db.select().from(nexoraAssistantConversation).where(eq(nexoraAssistantConversation.id, conversation))
+      await db
+        .select()
+        .from(nexoraAssistantConversation)
+        .where(eq(nexoraAssistantConversation.id, conversation))
     ).toHaveLength(0)
   })
 
