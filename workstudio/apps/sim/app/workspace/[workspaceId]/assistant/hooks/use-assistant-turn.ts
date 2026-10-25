@@ -56,6 +56,8 @@ interface SendInput {
   agent: AssistantAgent
   text: string
   files: File[]
+  /** One of the member's projects, for a conversation that is created by this message. */
+  projectId?: string
 }
 
 interface LiveAnswer {
@@ -220,7 +222,13 @@ export function useAssistantTurn(
   }
 
   /** Resolves `false` when nothing was sent (the draft should be given back). */
-  const send = async ({ conversationId, agent, text, files }: SendInput): Promise<boolean> => {
+  const send = async ({
+    conversationId,
+    agent,
+    text,
+    files,
+    projectId,
+  }: SendInput): Promise<boolean> => {
     setNotice(null)
     // Created now so « Arrêter » also stops the conversation creation, file reading and save.
     const controller = new AbortController()
@@ -255,6 +263,7 @@ export function useAssistantTurn(
           workspaceId,
           workflowId: agent.workflowId,
           firstMessage: text,
+          ...(projectId ? { projectId } : {}),
         })
         return conversation.id
       },

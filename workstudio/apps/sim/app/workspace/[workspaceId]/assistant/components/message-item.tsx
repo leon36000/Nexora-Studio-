@@ -4,7 +4,7 @@ import { Button, cn, Tooltip, useCopyToClipboard } from '@sim/emcn'
 import { AudioIcon, Check, Duplicate, Loader, Paperclip, RefreshCw, Square } from '@sim/emcn/icons'
 import dynamic from 'next/dynamic'
 import { useTranslations } from 'next-intl'
-import type { AssistantMessageFile } from '@/lib/api/contracts/nexora-assistant'
+import type { AssistantCard, AssistantMessageFile } from '@/lib/api/contracts/nexora-assistant'
 import type { AnswerExtras } from '@/lib/nexora/agent-extras'
 import type { ConfirmationItem } from '@/lib/nexora/tool-confirmation/client-state'
 import {
@@ -12,6 +12,11 @@ import {
   ProducedFiles,
   SourcesFooter,
 } from '@/app/(interfaces)/chat/components/message/components/agent-extras'
+import {
+  type RunAnswer,
+  TaskCard,
+  WorkflowRunCard,
+} from '@/app/workspace/[workspaceId]/assistant/components/message-cards'
 import { ThinkingPanel } from '@/app/workspace/[workspaceId]/components/thinking-panel/thinking-panel'
 
 /** Loaded on demand: keeps the Markdown renderer out of the page's first bundle. */
@@ -40,6 +45,14 @@ interface MessageItemProps {
   onAnswerConfirmation?: (id: string, decision: 'allow' | 'deny') => void
   /** « Lire à voix haute », offered when the instance has a Speech synthesis model. */
   readAloud?: { phase: 'idle' | 'loading' | 'playing'; onToggle: () => void }
+  /** A workflow run or a created task, shown in place of text. */
+  card?: AssistantCard | null
+  /** The member may answer a run's validation (write access). */
+  canAnswerRun?: boolean
+  isAnsweringRun?: boolean
+  runAnswerFailed?: boolean
+  onAnswerRun?: (answer: RunAnswer) => void
+  onOpenTasks?: () => void
 }
 
 /** One message of the thread: the question as typed, the answer rendered as Markdown. */
@@ -56,6 +69,12 @@ export function MessageItem({
   confirmations,
   onAnswerConfirmation,
   readAloud,
+  card,
+  canAnswerRun = false,
+  isAnsweringRun = false,
+  runAnswerFailed = false,
+  onAnswerRun,
+  onOpenTasks,
 }: MessageItemProps) {
   const t = useTranslations('assistant.thread')
   const { copied, copy } = useCopyToClipboard()
@@ -82,6 +101,24 @@ export function MessageItem({
         <div className='max-w-[85%] whitespace-pre-wrap break-words rounded-lg bg-[var(--surface-active)] px-3 py-2 text-[var(--text-body)] text-sm'>
           {content}
         </div>
+      </article>
+    )
+  }
+
+  if (card) {
+    return (
+      <article className='flex flex-col gap-1.5'>
+        {card.kind === 'workflow_run' ? (
+          <WorkflowRunCard
+            payload={card.payload}
+            canAnswer={canAnswerRun}
+            isAnswering={isAnsweringRun}
+            answerFailed={runAnswerFailed}
+            onAnswer={(answer) => onAnswerRun?.(answer)}
+          />
+        ) : (
+          <TaskCard payload={card.payload} onOpenTasks={() => onOpenTasks?.()} />
+        )}
       </article>
     )
   }

@@ -1,11 +1,16 @@
 'use client'
 
 import { useRef } from 'react'
-import { Button, Chip, ChipTextarea, Tooltip } from '@sim/emcn'
+import { Button, Chip, ChipTextarea, OverflowText, Tooltip } from '@sim/emcn'
 import { Mic, Paperclip, Send, Square, X } from '@sim/emcn/icons'
 import { useTranslations } from 'next-intl'
 import { CHAT_ACCEPT_ATTRIBUTE } from '@/lib/uploads/utils/validation'
 import { useDictation } from '@/app/workspace/[workspaceId]/assistant/hooks/use-dictation'
+import {
+  activeSkillMention,
+  completeSkillMention,
+  matchingSkills,
+} from '@/app/workspace/[workspaceId]/assistant/skill-mention'
 
 /** A file waiting to be sent with the next message. */
 export interface DraftFile {
@@ -27,6 +32,8 @@ interface ComposerProps {
   canAttach: boolean
   /** The microphone, offered when the instance has a Transcription model. */
   dictation?: { workspaceId: string; language: string; onText: (text: string) => void }
+  /** The workspace's skills, offered when the message starts a `@` mention. */
+  skills?: { name: string; description: string }[]
 }
 
 interface DictationButtonProps {
@@ -93,10 +100,13 @@ export function Composer({
   isBusy,
   canAttach,
   dictation,
+  skills,
 }: ComposerProps) {
   const t = useTranslations('assistant.composer')
   const fileInputRef = useRef<HTMLInputElement>(null)
   const canSend = !isBusy && value.trim().length > 0
+  const mention = skills ? activeSkillMention(value) : null
+  const offered = mention && skills ? matchingSkills(skills, mention.query) : []
 
   return (
     <div className='flex flex-col gap-2'>
@@ -123,10 +133,37 @@ export function Composer({
           ))}
         </ul>
       )}
+      {offered.length > 0 && (
+        <ul
+          aria-label={t('skills')}
+          className='flex flex-col rounded-lg border border-[var(--border)] p-1'
+        >
+          {offered.map((skill, index) => (
+            <li key={skill.name}>
+              <button
+                type='button'
+                onClick={() => onChange(completeSkillMention(value, skill.name))}
+                aria-keyshortcuts={index === 0 ? 'Tab' : undefined}
+                className='flex w-full items-baseline gap-2 rounded-md px-2 py-1 text-left transition-colors hover-hover:bg-[var(--surface-hover)]'
+              >
+                <span className='text-[var(--text-body)] text-small'>@{skill.name}</span>
+                <span className='min-w-0 flex-1 text-[var(--text-muted)] text-caption'>
+                  <OverflowText label={skill.description} />
+                </span>
+              </button>
+            </li>
+          ))}
+        </ul>
+      )}
       <ChipTextarea
         value={value}
         onChange={(event) => onChange(event.target.value)}
         onKeyDown={(event) => {
+          if (event.key === 'Tab' && !event.shiftKey && offered.length > 0) {
+            event.preventDefault()
+            onChange(completeSkillMention(value, offered[0].name))
+            return
+          }
           if (event.key !== 'Enter' || event.shiftKey || event.nativeEvent.isComposing) return
           event.preventDefault()
           if (canSend) onSend()

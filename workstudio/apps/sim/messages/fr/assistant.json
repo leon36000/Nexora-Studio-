@@ -48,7 +48,8 @@
     "dictate": "Dicter un message",
     "dictateStop": "Arrêter la dictée",
     "dictating": "Enregistrement…",
-    "transcribing": "Transcription…"
+    "transcribing": "Transcription…",
+    "skills": "Compétences"
   },
   "attachments": {
     "too-large": "« {name} » dépasse {max} Mo.",
@@ -90,6 +91,152 @@
       "failed": "La lecture à voix haute a échoué. Réessayez.",
       "denied": "La lecture à voix haute a échoué. Réessayez.",
       "unsupported": "La lecture à voix haute a échoué. Réessayez."
+    }
+  },
+  "header": {
+    "openEditor": "Ouvrir dans l'éditeur"
+  },
+  "tools": {
+    "label": "Outils de l'Assistant",
+    "projects": "Projets",
+    "tasks": "Tâches planifiées",
+    "launch": "Lancer un workflow",
+    "manage": "Gérer les workflows publiés",
+    "connections": "Mes connexions"
+  },
+  "projects": {
+    "title": "Projets",
+    "none": "Sans projet",
+    "label": "Projet",
+    "inProject": "Projet : {name}",
+    "empty": "Aucun projet pour l'instant.",
+    "loadFailed": "Impossible de charger vos projets.",
+    "close": "Fermer",
+    "create": "Nouveau projet",
+    "createConfirm": "Créer",
+    "name": "Nom",
+    "instructions": "Consignes",
+    "instructionsPlaceholder": "Ce que l'agent doit savoir ou respecter dans toutes les conversations de ce projet",
+    "files": "Fichiers",
+    "limits": "10 fichiers au plus, 5 Mo et 100 000 caractères au plus chacun. Seul le texte des fichiers est conservé.",
+    "addFile": "Ajouter un fichier",
+    "addingFile": "Lecture du fichier…",
+    "removeFile": "Retirer {name}",
+    "back": "Retour",
+    "save": "Enregistrer",
+    "cancel": "Annuler",
+    "delete": "Supprimer",
+    "deleteTitle": "Supprimer le projet",
+    "deleteText": "« {name} » et ses fichiers seront supprimés. Ses conversations restent, hors projet.",
+    "deleteFailed": "Le projet n'a pas pu être supprimé.",
+    "saveFailed": "La modification n'a pas pu être enregistrée.",
+    "fileFailed": "Le fichier n'a pas pu être ajouté.",
+    "fileCount": "{count, plural, =0 {Aucun fichier} one {# fichier} other {# fichiers}}",
+    "refusals": {
+      "unsupported": "Ce format de fichier n'est pas pris en charge.",
+      "unreadable": "Ce fichier est illisible ou abîmé.",
+      "empty": "Ce fichier ne contient aucun texte.",
+      "too-large": "Ce fichier est trop volumineux : 5 Mo et 100 000 caractères au plus.",
+      "project-full": "Le projet est plein : 10 fichiers et 200 000 caractères au plus."
+    }
+  },
+  "tasks": {
+    "propose": "Planifier cette tâche ?",
+    "schedule": "Planifier",
+    "sendToAgent": "Envoyer à l'agent",
+    "planTitle": "Planifier une tâche",
+    "planning": "Préparation du plan…",
+    "warnings": "À vérifier",
+    "cancel": "Annuler",
+    "create": "Créer la tâche",
+    "creating": "Création…",
+    "title": "Tâches planifiées",
+    "empty": "Aucune tâche planifiée. Écrivez par exemple « chaque lundi à 9 h, résume mes e-mails ».",
+    "loadFailed": "Impossible de charger vos tâches.",
+    "deleteTitle": "Supprimer la tâche",
+    "deleteText": "« {title} » et son workflow seront supprimés. Elle ne s'exécutera plus.",
+    "deleteFailed": "La tâche n'a pas pu être supprimée.",
+    "delete": "Supprimer",
+    "noSchedule": "Planification introuvable",
+    "next": "Prochaine exécution : {date}",
+    "off": "Désactivée",
+    "toggle": "Activer « {title} »",
+    "toggleFailed": "Le changement n'a pas pu être enregistré.",
+    "hideRuns": "Masquer les exécutions",
+    "showRuns": "Dernières exécutions",
+    "openEditor": "Ouvrir dans l'éditeur",
+    "runsFailed": "Impossible de charger les exécutions.",
+    "noRuns": "Pas encore d'exécution.",
+    "createdMessage": "Tâche planifiée : {title}",
+    "errors": {
+      "no-schedule": "Précisez quand la tâche doit s'exécuter, par exemple « chaque lundi à 9 h ».",
+      "deploy-failed": "La tâche n'a pas pu être démarrée. Réessayez.",
+      "plan-invalid": "Le modèle n'a pas produit de plan valide. Reformulez plus simplement.",
+      "rejected": "Le modèle a refusé la demande. Reformulez-la.",
+      "unavailable": "Le modèle Nexora est indisponible pour le moment.",
+      "unknown": "La tâche n'a pas pu être préparée. Réessayez."
+    },
+    "runStatus": {
+      "completed": "Réussie",
+      "failed": "Échec",
+      "running": "En cours",
+      "pending": "En attente",
+      "paused": "En pause",
+      "cancelled": "Annulée",
+      "queued": "En file"
+    }
+  },
+  "workflows": {
+    "launchTitle": "Lancer un workflow",
+    "close": "Fermer",
+    "empty": "Aucun workflow publié. Un rédacteur peut en publier depuis « Gérer les workflows publiés ».",
+    "loadFailed": "Impossible de charger les workflows.",
+    "back": "Retour",
+    "run": "Lancer",
+    "runningShort": "Exécution…",
+    "running": "Le workflow s'exécute, cela peut prendre un moment.",
+    "needsFiles": "Ce workflow demande des fichiers : lancez-le depuis l'éditeur.",
+    "noFields": "Ce workflow ne demande aucune information.",
+    "fieldErrors": {
+      "required": "Ce champ est obligatoire.",
+      "number": "Saisissez un nombre.",
+      "json": "Saisissez un JSON valide."
+    },
+    "runFailed": "Le workflow n'a pas pu être lancé.",
+    "recordFailed": "Le résultat n'a pas pu être ajouté à la conversation.",
+    "yes": "Oui",
+    "no": "Non",
+    "launchQuestion": "Lancer le workflow « {name} »",
+    "summary": {
+      "completed": "Workflow « {name} » terminé.",
+      "failed": "Workflow « {name} » en échec.",
+      "paused": "Workflow « {name} » : en attente de validation."
+    },
+    "manageTitle": "Workflows publiés",
+    "deployNote": "Publier un workflow le déploie s'il ne l'est pas encore.",
+    "manageEmpty": "Aucun workflow dans cet espace.",
+    "notDeployed": "Non déployé",
+    "publishLabel": "Publier « {name} »",
+    "saveFailed": "Le changement n'a pas pu être enregistré."
+  },
+  "card": {
+    "workflow": {
+      "title": "Workflow : {name}",
+      "completed": "Terminé",
+      "refused": "Refusé",
+      "failedBadge": "Échec",
+      "awaiting": "En attente de validation",
+      "failed": "Le workflow a échoué.",
+      "noResult": "Aucun résultat à afficher.",
+      "comment": "Commentaire (facultatif)",
+      "approve": "Approuver",
+      "refuse": "Refuser",
+      "answerFailed": "La réponse n'a pas pu être envoyée. Réessayez.",
+      "readerWaits": "En attente de validation par un rédacteur."
+    },
+    "task": {
+      "title": "Tâche planifiée : {title}",
+      "manage": "Voir mes tâches"
     }
   }
 }

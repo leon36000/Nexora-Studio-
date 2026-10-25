@@ -21,6 +21,7 @@ const storedQuestion: AssistantMessage = {
   files: [{ name: 'contrat.pdf', type: 'application/pdf', size: 4 }],
   usage: null,
   interrupted: false,
+  card: null,
   createdAt: '2026-10-23T10:00:00.000Z',
 }
 
