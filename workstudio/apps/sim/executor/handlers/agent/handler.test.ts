@@ -2994,6 +2994,8 @@ describe('AgentBlockHandler', () => {
         toolCalls: { list: [], count: 0 },
         providerTiming: { total: 100 },
         cost: undefined,
+        files: [],
+        sources: [],
       })
     })
 

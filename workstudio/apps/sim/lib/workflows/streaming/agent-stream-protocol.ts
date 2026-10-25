@@ -58,6 +58,8 @@ export interface ChatStreamChunkFrame {
 export interface ChatStreamOutputFrame {
   blockId: string
   event: 'output'
+  /** Which selected output of the block this is (`files`, `sources`…), when the server says. */
+  path?: string
   data: unknown
 }
 
@@ -87,6 +89,29 @@ export interface ChatStreamToolFrame {
   id: string
   name: string
   status?: ToolCallEndStatus
+}
+
+/**
+ * Nexora edition: the agent asks the person before it runs a tool (« Demander avant d'agir »).
+ * `token` answers `POST /api/nexora/tool-confirmations/<id>`; it travels only in this stream.
+ * Sent to clients that negotiated agent-events-v1 only.
+ */
+export interface ChatStreamConfirmationFrame {
+  event: 'confirmation'
+  data: {
+    id: string
+    token: string
+    title: string
+    toolName: string
+    summary: string
+    expiresAt: string
+  }
+}
+
+/** Nexora edition: a confirmation was answered (or expired); the card closes. */
+export interface ChatStreamConfirmationEndFrame {
+  event: 'confirmation_end'
+  data: { id: string; decision: 'allow' | 'deny' | 'expired' }
 }
 
 /** Terminal success envelope, followed by `[DONE]`. */
@@ -120,6 +145,8 @@ export type ChatStreamFrame =
   | ChatStreamChunkResetFrame
   | ChatStreamThinkingFrame
   | ChatStreamToolFrame
+  | ChatStreamConfirmationFrame
+  | ChatStreamConfirmationEndFrame
   | ChatStreamFinalFrame
   | ChatStreamErrorFrame
   | ChatStreamStreamErrorFrame
@@ -172,6 +199,33 @@ export function isChatToolFrame(value: unknown): value is ChatStreamToolFrame {
     // the frame leaves the chip running for the terminal settle (which knows
     // the run's real outcome) instead of rendering it green on a guess.
     (value.status === undefined || isToolCallEndStatus(value.status))
+  )
+}
+
+export function isChatConfirmationFrame(value: unknown): value is ChatStreamConfirmationFrame {
+  if (!isRecordLike(value) || value.event !== 'confirmation' || !isRecordLike(value.data)) {
+    return false
+  }
+  const { data } = value
+  return (
+    typeof data.id === 'string' &&
+    typeof data.token === 'string' &&
+    typeof data.title === 'string' &&
+    typeof data.summary === 'string'
+  )
+}
+
+export function isChatConfirmationEndFrame(
+  value: unknown
+): value is ChatStreamConfirmationEndFrame {
+  if (!isRecordLike(value) || value.event !== 'confirmation_end' || !isRecordLike(value.data)) {
+    return false
+  }
+  return (
+    typeof value.data.id === 'string' &&
+    (value.data.decision === 'allow' ||
+      value.data.decision === 'deny' ||
+      value.data.decision === 'expired')
   )
 }
 

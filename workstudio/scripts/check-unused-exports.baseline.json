@@ -5085,7 +5085,6 @@
   "apps/sim/lib/workflows/search-replace/types.ts#WorkflowSearchMode",
   "apps/sim/lib/workflows/skills/operations.ts#SkillUpsertOperation",
   "apps/sim/lib/workflows/streaming/agent-stream-protocol.ts#AgentStreamProtocol",
-  "apps/sim/lib/workflows/streaming/agent-stream-protocol.ts#ChatStreamFrame",
   "apps/sim/lib/workflows/streaming/nested-output-options.ts#WorkflowOutputMenuSegment",
   "apps/sim/lib/workflows/streaming/output-selector.ts#formatInternalOutputSelector=formatOutputSelector",
   "apps/sim/lib/workflows/streaming/streaming.ts#StreamingExecutorFn",

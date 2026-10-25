@@ -4,11 +4,17 @@ import { isApiClientError, isValidationError } from '@/lib/api/client/errors'
 import { requestRaw } from '@/lib/api/client/request'
 import { type DeployedChatPostBody, deployedChatPostContract } from '@/lib/api/contracts/chats'
 import { readSSEEvents } from '@/lib/core/utils/sse'
+import { type AnswerExtras, readAgentOutputFrame } from '@/lib/nexora/agent-extras'
 import {
   AGENT_STREAM_PROTOCOL_HEADER_LABEL,
   AGENT_STREAM_PROTOCOL_V1,
+  CHAT_OUTPUT_PROTOCOL_V1,
+  type ChatStreamConfirmationEndFrame,
+  type ChatStreamConfirmationFrame,
   isChatChunkFrame,
   isChatChunkResetFrame,
+  isChatConfirmationEndFrame,
+  isChatConfirmationFrame,
   isChatErrorFrame,
   isChatFinalFrame,
   isChatThinkingFrame,
@@ -25,10 +31,12 @@ export type ReplyErrorCode =
   | 'unknown'
 
 /** How an answer ended, with the text received until then. */
-export type ReplyOutcome =
+export type ReplyOutcome = (
   | { status: 'done'; text: string }
   | { status: 'stopped'; text: string }
   | { status: 'error'; code: ReplyErrorCode; text: string }
+) &
+  Partial<AnswerExtras>
 
 interface StreamAgentReplyInput {
   /** The agent's deployed chat (`/api/chat/[identifier]`). */
@@ -39,6 +47,12 @@ interface StreamAgentReplyInput {
   onText: (text: string) => void
   /** Called with the whole reasoning so far, for an agent whose chat shares it. */
   onThinking?: (thinking: string) => void
+  /** Called with the files and sources received so far, each time they change. */
+  onExtras?: (extras: AnswerExtras) => void
+  /** The agent asks before running a tool: show « Autoriser / Refuser ». */
+  onConfirmation?: (request: ChatStreamConfirmationFrame['data']) => void
+  /** That request was answered, or expired. */
+  onConfirmationEnd?: (end: ChatStreamConfirmationEndFrame['data']) => void
 }
 
 function toErrorCode(error: unknown): ReplyErrorCode {
@@ -74,7 +88,11 @@ export async function streamAgentReply({
   signal,
   onText,
   onThinking,
+  onExtras,
+  onConfirmation,
+  onConfirmationEnd,
 }: StreamAgentReplyInput): Promise<ReplyOutcome> {
+  const extras: AnswerExtras = { files: [], sources: [] }
   let thinking = ''
   const blockOrder: string[] = []
   const blockText = new Map<string, string>()
@@ -90,7 +108,11 @@ export async function streamAgentReply({
     const response = await requestRaw(
       deployedChatPostContract,
       { params: { identifier: chatIdentifier }, body, signal },
-      { headers: { [AGENT_STREAM_PROTOCOL_HEADER_LABEL]: AGENT_STREAM_PROTOCOL_V1 } }
+      {
+        headers: {
+          [AGENT_STREAM_PROTOCOL_HEADER_LABEL]: `${AGENT_STREAM_PROTOCOL_V1}, ${CHAT_OUTPUT_PROTOCOL_V1}`,
+        },
+      }
     )
     await readSSEEvents<unknown>(response, {
       signal,
@@ -99,6 +121,21 @@ export async function streamAgentReply({
           if (!blockText.has(frame.blockId)) blockOrder.push(frame.blockId)
           blockText.set(frame.blockId, (blockText.get(frame.blockId) ?? '') + frame.chunk)
           publish()
+          return false
+        }
+        const output = readAgentOutputFrame(frame)
+        if (output) {
+          if (output.kind === 'files') extras.files = output.files
+          else extras.sources = output.sources
+          onExtras?.({ files: extras.files, sources: extras.sources })
+          return false
+        }
+        if (isChatConfirmationFrame(frame)) {
+          onConfirmation?.(frame.data)
+          return false
+        }
+        if (isChatConfirmationEndFrame(frame)) {
+          onConfirmationEnd?.(frame.data)
           return false
         }
         if (isChatThinkingFrame(frame)) {
@@ -140,8 +177,9 @@ export async function streamAgentReply({
     if (signal.aborted) return { status: 'stopped', text }
     return { status: 'error', code: toErrorCode(error), text }
   }
-  if (signal.aborted) return { status: 'stopped', text }
-  if (ending.terminal === null) return { status: 'error', code: 'interrupted', text }
-  if (ending.terminal === 'failed') return { status: 'error', code: 'failed', text }
-  return { status: 'done', text }
+  const carried = extras.files.length > 0 || extras.sources.length > 0 ? extras : {}
+  if (signal.aborted) return { status: 'stopped', text, ...carried }
+  if (ending.terminal === null) return { status: 'error', code: 'interrupted', text, ...carried }
+  if (ending.terminal === 'failed') return { status: 'error', code: 'failed', text, ...carried }
+  return { status: 'done', text, ...carried }
 }

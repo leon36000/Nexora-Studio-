@@ -14,9 +14,17 @@ import {
 } from '@/components/agent-stream/tool-call-lifecycle'
 import { readSSEEvents } from '@/lib/core/utils/sse'
 import { isUserFileWithMetadata } from '@/lib/core/utils/user-file'
+import { readAgentOutputFrame } from '@/lib/nexora/agent-extras'
+import type { CitationSource } from '@/lib/nexora/citations'
+import {
+  type ConfirmationItem,
+  confirmationsReducer,
+} from '@/lib/nexora/tool-confirmation/client-state'
 import {
   isChatChunkFrame,
   isChatChunkResetFrame,
+  isChatConfirmationEndFrame,
+  isChatConfirmationFrame,
   isChatErrorFrame,
   isChatFinalFrame,
   isChatOutputFrame,
@@ -30,6 +38,7 @@ import type {
   ChatMessage,
   ChatToolCall,
 } from '@/app/(interfaces)/chat/components/message/message'
+import { answerToolConfirmation } from '@/hooks/queries/nexora-tool-confirmations'
 
 const logger = createLogger('UseChatStreaming')
 
@@ -175,6 +184,8 @@ export function useChatStreaming() {
     const blockTextOrder: string[] = []
     const blockTextSegments = new Map<string, string>()
     const outputFiles = new Map<string, ChatFile>()
+    let sources: CitationSource[] = []
+    let confirmations: ConfirmationItem[] = []
     let accumulatedText = ''
     const recomputeAccumulatedText = () => {
       accumulatedText = blockTextOrder.map((id) => blockTextSegments.get(id) ?? '').join('')
@@ -215,6 +226,7 @@ export function useChatStreaming() {
       const toolCallsSnapshot = snapshotToolCalls(toolCallOrder, toolCallsMap)
       const toolStreamingSnapshot = anyToolCallRunning(toolCallsMap)
       const filesSnapshot = Array.from(outputFiles.values())
+      const sourcesSnapshot = sources
       setMessages((prev) =>
         prev.map((msg) => {
           if (msg.id !== messageId) return msg
@@ -227,6 +239,7 @@ export function useChatStreaming() {
             toolCalls: toolCallsSnapshot,
             isToolStreaming: toolStreamingSnapshot,
             files: filesSnapshot.length > 0 ? filesSnapshot : undefined,
+            sources: sourcesSnapshot.length > 0 ? sourcesSnapshot : undefined,
           }
         })
       )
@@ -234,6 +247,31 @@ export function useChatStreaming() {
       requestAnimationFrame(() => {
         scrollToBottom()
       })
+    }
+
+    /** Updates the « Autoriser / Refuser » cards of this answer right away (a person is waiting). */
+    const showConfirmations = (
+      action: Parameters<typeof confirmationsReducer>[1]
+    ): ConfirmationItem[] => {
+      confirmations = confirmationsReducer(confirmations, action)
+      const snapshot = confirmations
+      setMessages((prev) =>
+        prev.map((msg) =>
+          msg.id === messageId
+            ? { ...msg, confirmations: snapshot, onAnswerConfirmation: answerConfirmation }
+            : msg
+        )
+      )
+      return snapshot
+    }
+    const answerConfirmation = async (id: string, decision: 'allow' | 'deny') => {
+      const item = confirmations.find((candidate) => candidate.id === id)
+      if (!item) return
+      showConfirmations({ type: 'sending', id })
+      const result = await answerToolConfirmation(id, item.token, decision)
+      if (result === 'failed') showConfirmations({ type: 'problem', id, problem: 'failed' })
+      if (result === 'stale')
+        showConfirmations({ type: 'problem', id, problem: 'already-answered' })
     }
 
     const scheduleUIFlush = () => {
@@ -369,6 +407,24 @@ export function useChatStreaming() {
               })
             )
             syncToolCallsRef()
+            uiDirty = true
+            scheduleUIFlush()
+            return false
+          }
+
+          if (isChatConfirmationFrame(json)) {
+            showConfirmations({ type: 'asked', request: json.data })
+            return false
+          }
+
+          if (isChatConfirmationEndFrame(json)) {
+            showConfirmations({ type: 'ended', end: json.data })
+            return false
+          }
+
+          const agentOutput = readAgentOutputFrame(json)
+          if (agentOutput?.kind === 'sources') {
+            sources = agentOutput.sources
             uiDirty = true
             scheduleUIFlush()
             return false

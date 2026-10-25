@@ -11,7 +11,7 @@ import type { SandboxSpec } from '@/lib/execution/remote-sandbox/spec'
  */
 export type SandboxKind = 'code' | 'shell' | 'mothership' | 'doc' | 'pi'
 
-export type SandboxProviderId = 'e2b' | 'daytona'
+export type SandboxProviderId = 'e2b' | 'daytona' | 'nexora'
 
 /**
  * A sandbox input file. `content` entries are written inline; `url` entries are fetched from inside

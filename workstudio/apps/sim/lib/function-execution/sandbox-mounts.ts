@@ -6,6 +6,7 @@ import {
   type ExecutionMaterializationContext,
   readUserFileContentWithContributors,
 } from '@/lib/execution/payloads/materialization.server'
+import { isCodeSandboxConfigured } from '@/lib/execution/remote-sandbox/nexora'
 import { MAX_SANDBOX_URL_MOUNT_BYTES } from '@/lib/execution/remote-sandbox/output-limits'
 import { SANDBOX_INPUT_DIR } from '@/lib/execution/remote-sandbox/paths'
 import type { SandboxFile } from '@/lib/execution/remote-sandbox/types'
@@ -106,7 +107,8 @@ export async function pushSandboxFileMount(
   source: SandboxMountSource,
   budget: SandboxMountBudget
 ): Promise<void> {
-  if (hasCloudStorage() && !source.rendersFromSource) {
+  // The Nexora code sandbox has no network: its mounts are always written inline.
+  if (hasCloudStorage() && !isCodeSandboxConfigured() && !source.rendersFromSource) {
     /**
      * The number this mount is both admitted on and later held to.
      *

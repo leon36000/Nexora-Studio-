@@ -8,6 +8,7 @@ import {
   hasUnsavedAgentChanges,
   persistedAgentConfig,
   readAgentWorkflow,
+  withAssistantTools,
 } from '@/lib/nexora/agents'
 import { parseWorkflowJson } from '@/lib/workflows/operations/import-export'
 
@@ -18,6 +19,8 @@ const base: AgentConfig = {
   model: 'vllm/nexora-default',
   tools: [],
   knowledgeBaseIds: [],
+  codeInterpreter: false,
+  webSearch: false,
   memory: false,
   reasoningEffort: 'auto',
   instructionsPrompt: null,
@@ -100,6 +103,55 @@ describe('agent workflows', () => {
     const canonicalModes = agent?.data?.canonicalModes as Record<string, string> | undefined
     expect(canonicalModes?.files).toBe('advanced')
     expect(readAgentWorkflow(state)).not.toBeNull()
+  })
+
+  it('turns the Python interpreter and the web search into tools of the agent block, and reads them back as switches', () => {
+    const config = { ...base, codeInterpreter: true, webSearch: true, tools: [mcpTool] }
+    const state = buildAgentWorkflow(config)
+    const tools = agentBlock(state).subBlocks.tools.value as Array<Record<string, unknown>>
+    const interpreter = tools.find((tool) => tool.toolId === 'function_execute')
+    expect(interpreter).toMatchObject({
+      type: 'function',
+      params: { language: 'python', files: '<start.files>' },
+    })
+    expect(tools.find((tool) => tool.toolId === 'searxng_search')).toMatchObject({
+      type: 'searxng',
+    })
+    const read = readOrFail(state)
+    expect(read).toEqual(config)
+    expect(read.tools).toEqual([mcpTool])
+  })
+
+  it('adds neither tool by default, and an agent saved before them reads both as off', () => {
+    const state = buildAgentWorkflow(base)
+    expect(agentBlock(state).subBlocks.tools.value).toEqual([])
+    expect(readOrFail(state)).toMatchObject({ codeInterpreter: false, webSearch: false })
+  })
+
+  it('keeps a Function tool of another language as an ordinary tool, not as the interpreter', () => {
+    const javascriptFunction = {
+      type: 'function',
+      title: 'Function',
+      toolId: 'function_execute',
+      params: { language: 'javascript' },
+      isExpanded: false,
+      usageControl: 'auto' as const,
+    }
+    const read = readOrFail(buildAgentWorkflow({ ...base, tools: [javascriptFunction] }))
+    expect(read.codeInterpreter).toBe(false)
+    expect(read.tools).toEqual([javascriptFunction])
+  })
+
+  it('keeps one tool of each kind when the switches are saved twice, and counts a switch as a change', () => {
+    const on = { ...base, codeInterpreter: true, webSearch: true }
+    const first = buildAgentWorkflow(on)
+    const second = buildAgentWorkflow(on, first)
+    expect(agentBlock(second).subBlocks.tools.value).toHaveLength(2)
+    expect(
+      diffAgentVersions(base, on)
+        .map((change) => change.field)
+        .sort()
+    ).toEqual(['codeInterpreter', 'webSearch'])
   })
 
   it('refuses a workflow edited beyond the agent shape', () => {
@@ -455,5 +507,41 @@ describe('saving an agent over what the database stores', () => {
       buildAgentWorkflow({ ...configured, instructions: 'Tutoyez.' }, written)
     )
     expect(agentChangedSince(baseline, elsewhere)).toBe(true)
+  })
+})
+
+describe('withAssistantTools', () => {
+  const legacy = {
+    subBlocks: {
+      model: { id: 'model', type: 'combobox', value: 'vllm/nexora-default' },
+      tools: { id: 'tools', type: 'tool-input', value: [mcpTool] },
+    },
+    data: { canonicalModes: { files: 'advanced' } },
+  }
+
+  it('gives an assistant published before the interpreter the tool and a revision mark, keeping its other tools and settings', () => {
+    const upgraded = withAssistantTools(legacy)
+    expect(upgraded).not.toBeNull()
+    const tools = (upgraded?.subBlocks.tools as { value: Array<Record<string, unknown>> }).value
+    expect(tools).toHaveLength(2)
+    expect(tools[0]).toMatchObject({ toolId: 'mcp-1' })
+    expect(tools[1]).toMatchObject({ toolId: 'function_execute', params: { language: 'python' } })
+    expect(upgraded?.subBlocks.model).toEqual(legacy.subBlocks.model)
+    expect(upgraded?.data).toEqual({
+      canonicalModes: { files: 'advanced' },
+      nexoraAssistantRevision: 2,
+    })
+  })
+
+  it('leaves an assistant that has the tool, and one an administrator edited after the upgrade, alone', () => {
+    const withTool = buildAgentWorkflow({ ...base, codeInterpreter: true })
+    const agent = agentBlock(withTool)
+    expect(withAssistantTools({ subBlocks: agent.subBlocks, data: agent.data })).toBeNull()
+    expect(withAssistantTools({ ...legacy, data: { nexoraAssistantRevision: 2 } })).toBeNull()
+  })
+
+  it('starts from nothing when the agent had no tools field', () => {
+    const upgraded = withAssistantTools({ subBlocks: {}, data: null })
+    expect((upgraded?.subBlocks.tools as { value: unknown[] }).value).toHaveLength(1)
   })
 })

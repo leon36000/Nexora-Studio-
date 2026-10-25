@@ -1,12 +1,14 @@
 'use client'
 
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useReducer, useRef, useState } from 'react'
 import { createLogger } from '@sim/logger'
 import type {
   AssistantAgent,
   AssistantMessage,
   AssistantMessageFile,
 } from '@/lib/api/contracts/nexora-assistant'
+import { type AnswerExtras, withExtras } from '@/lib/nexora/agent-extras'
+import { confirmationsReducer } from '@/lib/nexora/tool-confirmation/client-state'
 import {
   type ChatFilePayload,
   filesForRegeneration,
@@ -22,6 +24,7 @@ import {
   useCreateAssistantConversation,
   useDeleteAssistantConversation,
 } from '@/hooks/queries/nexora-assistant'
+import { answerToolConfirmation } from '@/hooks/queries/nexora-tool-confirmations'
 
 const logger = createLogger('NexoraAssistantTurn')
 
@@ -40,8 +43,12 @@ export interface PendingTurn {
     thinking: string
     status: 'waiting' | 'streaming' | 'done' | 'stopped' | 'error'
     error: ReplyErrorCode | null
+    /** Files its tools produced and sources its searches returned, beside the text. */
+    extras: AnswerExtras
   }
 }
+
+const NO_EXTRAS: AnswerExtras = { files: [], sources: [] }
 
 interface SendInput {
   /** `null` starts a new conversation with `agent`. */
@@ -55,6 +62,7 @@ interface LiveAnswer {
   conversationId: string
   text: string
   thinking: string
+  extras: AnswerExtras
   recorded: boolean
 }
 
@@ -98,6 +106,7 @@ export function useAssistantTurn(
   const [pending, setPending] = useState<PendingTurn | null>(null)
   const [notice, setNotice] = useState<TurnNotice | null>(null)
   const [preparing, setPreparing] = useState(false)
+  const [confirmations, dispatchConfirmation] = useReducer(confirmationsReducer, [])
 
   useEffect(() => {
     const recordCutAnswer = () => {
@@ -107,7 +116,7 @@ export function useAssistantTurn(
       appendMessage({
         conversationId: live.conversationId,
         role: 'assistant',
-        content: live.text.slice(0, KEEPALIVE_TEXT_LIMIT),
+        content: withExtras(live.text.slice(0, KEEPALIVE_TEXT_LIMIT), live.extras),
         interrupted: true,
         keepalive: true,
       })
@@ -135,14 +144,25 @@ export function useAssistantTurn(
     files: ChatFilePayload[] | undefined,
     controller: AbortController
   ) => {
-    const live: LiveAnswer = { conversationId, text: '', thinking: '', recorded: false }
+    dispatchConfirmation({ type: 'cleared' })
+    const live: LiveAnswer = {
+      conversationId,
+      text: '',
+      thinking: '',
+      extras: NO_EXTRAS,
+      recorded: false,
+    }
     liveRef.current = live
     updateAnswer(conversationId, { status: 'streaming' })
     const showLive = () => {
       if (frameRef.current !== null) return
       frameRef.current = requestAnimationFrame(() => {
         frameRef.current = null
-        updateAnswer(conversationId, { text: live.text, thinking: live.thinking })
+        updateAnswer(conversationId, {
+          text: live.text,
+          thinking: live.thinking,
+          extras: live.extras,
+        })
       })
     }
 
@@ -158,6 +178,12 @@ export function useAssistantTurn(
         live.thinking = thinking
         showLive()
       },
+      onExtras: (extras) => {
+        live.extras = extras
+        showLive()
+      },
+      onConfirmation: (request) => dispatchConfirmation({ type: 'asked', request }),
+      onConfirmationEnd: (end) => dispatchConfirmation({ type: 'ended', end }),
     })
 
     if (frameRef.current !== null) {
@@ -166,10 +192,15 @@ export function useAssistantTurn(
     }
     if (controllerRef.current === controller) controllerRef.current = null
     if (liveRef.current === live) liveRef.current = null
+    const finalExtras: AnswerExtras = {
+      files: outcome.files ?? live.extras.files,
+      sources: outcome.sources ?? live.extras.sources,
+    }
     updateAnswer(conversationId, {
       text: outcome.text,
       status: outcome.status,
       error: outcome.status === 'error' ? outcome.code : null,
+      extras: finalExtras,
     })
 
     if (live.recorded || !outcome.text.trim()) return
@@ -178,7 +209,7 @@ export function useAssistantTurn(
       const saved = await appendMessageAsync({
         conversationId,
         role: 'assistant',
-        content: outcome.text,
+        content: withExtras(outcome.text, finalExtras),
         interrupted: outcome.status !== 'done',
       })
       updateAnswer(conversationId, { id: saved.id })
@@ -203,7 +234,14 @@ export function useAssistantTurn(
       setPending({
         conversationId: targetId,
         question: { id: null, content: text, files: pendingFiles },
-        answer: { id: null, text: '', thinking: '', status: 'waiting', error: null },
+        answer: {
+          id: null,
+          text: '',
+          thinking: '',
+          status: 'waiting',
+          error: null,
+          extras: NO_EXTRAS,
+        },
       })
     if (conversationId) showPending(conversationId)
 
@@ -274,15 +312,43 @@ export function useAssistantTurn(
     setPending({
       conversationId,
       question: null,
-      answer: { id: null, text: '', thinking: '', status: 'waiting', error: null },
+      answer: {
+        id: null,
+        text: '',
+        thinking: '',
+        status: 'waiting',
+        error: null,
+        extras: NO_EXTRAS,
+      },
     })
     void streamAnswer(conversationId, agent, question.content, replay.files, controller)
   }
 
   const stop = () => controllerRef.current?.abort()
 
+  /** Sends « Autoriser » or « Refuser »; the stream's own end frame is what closes the card. */
+  const answerConfirmation = async (id: string, decision: 'allow' | 'deny') => {
+    const item = confirmations.find((candidate) => candidate.id === id)
+    if (!item) return
+    dispatchConfirmation({ type: 'sending', id })
+    const result = await answerToolConfirmation(id, item.token, decision)
+    if (result === 'failed') dispatchConfirmation({ type: 'problem', id, problem: 'failed' })
+    if (result === 'stale')
+      dispatchConfirmation({ type: 'problem', id, problem: 'already-answered' })
+  }
+
   const isBusy =
     preparing || pending?.answer.status === 'waiting' || pending?.answer.status === 'streaming'
 
-  return { pending, notice, isBusy, send, regenerate, stop, dismissNotice: () => setNotice(null) }
+  return {
+    pending,
+    notice,
+    isBusy,
+    confirmations,
+    answerConfirmation,
+    send,
+    regenerate,
+    stop,
+    dismissNotice: () => setNotice(null),
+  }
 }

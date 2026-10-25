@@ -1,12 +1,16 @@
 import { createExecutionContext } from '@sim/testing'
 import { toolsMock, toolsMockFns } from '@sim/testing/mocks/tools.mock'
-import { describe, expect, it, vi } from 'vitest'
+import { beforeEach, describe, expect, it, vi } from 'vitest'
 
 vi.mock('@/tools', () => toolsMock)
+
+const gate = vi.hoisted(() => ({ gateToolCall: vi.fn() }))
+vi.mock('@/lib/nexora/tool-confirmation/gate', () => ({ gateToolCall: gate.gateToolCall }))
 
 import type { AgentConversationSession } from '@/lib/memory/conversation-types'
 import { AGENT_MEMORY_RETRIEVAL_TOOL_ID } from '@/lib/memory/retrieval-tool-types'
 import { AgentTurnStateMachine } from '@/lib/memory/turn-state'
+import { createCitationRegistry } from '@/lib/nexora/citations'
 import { ResolvedSecretTraceRegistry } from '@/executor/utils/resolved-secret-trace-registry'
 import {
   type ExecuteProviderToolOptions,
@@ -983,5 +987,98 @@ describe('provider runtime context', () => {
     expect(registry.getActiveMatches()).toEqual([
       { plaintext: 'secret-value', replacement: '{{TOKEN}}' },
     ])
+  })
+})
+
+describe('Nexora edition: asking before acting, and numbered sources', () => {
+  beforeEach(() => {
+    mockExecuteTool.mockReset()
+    mockExecuteTool.mockImplementation(async () => ({ success: true, output: {} }))
+    gate.gateToolCall.mockReset()
+  })
+
+  const connectSpec = {
+    required: true,
+    serverName: 'Nexora Connect',
+    toolName: 'execute_action',
+    title: 'execute_action',
+  }
+  const run = (context: Parameters<typeof runWithProviderRuntimeContext>[0]) =>
+    runWithProviderRuntimeContext(context, () =>
+      executeProviderToolWithInput(
+        'mcp-srv-execute_action',
+        { actionId: 'postmark.send_email', input: { to: 'a@b.fr' } },
+        {}
+      )
+    )
+
+  it('does not run a tool the person refused, and tells the model nothing was done', async () => {
+    mockExecuteTool.mockClear()
+    gate.gateToolCall.mockResolvedValueOnce({ kind: 'denied', reason: 'user' })
+    const result = await run({
+      toolConfirmations: new Map([['mcp-srv-execute_action', connectSpec]]),
+    })
+    expect(mockExecuteTool).not.toHaveBeenCalled()
+    expect(result.modelResponse).toMatchObject({ success: false, output: { status: 'denied' } })
+    expect(result.modelResponse.error).toMatch(/refusée/)
+  })
+
+  it('runs the tool once the person allowed it, and never asks about an unflagged tool', async () => {
+    mockExecuteTool.mockClear()
+    gate.gateToolCall.mockResolvedValueOnce({ kind: 'proceed' })
+    await run({ toolConfirmations: new Map([['mcp-srv-execute_action', connectSpec]]) })
+    expect(mockExecuteTool).toHaveBeenCalledTimes(1)
+    mockExecuteTool.mockClear()
+    gate.gateToolCall.mockClear()
+    await run({})
+    expect(gate.gateToolCall).not.toHaveBeenCalled()
+    expect(mockExecuteTool).toHaveBeenCalledTimes(1)
+  })
+
+  it('holds a call nobody could answer for the run’s pause, without running it', async () => {
+    mockExecuteTool.mockClear()
+    gate.gateToolCall.mockResolvedValueOnce({
+      kind: 'deferred',
+      title: 'postmark.send_email',
+      summary: '{}',
+    })
+    const deferredActions: Array<{ toolId: string; title: string }> = []
+    const result = await run({
+      toolConfirmations: new Map([['mcp-srv-execute_action', connectSpec]]),
+      deferredActions: deferredActions as never,
+    })
+    expect(mockExecuteTool).not.toHaveBeenCalled()
+    expect(deferredActions).toHaveLength(1)
+    expect(deferredActions[0]).toMatchObject({
+      toolId: 'mcp-srv-execute_action',
+      title: 'postmark.send_email',
+    })
+    expect(result.modelResponse).toMatchObject({ output: { status: 'awaiting_approval' } })
+  })
+
+  it('numbers the results of a search the model reads, and keeps the raw result as it came', async () => {
+    mockExecuteTool.mockResolvedValueOnce({
+      success: true,
+      output: {
+        results: [
+          { documentId: 'd1', documentName: 'CGV.pdf', content: 'Livraison offerte dès 80 euros.' },
+        ],
+      },
+    })
+    const citations = createCitationRegistry({ workspaceId: 'ws-1' })
+    const execution = await runWithProviderRuntimeContext({ citations }, () =>
+      executeProviderToolWithInput(
+        'knowledge_search',
+        { knowledgeBaseId: 'kb-1', query: 'livraison' },
+        {}
+      )
+    )
+    expect(
+      (execution.modelResponse.output as { results: Array<{ ref: number }> }).results[0].ref
+    ).toBe(1)
+    expect(
+      (execution.rawResponse.output as { results: Array<{ ref?: number }> }).results[0].ref
+    ).toBeUndefined()
+    expect(citations.sources()).toHaveLength(1)
   })
 })

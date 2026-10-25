@@ -11,6 +11,7 @@ import {
   workflowsUtilsMock,
 } from '@sim/testing'
 import { encryptionMock, encryptionMockFns } from '@sim/testing/mocks/encryption.mock'
+import { resetEnvMock, setEnv } from '@sim/testing/mocks/env.mock'
 import { remoteSandboxMock, remoteSandboxMockFns } from '@sim/testing/mocks/remote-sandbox.mock'
 import { storageServiceMockFns } from '@sim/testing/mocks/storage-service.mock'
 import { uploadsMock } from '@sim/testing/mocks/uploads.mock'
@@ -48,6 +49,7 @@ const {
   mockMountContributors,
   mockUnprovenancedMountCount,
   mockRenderedMountContributors,
+  mockIsCodeExecutionEnabled,
 } = vi.hoisted(() => ({
   mockExecuteInIsolatedVM: vi.fn(),
   mockValidateWorkspaceFileWriteTarget: vi.fn(),
@@ -56,6 +58,11 @@ const {
   mockMountContributors: vi.fn(),
   mockUnprovenancedMountCount: vi.fn(),
   mockRenderedMountContributors: vi.fn(),
+  mockIsCodeExecutionEnabled: vi.fn(),
+}))
+
+vi.mock('@/lib/nexora/code-execution', () => ({
+  isCodeExecutionEnabled: mockIsCodeExecutionEnabled,
 }))
 
 vi.mock('@/lib/core/security/encryption', () => encryptionMock)
@@ -402,6 +409,57 @@ describe('Function execution request', () => {
       expect(mockExecuteInIsolatedVM).toHaveBeenCalledTimes(1)
       expect(mockExecuteInSandbox).not.toHaveBeenCalled()
       expect(mockExecuteShellInSandbox).not.toHaveBeenCalled()
+    })
+
+    describe('with the Nexora code sandbox installed', () => {
+      beforeEach(() => {
+        setEnv({
+          NEXORA_CODE_SANDBOX_URL: 'http://code-sandbox:8080',
+          NEXORA_CODE_SANDBOX_TOKEN: 'a-token-of-at-least-thirty-two-characters',
+        })
+      })
+
+      afterAll(resetEnvMock)
+
+      const python = { language: 'python', code: 'return 42', workspaceId: 'workspace-1' }
+
+      it('refuses Python until an administrator turns code execution on', async () => {
+        mockIsCodeExecutionEnabled.mockResolvedValue(false)
+        const response = await POST(createMockRequest('POST', python))
+        const data = await response.json()
+        expect(data.success).toBe(false)
+        expect(data.error).toMatch(/Réglages › Exécution de code/)
+        expect(mockExecuteInSandbox).not.toHaveBeenCalled()
+      })
+
+      it('runs Python in the sandbox once it is on', async () => {
+        mockIsCodeExecutionEnabled.mockResolvedValue(true)
+        mockExecuteInSandbox.mockResolvedValueOnce({ result: 42, stdout: '', sandboxId: 'nx-1' })
+        const response = await POST(createMockRequest('POST', python))
+        const data = await response.json()
+        expect(data.success).toBe(true)
+        expect(data.output.result).toBe(42)
+        expect(mockExecuteInSandbox).toHaveBeenCalledTimes(1)
+      })
+
+      it('never sends shell to it, and keeps plain JavaScript in the local VM', async () => {
+        mockIsCodeExecutionEnabled.mockResolvedValue(true)
+        const shell = await (
+          await POST(
+            createMockRequest('POST', { language: 'shell', code: 'ls', workspaceId: 'workspace-1' })
+          )
+        ).json()
+        expect(shell.error).toMatch(/que du Python/)
+        expect(mockExecuteShellInSandbox).not.toHaveBeenCalled()
+
+        mockExecuteInIsolatedVM.mockResolvedValueOnce({ result: 'js', stdout: '' })
+        const js = await (
+          await POST(createMockRequest('POST', { code: 'return "js"', workspaceId: 'workspace-1' }))
+        ).json()
+        expect(js.success).toBe(true)
+        expect(mockExecuteInIsolatedVM).toHaveBeenCalled()
+        expect(mockExecuteInSandbox).not.toHaveBeenCalled()
+      })
     })
 
     it.each([

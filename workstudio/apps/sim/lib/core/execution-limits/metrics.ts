@@ -1,4 +1,5 @@
 import { type Counter, type Histogram, metrics } from '@opentelemetry/api'
+import type { SandboxProviderId } from '@/lib/execution/remote-sandbox/types'
 
 export type ExecutionTimeoutSource =
   | 'plan_default'
@@ -56,7 +57,7 @@ export function recordExecutionCancellationBackendResult(params: {
 
 /** Emits when a sandbox operation reaches a provider's bounded continuous-run limit. */
 export function recordSandboxProviderLimit(params: {
-  provider: 'e2b' | 'daytona'
+  provider: SandboxProviderId
   operation: 'code' | 'command'
 }): void {
   instruments().sandboxProviderLimits.add(1, {
@@ -67,7 +68,7 @@ export function recordSandboxProviderLimit(params: {
 
 /** Emits when best-effort sandbox teardown fails after a run or abort. */
 export function recordSandboxTeardownFailure(params: {
-  provider: 'e2b' | 'daytona'
+  provider: SandboxProviderId
   reason: 'cleanup' | 'cancellation' | 'timeout'
 }): void {
   instruments().sandboxTeardownFailures.add(1, {
@@ -78,7 +79,7 @@ export function recordSandboxTeardownFailure(params: {
 
 /** Emits when best-effort cleanup cannot remove a retired provider image family. */
 export function recordSandboxImageCleanupFailure(params: {
-  provider: 'e2b' | 'daytona'
+  provider: SandboxProviderId
   reason: 'failed_candidate' | 'lost_claim' | 'superseded'
 }): void {
   instruments().sandboxImageCleanupFailures.add(1, {
@@ -88,7 +89,7 @@ export function recordSandboxImageCleanupFailure(params: {
 }
 
 /** Emits when a prebuilt image containing curated CLI tools fails to build. */
-export function recordSandboxCliBuildFailure(params: { provider: 'e2b' | 'daytona' }): void {
+export function recordSandboxCliBuildFailure(params: { provider: SandboxProviderId }): void {
   instruments().sandboxCliBuildFailures.add(1, {
     'sandbox.provider': params.provider,
   })

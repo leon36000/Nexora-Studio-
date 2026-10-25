@@ -20,6 +20,7 @@ import { withRouteHandler } from '@/lib/core/utils/with-route-handler'
 import { preprocessExecution } from '@/lib/execution/preprocessing'
 import { LoggingSession } from '@/lib/logs/execution/logging-session'
 import { memberMemoryKey } from '@/lib/nexora/member-memory'
+import { registerConfirmationSink } from '@/lib/nexora/tool-confirmation/sinks'
 import { ChatFiles } from '@/lib/uploads'
 import { formatOutputSelector } from '@/lib/workflows/streaming/output-selector'
 import { setChatAuthCookie, validateChatAuth } from '@/app/api/chat/utils'
@@ -266,7 +267,7 @@ export const POST = withRouteHandler(
         const { createStreamingResponse, agentStreamProtocolResponseHeaders } = await import(
           '@/lib/workflows/streaming/streaming'
         )
-        const { shouldEmitAgentStreamEvents } = await import(
+        const { clientAcceptsAgentStreamProtocol, shouldEmitAgentStreamEvents } = await import(
           '@/lib/workflows/streaming/agent-stream-protocol'
         )
         const { executeWorkflow } = await import('@/lib/workflows/executor/execute-workflow')
@@ -364,45 +365,55 @@ export const POST = withRouteHandler(
           userId: resolvedActorUserId,
           requestSignal: request.signal,
           requestHeaders: request.headers,
-          executeFn: async ({ onStream, onBlockComplete, abortSignal }) =>
-            executeWorkflow(
-              workflowForExecution,
-              requestId,
-              workflowInput,
-              resolvedActorUserId,
-              {
-                enabled: true,
-                principal: {
-                  kind: 'system',
-                  serviceId: 'chat',
-                  workspaceId,
-                  workflowId: deployment.workflowId,
-                  ...(authResult.authenticatedEmail
-                    ? {
-                        subject: {
-                          kind: 'authenticated_email' as const,
-                          email: authResult.authenticatedEmail,
-                        },
-                      }
-                    : {}),
+          executeFn: async ({ onStream, onBlockComplete, abortSignal, emitFrame }) => {
+            // Nexora edition: a person who follows this run (agent-events-v1) can answer
+            // « Demander avant d'agir »; any other client gets those actions deferred.
+            const unregisterConfirmations = clientAcceptsAgentStreamProtocol(request.headers)
+              ? registerConfirmationSink(executionId, emitFrame)
+              : undefined
+            try {
+              return await executeWorkflow(
+                workflowForExecution,
+                requestId,
+                workflowInput,
+                resolvedActorUserId,
+                {
+                  enabled: true,
+                  principal: {
+                    kind: 'system',
+                    serviceId: 'chat',
+                    workspaceId,
+                    workflowId: deployment.workflowId,
+                    ...(authResult.authenticatedEmail
+                      ? {
+                          subject: {
+                            kind: 'authenticated_email' as const,
+                            email: authResult.authenticatedEmail,
+                          },
+                        }
+                      : {}),
+                  },
+                  selectedOutputs,
+                  isSecureMode: true,
+                  workflowTriggerType: 'chat',
+                  onStream,
+                  onBlockComplete: (blockId, data) =>
+                    onBlockComplete(blockId, data.output, data.outputBlockId),
+                  skipLoggingComplete: true,
+                  abortSignal,
+                  executionMode: 'stream',
+                  billingAttribution,
+                  includeThinking,
+                  includeToolCalls,
+                  agentEvents,
+                  ...(memberChatUserId ? { memberChatUserId } : {}),
                 },
-                selectedOutputs,
-                isSecureMode: true,
-                workflowTriggerType: 'chat',
-                onStream,
-                onBlockComplete: (blockId, data) =>
-                  onBlockComplete(blockId, data.output, data.outputBlockId),
-                skipLoggingComplete: true,
-                abortSignal,
-                executionMode: 'stream',
-                billingAttribution,
-                includeThinking,
-                includeToolCalls,
-                agentEvents,
-                ...(memberChatUserId ? { memberChatUserId } : {}),
-              },
-              executionId
-            ),
+                executionId
+              )
+            } finally {
+              unregisterConfirmations?.()
+            }
+          },
         })
 
         const streamResponse = new NextResponse(stream, {

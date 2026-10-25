@@ -32,6 +32,8 @@ export function useNewAgent(workspaceId: string) {
         model: NEW_AGENT_MODEL,
         tools: [],
         knowledgeBaseIds: [],
+        codeInterpreter: false,
+        webSearch: false,
         memory: true,
         reasoningEffort: 'auto',
         instructionsPrompt: null,

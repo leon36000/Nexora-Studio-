@@ -1,3 +1,4 @@
+import { resolvePrincipalSubject } from '@sim/auth/principal'
 import { dbFor } from '@sim/db'
 import { pausedExecutions, resumeQueue, workflowExecutionLogs } from '@sim/db/schema'
 import { createLogger } from '@sim/logger'
@@ -41,6 +42,7 @@ import {
 } from '@/lib/logs/execution/cancellation'
 import { LoggingSession } from '@/lib/logs/execution/logging-session'
 import type { PersistedWorkflowExecutionStatus } from '@/lib/logs/types'
+import { settleHeldActions } from '@/lib/nexora/tool-confirmation/resume'
 import { cleanupExecutionBase64Cache } from '@/lib/uploads/utils/user-file-base64.server'
 import { executeWorkflowCore } from '@/lib/workflows/executor/execution-core'
 import {
@@ -1347,8 +1349,40 @@ export class PauseResumeManager {
         resume: existingResponse.resume ?? existingOutput.resume,
       }
 
+      // Nexora edition: the actions an Agent block held back for approval run now, if approved.
+      const settledHeldActions = await settleHeldActions({
+        pausedOutput: existingOutput,
+        submission: submissionPayload,
+        requestId: resumeExecutionId,
+        context: {
+          workflowId: pausedExecution.workflowId,
+          workspaceId: baseSnapshot.metadata.workspaceId,
+          executionId: resumeExecutionId,
+          userId: effectiveUserId,
+          billingAttribution,
+          // The paused block's saved tools are what authorizes the held MCP actions.
+          mcpBlockId: pauseBlockId,
+          executorDelegationOrigin: {
+            ...(resolvePrincipalSubject(baseSnapshot.metadata.principal)?.kind === 'sim_user'
+              ? { subjectUserId: effectiveUserId }
+              : {}),
+            workflowId: pausedExecution.workflowId,
+            executionId: resumeExecutionId,
+            principal: baseSnapshot.metadata.principal,
+            currentWorkflow: resumeDeploymentVersionId
+              ? {
+                  workflowId: pausedExecution.workflowId,
+                  mode: 'deployment',
+                  deploymentVersionId: resumeDeploymentVersionId,
+                }
+              : { workflowId: pausedExecution.workflowId, mode: 'draft' },
+          },
+        },
+      })
+
       const mergedOutput: Record<string, unknown> = {
-        ...existingOutput,
+        ...omit(existingOutput, ['_deferredActions']),
+        ...(settledHeldActions ? { actions: settledHeldActions.actions } : {}),
         response: mergedResponse,
         submission: submissionPayload,
         resumeInput: normalizedResumeInputRaw,

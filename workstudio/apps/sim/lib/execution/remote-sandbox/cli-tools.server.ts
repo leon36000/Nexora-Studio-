@@ -423,10 +423,10 @@ export function sandboxCliToolRecipes(
 
 export function assertSandboxCliToolsSupported(
   cliTools: readonly string[] | null | undefined,
-  provider: SandboxProvider
+  provider: string
 ): void {
   for (const recipe of sandboxCliToolRecipes(cliTools)) {
-    if (!recipe.supportedProviders.includes(provider)) {
+    if (!recipe.supportedProviders.some((supported) => supported === provider)) {
       throw new Error(`${recipe.label} is not supported by the ${provider} sandbox provider`)
     }
   }

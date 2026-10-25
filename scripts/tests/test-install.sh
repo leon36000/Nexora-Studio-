@@ -109,6 +109,20 @@ NEXORA_ORGANIZATION_OWNER_EMAIL=gerant@pme-test.fr NEXORA_MODEL_CHOICE=mistral N
 case ",$(envval COMPOSE_PROFILES "$ev")," in *,voice,*) ko "transcription profile removed when answered no" ;; *) ok "transcription profile removed when answered no" ;; esac
 [ -z "$(envval NEXORA_WHISPER_URL "$ev")" ] && ok "the bootstrap no longer registers the transcription service" || ko "the bootstrap no longer registers the transcription service"
 
+# 1b''. The code interpreter stays off unless asked; on, its profile joins the others.
+[ -z "$(envval NEXORA_CODE_SANDBOX_URL "$e")" ] && ok "code interpreter off by default" || ko "code interpreter off by default"
+hc="$(new_home)/nexora"
+NEXORA_ORGANIZATION_OWNER_EMAIL=gerant@pme-test.fr NEXORA_MODEL_CHOICE=mistral NEXORA_UPSTREAM_KEY=k \
+  NEXORA_WEB_SEARCH=1 NEXORA_CODE=1 run "$hc" --yes --no-start && ok "install with the code interpreter succeeds" || { ko "install with the code interpreter succeeds"; cat "$hc.out"; }
+ec="$hc/deploy/.env"
+[ "$(envval COMPOSE_PROFILES "$ec")" = "search,code" ] && ok "code profile added to web search" || ko "code profile added to web search (got: $(envval COMPOSE_PROFILES "$ec"))"
+[ "$(envval NEXORA_CODE_SANDBOX_URL "$ec")" = "http://code-sandbox:8080" ] && ok "WorkStudio reaches the code sandbox" || ko "WorkStudio reaches the code sandbox"
+[ "$(envval NEXORA_CODE_SANDBOX_TOKEN "$ec" | wc -c)" -ge 33 ] && ok "code sandbox token generated" || ko "code sandbox token generated"
+rm -f "$ec"
+NEXORA_ORGANIZATION_OWNER_EMAIL=gerant@pme-test.fr NEXORA_MODEL_CHOICE=mistral NEXORA_UPSTREAM_KEY=k \
+  NEXORA_WEB_SEARCH=1 NEXORA_CODE=0 run "$hc" --yes --no-start
+case ",$(envval COMPOSE_PROFILES "$ec")," in *,code,*) ko "code profile removed when answered no" ;; *) ok "code profile removed when answered no" ;; esac
+
 # 1b''. Personal-data detection stays off unless asked; on, its profile joins the others and only it leaves when answered no.
 [ -z "$(envval NEXORA_PII_URL "$e")" ] && [ "$(envval NEXORA_PII "$e")" = "0" ] && ok "personal-data detection off by default" || ko "personal-data detection off by default"
 hp="$(new_home)/nexora"

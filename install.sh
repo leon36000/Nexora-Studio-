@@ -274,6 +274,23 @@ configure() {
       set_env NEXORA_WHISPER_URL "" ;;
   esac
 
+  # Code interpreter (profile « code »): AI-written Python in throwaway containers without network; an
+  # administrator still switches code execution on in Réglages › Exécution de code.
+  local code code_profiles
+  ask code "Installer l'interpréteur de code (Python sans réseau ; un administrateur l'active ensuite dans Réglages) ? (o/N)" "${NEXORA_CODE:-0}"
+  code_profiles=",$(get_env COMPOSE_PROFILES),"; code_profiles="${code_profiles//,code,/,}"
+  code_profiles="${code_profiles#,}"; code_profiles="${code_profiles%,}"
+  case "$code" in
+    1|o|O|oui|y|yes)
+      set_env NEXORA_CODE 1
+      set_env NEXORA_CODE_SANDBOX_URL "http://code-sandbox:8080"
+      set_env COMPOSE_PROFILES "${code_profiles:+$code_profiles,}code" ;;
+    *)
+      set_env NEXORA_CODE 0
+      set_env NEXORA_CODE_SANDBOX_URL ""
+      set_env COMPOSE_PROFILES "$code_profiles" ;;
+  esac
+
   # Personal-data detection (profile « pii »): a small service on this machine, about 800 MB.
   local pii
   ask pii "Activer la détection locale des données personnelles (noms, IBAN, e-mails ; environ 800 Mo) ? (o/N)" "${NEXORA_PII:-0}"

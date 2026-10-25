@@ -30,6 +30,7 @@ import time
 import urllib.error
 import urllib.parse
 import urllib.request
+import zipfile
 
 TEMPLATE_INPUTS = {
     "Devis client": {"client": "Boulangerie Martin, Lyon", "prestations": "Site vitrine : 1 x 2400 EUR HT"},
@@ -156,6 +157,37 @@ def text_pdf(lines: list[str]) -> bytes:
     out += f"xref\n0 {len(objects) + 1}\n0000000000 65535 f \n" + "".join(f"{o:010d} 00000 n \n" for o in offsets)
     out += f"trailer\n<< /Size {len(objects) + 1} /Root 1 0 R >>\nstartxref\n{xref}\n%%EOF\n"
     return out.encode("latin-1")
+
+
+def sales_workbook(rows: list[tuple[str, float]]) -> bytes:
+    """A one-sheet .xlsx (month, sales) built with the standard library only."""
+    cells = ['<row r="1"><c r="A1" t="inlineStr"><is><t>mois</t></is></c><c r="B1" t="inlineStr"><is><t>ventes</t></is></c></row>']
+    for number, (month, amount) in enumerate(rows, 2):
+        cells.append(f'<row r="{number}"><c r="A{number}" t="inlineStr"><is><t>{month}</t></is></c><c r="B{number}"><v>{amount}</v></c></row>')
+    parts = {
+        "[Content_Types].xml": '<?xml version="1.0" encoding="UTF-8"?><Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types"><Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/><Default Extension="xml" ContentType="application/xml"/><Override PartName="/xl/workbook.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet.main+xml"/><Override PartName="/xl/worksheets/sheet1.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.worksheet+xml"/></Types>',
+        "_rels/.rels": '<?xml version="1.0" encoding="UTF-8"?><Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument" Target="xl/workbook.xml"/></Relationships>',
+        "xl/workbook.xml": '<?xml version="1.0" encoding="UTF-8"?><workbook xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships"><sheets><sheet name="Ventes" sheetId="1" r:id="rId1"/></sheets></workbook>',
+        "xl/_rels/workbook.xml.rels": '<?xml version="1.0" encoding="UTF-8"?><Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/worksheet" Target="worksheets/sheet1.xml"/></Relationships>',
+        "xl/worksheets/sheet1.xml": '<?xml version="1.0" encoding="UTF-8"?><worksheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main"><sheetData>' + "".join(cells) + "</sheetData></worksheet>",
+    }
+    buffer = io.BytesIO()
+    with zipfile.ZipFile(buffer, "w", zipfile.ZIP_DEFLATED) as archive:
+        for name, content in parts.items():
+            archive.writestr(name, content)
+    return buffer.getvalue()
+
+
+def sse_frames(text: str) -> list[dict]:
+    """The JSON frames of a streamed chat answer."""
+    frames = []
+    for line in text.splitlines():
+        if line.startswith("data:") and line[5:].strip().startswith("{"):
+            try:
+                frames.append(json.loads(line[5:]))
+            except json.JSONDecodeError:
+                continue
+    return frames
 
 
 class _LocalSecureCookies(http.cookiejar.DefaultCookiePolicy):
@@ -1474,6 +1506,284 @@ print(json.dumps(summary))
         finally:
             s.call("DELETE", f"/api/workflows/{wf}")
 
+    def agent_chat(name: str, slug: str, instructions: str, tools: list[dict], outputs: list[str],
+                   user_message: str = "<start.input>") -> tuple[str, str, str]:
+        """Publishes a throwaway public chat on one Agent block with these tools; returns (workflow, identifier, block)."""
+        status, body = s.call("POST", "/api/workflows", {"name": f"{name} {secrets.token_hex(3)}", "workspaceId": state["ws"]})
+        require(status in (200, 201), f"workflow creation returned HTTP {status}")
+        wf = body.get("id") or (body.get("workflow") or body.get("data") or {}).get("id")
+        start, block = secrets.token_hex(8), secrets.token_hex(8)
+        sub = lambda i, t, v: {"id": i, "type": t, "value": v}
+        status, body = s.call("PUT", f"/api/workflows/{wf}/state", {"blocks": {
+            start: {"id": start, "type": "start_trigger", "name": "Start", "position": {"x": 0, "y": 0}, "enabled": True,
+                    "subBlocks": {"inputFormat": sub("inputFormat", "input-format", [])}, "outputs": {}},
+            block: {"id": block, "type": "agent", "name": "Agent", "position": {"x": 420, "y": 0}, "enabled": True,
+                    "subBlocks": {"messages": sub("messages", "messages-input", [{"role": "system", "content": instructions}, {"role": "user", "content": user_message}]),
+                                  "model": sub("model", "combobox", os.environ.get("NEXORA_SMOKE_AGENT_MODEL", "vllm/nexora-default")),
+                                  "tools": sub("tools", "tool-input", tools),
+                                  "files": sub("files", "short-input", "<start.files>")},
+                    "outputs": {}, "data": {"canonicalModes": {"files": "advanced"}}}},
+            "edges": [{"id": secrets.token_hex(8), "source": start, "target": block, "sourceHandle": "source", "targetHandle": "target"}],
+            "loops": {}, "parallels": {}})
+        require(status == 200, f"state save returned HTTP {status}: {str(body)[:200]}")
+        status, body = s.call("POST", f"/api/workflows/{wf}/deploy", {})
+        require(status == 200, f"deploy returned HTTP {status}: {str(body)[:200]}")
+        identifier = f"{slug}-{secrets.token_hex(4)}"
+        status, body = s.call("POST", "/api/chat", {
+            "workflowId": wf, "identifier": identifier, "title": name, "authType": "public",
+            "customizations": {"primaryColor": "#1f2937", "welcomeMessage": "Bonjour"},
+            "outputConfigs": [{"blockId": block, "path": path} for path in outputs]})
+        require(status in (200, 201), f"chat publication returned HTTP {status}: {str(body)[:200]}")
+        return wf, identifier, block
+
+    def ask(identifier: str, question: str, files: list[dict] | None = None, timeout: int = 600) -> tuple[str, list[dict], list[dict]]:
+        """One question to a published chat with every streamed event; returns (answer, frames, output files)."""
+        body: dict = {"input": question, "conversationId": secrets.token_hex(8)}
+        if files:
+            body["files"] = files
+        status, text = s.call("POST", f"/api/chat/{identifier}", body, raw=True, timeout=timeout,
+                              headers={"X-Sim-Stream-Protocol": "agent-events-v1, chat-outputs-v1"})
+        require(status == 200, f"chat returned HTTP {status}: {text[:300]}")
+        frames = sse_frames(text)
+        require(not any(f.get("event") == "error" for f in frames), f"chat reported an error: {text[:400]}")
+        answer = "".join(str(f.get("chunk", "")) for f in frames)
+        produced = [item for f in frames if f.get("event") == "output" and isinstance(f.get("data"), list)
+                    for item in f["data"] if isinstance(item, dict) and item.get("name")]
+        return answer, frames, produced
+
+    def interpreter():
+        admin_organization()
+        status, view = admin.call("GET", "/api/nexora/code-execution")
+        require(status == 200, f"code execution setting returned HTTP {status}")
+        if not view.get("configured"):
+            return "ignoré : le service « code » n'est pas installé (nexora code on)"
+        was_enabled = view["enabled"]
+        wf = None
+        try:
+            status, view = admin.call("PUT", "/api/nexora/code-execution", {"enabled": True})
+            require(status == 200 and view["enabled"] and view["reachable"], f"enabling returned HTTP {status}: {str(view)[:200]}")
+            status, tools = s.call("GET", "/api/nexora/agent-tools")
+            require(status == 200 and tools.get("codeInterpreter"), f"the interpreter is not offered to members: {tools}")
+            interpreter_tool = {"type": "function", "title": "Interpréteur de code", "toolId": "function_execute", "usageControl": "auto",
+                                "params": {"language": "python", "files": "<start.files>"}}
+            wf, identifier, _ = agent_chat(
+                "Interpréteur de fumée", "interpreteur-fumee",
+                "Tu es analyste de données dans une PME. Pour tout calcul ou graphique tu utilises l'interpréteur de code, jamais de tête. Réponds en français en une ou deux phrases avec le total exact.",
+                [interpreter_tool], ["content", "files"])
+            sales = [("janvier", 1200.0), ("février", 1850.5), ("mars", 990.0), ("avril", 2300.25)]
+            book = sales_workbook(sales)
+            attachment = {"name": "ventes.xlsx", "size": len(book),
+                          "type": "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+                          "data": "data:application/vnd.openxmlformats-officedocument.spreadsheetml.sheet;base64," + base64.b64encode(book).decode()}
+            answer, frames, produced = ask(identifier, "Voici nos ventes (fichier Excel) : fais un graphique par mois et donne le total des ventes.", [attachment])
+            total = sum(amount for _, amount in sales)
+            digits = answer.replace("\u202f", "").replace("\u00a0", "").replace(" ", "").replace(",", ".")
+            require(f"{total:g}" in digits or f"{total:.2f}" in digits, f"the answer does not give the exact total {total}: {answer[:300]}")
+            images = [f for f in produced if str(f.get("type", "")).startswith("image/")]
+            require(images, f"no chart came back with the answer ({[f.get('event') for f in frames if 'chunk' not in f]}, final: {json.dumps(next((f for f in frames if f.get('event') == 'final'), {}))[:600]}): {answer[:80]}")
+            link = urllib.parse.urlsplit(images[0].get("url", ""))
+            with s.opener.open(urllib.request.Request(f"{s.url}{link.path}" + (f"?{link.query}" if link.query else "")), timeout=60) as download:
+                picture = download.read()
+            require(picture[:8] == b"\x89PNG\r\n\x1a\n", f"the chart is not a PNG image ({len(picture)} bytes)")
+            # The Assistant itself (the employees' general agent) does the same with the attached workbook.
+            _, listing = s.call("GET", f"/api/nexora/assistant/agents?workspaceId={state['ws']}", timeout=300)
+            general = (listing.get("agents") or [None])[0]
+            require(general, "the workspace has no general Assistant")
+            assistant_answer, _, assistant_files = ask(
+                general["chatIdentifier"], "Voici nos ventes (fichier Excel) : fais un graphique par mois et donne le total des ventes.", [attachment])
+            assistant_digits = assistant_answer.replace("\u202f", "").replace("\u00a0", "").replace(" ", "").replace(",", ".")
+            require(f"{total:g}" in assistant_digits or f"{total:.2f}" in assistant_digits,
+                    f"the Assistant does not give the exact total {total}: {assistant_answer[:300]}")
+            require(any(str(f.get("type", "")).startswith("image/") for f in assistant_files), f"the Assistant returned no chart: {assistant_files}")
+            admin.call("PUT", "/api/nexora/code-execution", {"enabled": False})
+            refused, _, nothing = ask(identifier, "Refais le graphique des ventes.", [attachment])
+            require(not nothing, "a chart was produced while code execution is off")
+            return f"graphique {images[0]['name']} et total {total:g} exacts (agent et Assistant) ; sans autorisation, plus de graphique"
+        finally:
+            admin.call("PUT", "/api/nexora/code-execution", {"enabled": was_enabled})
+            if wf:
+                s.call("DELETE", f"/api/workflows/{wf}")
+
+    def citations():
+        status, body = s.call("POST", "/api/users/me/api-keys", {"name": f"fumee-{secrets.token_hex(3)}"})
+        require(status in (200, 201), f"API key creation returned HTTP {status}")
+        key = (body.get("key") or {}).get("key") if isinstance(body.get("key"), dict) else body.get("key") or (body.get("data") or {}).get("key")
+        auth = {"x-api-key": key}
+        status, body = s.call("POST", "/api/v1/knowledge", {"workspaceId": state["ws"], "name": "Fumée citations"}, headers=auth)
+        require(status in (200, 201), f"knowledge base creation returned HTTP {status}: {str(body)[:200]}")
+        data = body.get("data") or body
+        kb_id = (data.get("knowledgeBase") or data).get("id")
+        boundary = f"nexora{secrets.token_hex(8)}"
+        text = "Conditions de livraison\n\nLa livraison est offerte à partir de 80 euros d'achat. En dessous, elle coûte 6 euros.\n"
+        form = (
+            f"--{boundary}\r\nContent-Disposition: form-data; name=\"workspaceId\"\r\n\r\n{state['ws']}\r\n"
+            f"--{boundary}\r\nContent-Disposition: form-data; name=\"file\"; filename=\"conditions-livraison.txt\"\r\n"
+            f"Content-Type: text/plain\r\n\r\n{text}\r\n--{boundary}--\r\n"
+        ).encode()
+        status, body = s.call("POST", f"/api/v1/knowledge/{kb_id}/documents", headers=auth, data=form,
+                              content_type=f"multipart/form-data; boundary={boundary}", timeout=180)
+        require(status in (200, 201, 202), f"document upload returned HTTP {status}: {str(body)[:200]}")
+        deadline = time.monotonic() + 240
+        while time.monotonic() < deadline:
+            _, listing = s.call("GET", f"/api/v1/knowledge/{kb_id}/documents?workspaceId={state['ws']}", headers=auth)
+            docs = (listing.get("data") or {}).get("documents") or []
+            if docs and all(d.get("processingStatus") == "completed" for d in docs):
+                break
+            require(not any(d.get("processingStatus") == "failed" for d in docs), "indexing failed")
+            time.sleep(5)
+        else:
+            raise AssertionError("indexing did not finish in time")
+        wf = None
+        try:
+            knowledge_tool = {"type": "knowledge", "title": "Knowledge", "toolId": "knowledge_search", "operation": "search",
+                              "usageControl": "auto", "params": {"knowledgeBaseSelector": kb_id}}
+            wf, identifier, _ = agent_chat(
+                "Citations de fumée", "citations-fumee",
+                "Tu réponds aux questions des clients. Cherche toujours dans la base de connaissances avant de répondre. Réponds en français en une phrase.",
+                [knowledge_tool], ["content", "sources"])
+            answer, frames, _ = ask(identifier, "À partir de quel montant la livraison est-elle offerte ?")
+            require("80" in answer, f"the answer does not give the amount: {answer[:200]}")
+            require("[1]" in answer, f"the answer does not cite its source: {answer[:300]}")
+            listed = [f for f in frames if f.get("event") == "output" and f.get("path") == "sources"]
+            require(listed and listed[-1]["data"], f"no sources came with the answer: {[f.get('event') for f in frames if 'chunk' not in f]}")
+            first = listed[-1]["data"][0]
+            require(first["index"] == 1 and first["title"] == "conditions-livraison.txt", f"unexpected source: {first}")
+            require(first.get("url", "").startswith(f"/workspace/{state['ws']}/knowledge/{kb_id}/"), f"the source has no link to the document: {first}")
+            require("80 euros" in first.get("excerpt", ""), f"the source has no excerpt: {first}")
+            status, plain = s.call("POST", f"/api/chat/{identifier}", {"input": "Livraison offerte à partir de combien ?", "conversationId": secrets.token_hex(8)}, raw=True, timeout=300)
+            require(status == 200 and '"kind"' not in plain and '"excerpt"' not in plain, "a client that did not ask for outputs received the sources as text")
+            return f"réponse citée [1], source « {first['title']} » avec lien et extrait, rien en texte pour un client sans protocole"
+        finally:
+            if wf:
+                s.call("DELETE", f"/api/workflows/{wf}")
+            s.call("DELETE", f"/api/v1/knowledge/{kb_id}?workspaceId={state['ws']}", headers=auth)
+
+    def connect_runs(action: str) -> int | None:
+        """How many times Nexora Connect ran `action` through MCP (its own run log); None without access to it."""
+        base, token = os.environ.get("NEXORA_SMOKE_CONNECT_URL", ""), os.environ.get("NEXORA_SMOKE_CONNECT_TOKEN", "")
+        if not base or not token:
+            return None
+        request = urllib.request.Request(f"{base.rstrip('/')}/api/runs?actionId={action}&caller=mcp&limit=100",
+                                         headers={"Authorization": f"Bearer {token}"})
+        with urllib.request.urlopen(request, timeout=30) as response:
+            body = json.loads(response.read())
+        runs = body.get("data", body) if isinstance(body, dict) else body
+        runs = runs.get("items", runs) if isinstance(runs, dict) else runs
+        return len(runs)
+
+    def confirmation():
+        service, action = "postmark", "postmark.send_email"
+        _, detail = s.call("GET", f"/api/nexora/connectors/{service}?workspaceId={state['ws']}")
+        fields = next((a.get("fields") or [] for a in detail.get("auth", []) if a.get("type") == "api_key"), [])
+        require(fields, f"no API key form for {service}")
+        status, body = s.call("POST", f"/api/nexora/connectors/{service}", {
+            "workspaceId": state["ws"], "authType": "api_key",
+            "values": {f["key"]: f"fumee-{secrets.token_hex(8)}" for f in fields if f.get("required") or f.get("secret")}})
+        require(status == 200, f"connection returned HTTP {status}: {str(body)[:200]}")
+        wf = run_wf = None
+        try:
+            tool = None
+            for _ in range(15):
+                _, discovered = s.call("GET", f"/api/mcp/tools/discover?workspaceId={state['ws']}", timeout=180)
+                tool = next((t for t in discovered.get("data", {}).get("tools", []) if t.get("name") == "execute_action"
+                             and t.get("serverName") == "Nexora Connect"), None)
+                if tool:
+                    break
+                time.sleep(2)
+            require(tool, "Nexora Connect's execute_action tool is missing")
+            connect_tool = {"type": "mcp", "title": "execute_action", "toolId": f"mcp-{tool['serverId']}-execute_action", "usageControl": "auto",
+                            "requireConfirmation": True, "isExpanded": False,
+                            "params": {"serverId": tool["serverId"], "toolName": "execute_action", "serverName": "Nexora Connect"},
+                            "schema": {**tool["inputSchema"], "description": tool.get("description", "")}}
+            wf, identifier, _ = agent_chat(
+                "Confirmation de fumée", "confirmation-fumee",
+                "Tu es l'assistant administratif d'une PME. Pour envoyer un e-mail, appelle l'outil execute_action avec actionId « postmark.send_email » "
+                "et un input {From, To, Subject, TextBody}. Ne demande jamais de précision : utilise From « contact@exemple.fr », To « client@exemple.fr ». "
+                "Réponds en français en une phrase en disant si l'e-mail est parti.",
+                [connect_tool], ["content"])
+            question = "Envoie un e-mail de relance au client : sujet « Relance facture F-118 », message « Bonjour, votre facture est en retard. »"
+            before = connect_runs(action)
+
+            def asked_and_answered(decision: str) -> str:
+                """Streams one question; answers the first confirmation card with `decision`; returns the final answer."""
+                body = {"input": question, "conversationId": secrets.token_hex(8)}
+                request = urllib.request.Request(f"{s.url}/api/chat/{identifier}", data=json.dumps(body).encode(), method="POST",
+                                                 headers={"Content-Type": "application/json", "Origin": s.origin,
+                                                          "X-Sim-Stream-Protocol": "agent-events-v1, chat-outputs-v1"})
+                answered, text = False, []
+                try:
+                    stream = s.opener.open(request, timeout=600)
+                except urllib.error.HTTPError as error:
+                    raise AssertionError(f"chat returned HTTP {error.code}: {error.read().decode()[:300]}") from error
+                with stream:
+                    for raw in stream:
+                        line = raw.decode().strip()
+                        if not line.startswith("data:") or not line[5:].strip().startswith("{"):
+                            continue
+                        frame = json.loads(line[5:])
+                        if frame.get("event") == "confirmation" and not answered:
+                            data = frame["data"]
+                            require(data["title"] == action, f"the card names {data['title']!r}, not the action")
+                            require("client@exemple.fr" in data["summary"], f"the card does not show what would be sent: {data['summary'][:200]}")
+                            status, _ = s.call("POST", f"/api/nexora/tool-confirmations/{data['id']}", {"token": "x" * 40, "decision": "allow"})
+                            require(status == 403, f"a wrong token was accepted (HTTP {status})")
+                            status, _ = s.call("POST", f"/api/nexora/tool-confirmations/{data['id']}", {"token": data["token"], "decision": decision})
+                            require(status == 200, f"the answer was refused (HTTP {status})")
+                            answered = True
+                        elif "chunk" in frame:
+                            text.append(str(frame["chunk"]))
+                        elif frame.get("event") == "error":
+                            raise AssertionError(f"chat reported an error: {frame}")
+                require(answered, "the agent did not ask before sending the e-mail")
+                return "".join(text)
+
+            refusal = asked_and_answered("deny")
+            if before is not None:
+                require(connect_runs(action) == before, "Nexora Connect ran the action although it was refused")
+            time.sleep(1)
+            asked_and_answered("allow")
+            if before is not None:
+                require(connect_runs(action) == before + 1, "Nexora Connect did not run the action once it was allowed")
+            # A run nobody follows (the editor, a schedule, the API): the same question pauses the workflow instead.
+            run_wf, _, _ = agent_chat(
+                "Confirmation de fumée (run)", "confirmation-fumee-run",
+                "Tu es l'assistant administratif d'une PME. Pour envoyer un e-mail, appelle l'outil execute_action avec actionId « postmark.send_email » "
+                "et un input {From, To, Subject, TextBody}. Ne demande jamais de précision : utilise From « contact@exemple.fr », To « client@exemple.fr ».",
+                [connect_tool], ["content"], user_message=question)
+
+            def paused_run(approve: bool) -> int:
+                status, body = s.call("POST", f"/api/workflows/{run_wf}/execute",
+                                      {"useDraftState": True, "stream": False}, timeout=600)
+                require(status == 200, f"run returned HTTP {status}: {str(body)[:300]}")
+                shown = (body.get("output") or {}).get("data") or {}
+                resume = shown.get("_resume") or {}
+                require(resume.get("apiUrl"), f"the run did not pause for approval: {str(body)[:500]}")
+                rows = shown.get("responseStructure") or []
+                require(any(row.get("name") == action for row in rows), f"the pause does not name the action: {rows}")
+                require(any(f.get("name") == "autoriser" for f in shown.get("inputFormat") or []), "the pause has no « Autoriser » field")
+                path = urllib.parse.urlsplit(resume["apiUrl"]).path
+                status, resumed = s.call("POST", path, {"input": {"submission": {"autoriser": approve}}}, timeout=600)
+                require(status == 200, f"resume returned HTTP {status}: {str(resumed)[:300]}")
+                return status
+
+            if before is not None:
+                mark = connect_runs(action)
+                paused_run(False)
+                time.sleep(2)
+                require(connect_runs(action) == mark, "Nexora Connect ran the action although the paused run was refused")
+                paused_run(True)
+                time.sleep(3)
+                require(connect_runs(action) == mark + 1, "Nexora Connect did not run the approved action once")
+            else:
+                paused_run(False)
+            proof = "journal de Connect : 0 envoi après le refus, 1 après l'accord ; run en pause : idem" if before is not None else "journal de Connect non consulté"
+            return f"carte « Autoriser / Refuser » ⇒ refus sans envoi, puis accord ({proof}) ; réponse après refus : {refusal[:80]}"
+        finally:
+            s.call("DELETE", f"/api/nexora/connectors/{service}?workspaceId={state['ws']}")
+            for leftover in (wf, run_wf):
+                if leftover:
+                    s.call("DELETE", f"/api/workflows/{leftover}")
+
     def prompts():
         """K9: a published agent reads its instructions from a versioned prompt at run time: moving
         the production label changes its answer without republishing, moving it back restores it,
@@ -1829,6 +2139,9 @@ print(json.dumps(summary))
     s.check("Agent : publication, chat public, versions", agent)
     s.check("Prompts : étiquette production déplacée sans republier, API v2", prompts)
     s.check("Assistant : conversation en flux, historique, cloisonnement", assistant)
+    s.check("Interpréteur : classeur Excel ⇒ graphique et totaux exacts", interpreter)
+    s.check("Citations : réponse tirée d'une base ⇒ « Sources [1] » avec lien", citations)
+    s.check("Confirmation : refus ⇒ aucune action, accord ⇒ une seule", confirmation)
     s.check("API développeur : clé, modèle et agent au format OpenAI, refus 401 et 403", developer_api)
     s.check("Traces : arbre, IBAN masqué, durée > 10 s, collecteur OTLP, purge, cloisonnement", traces)
     s.check("Garde-fous : IBAN et e-mail, politique masquer / refuser, groupe sans modèle, export CSV", guardrails)

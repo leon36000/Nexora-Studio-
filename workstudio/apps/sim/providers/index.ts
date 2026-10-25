@@ -3,7 +3,13 @@ import { toError } from '@sim/utils/errors'
 import { getApiKeyWithBYOK } from '@/lib/api-key/byok'
 import { env, envNumber } from '@/lib/core/config/env'
 import type { ConversationUsageTotal } from '@/lib/memory/conversation-types'
+import {
+  createCitationRegistry,
+  isSourceSearchTool,
+  withCitationInstructions,
+} from '@/lib/nexora/citations'
 import { passesReasoningEffortThrough } from '@/lib/nexora/reasoning'
+import type { ToolConfirmationSpec } from '@/lib/nexora/tool-confirmation/policy'
 import { filterModelSafeWorkspaceFileAttachments } from '@/lib/uploads/contexts/workspace/file-secret-provenance'
 import { appendUnavailableAttachmentNotice } from '@/lib/uploads/utils/model-input'
 import type { StreamingExecution } from '@/executor/types'
@@ -40,6 +46,7 @@ import { isEvaluationModel, isKnownModelId, supportsTemperature } from '@/provid
 import { getProviderExecutor } from '@/providers/registry'
 import { addSettledCost, recordJournaledModelCost } from '@/providers/run-usage-limit'
 import {
+  type DeferredAction,
   type ProviderRuntimeContext,
   runWithProviderRuntimeContext,
 } from '@/providers/runtime-context'
@@ -301,6 +308,22 @@ export async function executeProviderRequest(
   const modelSafeRequest = await prepareProviderFileAttachments(sanitizedRequest)
   const toolIdentities = assignProviderToolIdentities(modelSafeRequest.tools)
   const failedFunctionToolCost = { total: 0 }
+  // Nexora edition: numbered sources for search tools, and the tools that ask before they run.
+  const searchesSources = modelSafeRequest.tools?.some((tool) =>
+    isSourceSearchTool(tool.canonicalId ?? tool.id)
+  )
+  const citations = searchesSources
+    ? createCitationRegistry({ workspaceId: modelSafeRequest.workspaceId })
+    : undefined
+  if (citations) {
+    modelSafeRequest.systemPrompt = withCitationInstructions(modelSafeRequest.systemPrompt ?? '')
+  }
+  const toolConfirmations = new Map<string, ToolConfirmationSpec>(
+    (modelSafeRequest.tools ?? []).flatMap((tool) =>
+      tool.confirmation ? [[tool.id, tool.confirmation] as const] : []
+    )
+  )
+  const deferredActions: DeferredAction[] = runtimeContext?.deferredActions ?? []
   // A conversation summary charges its parent request, so a stop after compaction bills it.
   const settledCost = runtimeContext?.settledCost ?? { input: 0, output: 0, total: 0 }
   const requestRuntimeContext: ProviderRuntimeContext = {
@@ -315,6 +338,9 @@ export async function executeProviderRequest(
       : {}),
     failedFunctionToolCost,
     settledCost,
+    ...(citations ? { citations } : {}),
+    ...(toolConfirmations.size > 0 ? { toolConfirmations } : {}),
+    deferredActions,
     ...(toolIdentities.toolIdByWireId.size > 0
       ? {
           toolIdByWireId: new Map([
@@ -437,6 +463,7 @@ export async function executeProviderRequest(
       () => failedFunctionToolCost.total
     )
     projectStreamingExecutionToolIdentities(response, toolIdentities)
+    if (citations) response.execution.output.sources = citations.sources()
     if (priorConversationUsage) {
       const prior = priorConversationUsage
       const output = response.execution.output
@@ -482,6 +509,7 @@ export async function executeProviderRequest(
 
   const costPolicy = resolveModelCostPolicy(response.model, isBYOK)
   projectProviderResponseToolIdentities(response, toolIdentities)
+  if (citations) response.sources = citations.sources()
 
   if (response.tokens) {
     const { input: promptTokens = 0, output: completionTokens = 0 } = response.tokens

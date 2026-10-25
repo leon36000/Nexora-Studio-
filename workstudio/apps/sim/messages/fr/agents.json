@@ -83,7 +83,9 @@
       "memory": "Mémoire de conversation",
       "reasoningEffort": "Effort de raisonnement",
       "welcomeMessage": "Message d’accueil",
-      "instructionsPrompt": "Prompt des consignes"
+      "instructionsPrompt": "Prompt des consignes",
+      "codeInterpreter": "Interpréteur de code",
+      "webSearch": "Recherche web"
     },
     "welcomeHint": "Enregistré avec le chat public, à la publication.",
     "tools": {
@@ -94,7 +96,9 @@
       "remove": "Retirer {name}",
       "workflowTitle": "Workflow {name}",
       "none": "Aucun outil",
-      "search": "Rechercher un outil…"
+      "search": "Rechercher un outil…",
+      "confirm": "Demander avant d’agir avec {name}",
+      "confirmHint": "Vous demande d’autoriser ou de refuser chaque utilisation de cet outil avant qu’il ne s’exécute."
     },
     "knowledge": {
       "add": "Ajouter des bases",
@@ -124,6 +128,18 @@
         "text": "texte",
         "number": "nombre",
         "boolean": "oui / non"
+      }
+    },
+    "builtinTools": {
+      "codeInterpreter": {
+        "label": "Interpréteur de code",
+        "hint": "Permet à l’agent d’exécuter du Python (sans réseau) pour calculer, analyser des fichiers et tracer des graphiques.",
+        "unavailable": "Indisponible : un administrateur doit installer et autoriser l’exécution de code (Réglages › Exécution de code)."
+      },
+      "webSearch": {
+        "label": "Recherche web",
+        "hint": "Permet à l’agent de chercher sur le web. Ses requêtes sortent de l’instance par le moteur de recherche que vous avez configuré.",
+        "unavailable": "Indisponible : la recherche web n’est pas activée sur cette instance."
       }
     }
   },

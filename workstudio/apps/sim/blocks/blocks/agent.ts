@@ -680,6 +680,15 @@ Return ONLY the JSON array.`,
     model: { type: 'string', description: 'Model used for generation' },
     tokens: { type: 'json', description: 'Token usage statistics' },
     toolCalls: { type: 'json', description: 'Tool calls made' },
+    sources: {
+      type: 'json',
+      description:
+        'Numbered sources the knowledge and web searches returned (for « Sources [1] [2] »)',
+    },
+    files: {
+      type: 'file[]',
+      description: 'Files produced by the tools (charts, workbooks of the code interpreter)',
+    },
     providerTiming: {
       type: 'json',
       description: 'Provider timing information',

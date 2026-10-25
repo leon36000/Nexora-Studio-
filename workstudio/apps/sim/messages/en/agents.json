@@ -83,7 +83,9 @@
       "memory": "Conversation memory",
       "reasoningEffort": "Reasoning effort",
       "welcomeMessage": "Welcome message",
-      "instructionsPrompt": "Instructions prompt"
+      "instructionsPrompt": "Instructions prompt",
+      "codeInterpreter": "Code interpreter",
+      "webSearch": "Web search"
     },
     "welcomeHint": "Saved with the public chat, when publishing.",
     "tools": {
@@ -94,7 +96,9 @@
       "remove": "Remove {name}",
       "workflowTitle": "Workflow {name}",
       "none": "No tools",
-      "search": "Search..."
+      "search": "Search...",
+      "confirm": "Ask before acting with {name}",
+      "confirmHint": "Asks you to allow or refuse each use of this tool before it runs."
     },
     "knowledge": {
       "add": "Add knowledge bases",
@@ -124,6 +128,18 @@
         "text": "text",
         "number": "number",
         "boolean": "yes / no"
+      }
+    },
+    "builtinTools": {
+      "codeInterpreter": {
+        "label": "Code interpreter",
+        "hint": "Lets the agent run Python (no network) to compute, analyze files and draw charts.",
+        "unavailable": "Not available: an administrator must install and allow code execution (Settings › Code execution)."
+      },
+      "webSearch": {
+        "label": "Web search",
+        "hint": "Lets the agent search the web. Its queries leave the instance through the search engine you configured.",
+        "unavailable": "Not available: web search is not enabled on this instance."
       }
     }
   },

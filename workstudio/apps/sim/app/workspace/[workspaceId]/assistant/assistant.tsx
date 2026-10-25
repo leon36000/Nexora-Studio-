@@ -12,6 +12,8 @@ import type {
   AssistantMessage,
   AssistantMessageFile,
 } from '@/lib/api/contracts/nexora-assistant'
+import { type AnswerExtras, splitExtras } from '@/lib/nexora/agent-extras'
+import type { ConfirmationItem } from '@/lib/nexora/tool-confirmation/client-state'
 import {
   ASSISTANT_MAX_FILE_BYTES,
   ASSISTANT_MAX_FILES,
@@ -46,6 +48,7 @@ function appendDictation(draft: string, text: string): string {
 const NO_AGENTS: AssistantAgent[] = []
 const NO_MESSAGES: AssistantMessage[] = []
 const NO_FILES: AssistantMessageFile[] = []
+const NO_EXTRAS: AnswerExtras = { files: [], sources: [] }
 const MAX_FILE_MEGABYTES = ASSISTANT_MAX_FILE_BYTES / (1024 * 1024)
 /** Distance from the bottom under which the thread keeps following a growing answer. */
 const STICK_TO_BOTTOM_PX = 80
@@ -59,6 +62,9 @@ interface ThreadItem {
   thinking?: string
   note?: string
   error?: string
+  extras: AnswerExtras
+  /** The « Autoriser / Refuser » cards of the answer being streamed. */
+  confirmations?: ConfirmationItem[]
 }
 
 interface AssistantProps {
@@ -113,14 +119,18 @@ export function Assistant({ workspaceId }: AssistantProps) {
     return null
   }, [messages])
 
-  const items: ThreadItem[] = messages.map((message) => ({
-    key: message.id,
-    role: message.role,
-    content: message.content,
-    files: message.files,
-    isStreaming: false,
-    note: message.interrupted ? t('thread.interrupted') : undefined,
-  }))
+  const items: ThreadItem[] = messages.map((message) => {
+    const { text, extras } = splitExtras(message.content)
+    return {
+      key: message.id,
+      role: message.role,
+      content: text,
+      files: message.files,
+      isStreaming: false,
+      note: message.interrupted ? t('thread.interrupted') : undefined,
+      extras,
+    }
+  })
   if (pending?.question && !(pending.question.id && storedIds.has(pending.question.id))) {
     items.push({
       key: 'pending-question',
@@ -128,6 +138,7 @@ export function Assistant({ workspaceId }: AssistantProps) {
       content: pending.question.content,
       files: pending.question.files,
       isStreaming: false,
+      extras: NO_EXTRAS,
     })
   }
   if (pending && !(pending.answer.id && storedIds.has(pending.answer.id))) {
@@ -143,6 +154,8 @@ export function Assistant({ workspaceId }: AssistantProps) {
         isStreaming,
         note: answer.status === 'stopped' ? t('thread.stopped') : undefined,
         error: answer.error ? t(`errors.${answer.error}`) : undefined,
+        extras: answer.extras,
+        confirmations: turn.confirmations,
       })
     }
   }
@@ -284,6 +297,11 @@ export function Assistant({ workspaceId }: AssistantProps) {
                   thinking={item.thinking}
                   note={item.note}
                   error={item.error}
+                  extras={item.extras}
+                  confirmations={item.confirmations}
+                  onAnswerConfirmation={(id, decision) =>
+                    void turn.answerConfirmation(id, decision)
+                  }
                   onRegenerate={
                     item === lastItem && item.role === 'assistant' && canAskAgain
                       ? regenerate

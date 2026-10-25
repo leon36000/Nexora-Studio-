@@ -33,6 +33,7 @@ import {
   type ChatStreamChunkResetFrame,
   type ChatStreamErrorFrame,
   type ChatStreamFinalFrame,
+  type ChatStreamFrame,
   type ChatStreamOutputFrame,
   type ChatStreamStreamErrorFrame,
   type ChatStreamThinkingFrame,
@@ -86,6 +87,8 @@ export type StreamingExecutorFn = (callbacks: {
   onStream: (streamingExec: StreamingExecution) => Promise<void>
   onBlockComplete: (blockId: string, output: unknown, outputBlockId?: string) => Promise<void>
   abortSignal: AbortSignal
+  /** Writes one more frame into the stream (Nexora: a confirmation request in the middle of a run). */
+  emitFrame: (frame: ChatStreamFrame) => void
 }) => Promise<ExecutionResult>
 
 export interface StreamingResponseOptions {
@@ -766,7 +769,10 @@ export async function createStreamingResponse(
         const matchingOutputs = getSelectedOutputDescriptors(streamConfig.selectedOutputs).filter(
           (descriptor) =>
             descriptor.blockId === selectedOutputBlockId &&
-            (!hasStreamedText || (descriptor.path !== '' && descriptor.path !== 'content'))
+            (!hasStreamedText || (descriptor.path !== '' && descriptor.path !== 'content')) &&
+            // Nexora edition: the numbered sources are data for a client that asked for outputs;
+            // any other would read them as part of the answer.
+            (emitStructuredOutputs || descriptor.path !== 'sources')
         )
 
         /**
@@ -841,6 +847,7 @@ export async function createStreamingResponse(
                 const frame: ChatStreamOutputFrame = {
                   blockId: selectedOutputBlockId,
                   event: 'output',
+                  path: descriptor.path,
                   data: hydratedOutput,
                 }
                 enqueue(encodeSSE(frame))
@@ -886,6 +893,9 @@ export async function createStreamingResponse(
           onStream: onStreamCallback,
           onBlockComplete: onBlockCompleteCallback,
           abortSignal: timeoutController.signal,
+          emitFrame: (frame) => {
+            if (!streamCancelled) enqueue(encodeSSE(frame))
+          },
         })
 
         const streamedContent =

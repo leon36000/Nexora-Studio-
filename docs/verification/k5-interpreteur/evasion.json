@@ -1,0 +1,87 @@
+{
+  "limits": {
+    "cpus": 1.0,
+    "memoryMb": 1024,
+    "tmpfsMb": 256,
+    "pids": 64,
+    "maxRunSeconds": 120,
+    "maxLifetimeSeconds": 600,
+    "maxSandboxes": 2,
+    "network": false,
+    "runtime": "runc"
+  },
+  "checks": [
+    {
+      "name": "reseau",
+      "ok": true,
+      "detail": "{\"connect\": \"refused\", \"dns\": \"refused\", \"interfaces\": [\"lo\"]}",
+      "durationMs": 701
+    },
+    {
+      "name": "fichiers-hote",
+      "ok": true,
+      "detail": "{\"readable\": [], \"writable\": [], \"token_in_env\": false, \"socket_mounted\": false, \"init_root_is_own_root\": true}",
+      "durationMs": 500
+    },
+    {
+      "name": "processus",
+      "ok": true,
+      "detail": "{\"started\": 61, \"refused\": 1} (plafond 64)",
+      "durationMs": 935
+    },
+    {
+      "name": "boucle-infinie",
+      "ok": true,
+      "detail": "arrêtée après 3.2 s, bac détruit ensuite : True",
+      "durationMs": 3601
+    },
+    {
+      "name": "memoire",
+      "ok": true,
+      "detail": "code de sortie 137, arrêtée par la mémoire : True",
+      "durationMs": 873
+    },
+    {
+      "name": "disque",
+      "ok": true,
+      "detail": "{\"written_mb\": 252, \"errno\": 28} (plafond 256 Mo)",
+      "durationMs": 1521
+    },
+    {
+      "name": "privileges",
+      "ok": true,
+      "detail": "{\"uid\": 10001, \"setuid_root\": \"refused\", \"cap_eff\": \"0000000000000000\", \"no_new_privs\": \"1\", \"execute_in_tmp\": \"refused\", \"write_system\": \"refused\", \"setuid_files\": []}",
+      "durationMs": 888
+    },
+    {
+      "name": "sortie",
+      "ok": true,
+      "detail": "2000 octets reçus pour 200 000 émis",
+      "durationMs": 1257
+    },
+    {
+      "name": "chemins-et-variables",
+      "ok": true,
+      "detail": "7/7 demandes hors périmètre refusées",
+      "durationMs": 713
+    },
+    {
+      "name": "porte-d-entree",
+      "ok": true,
+      "detail": "sans jeton : 401, mauvais jeton : 401, jeton absent de /health : True",
+      "durationMs": 19
+    },
+    {
+      "name": "capacite-et-duree",
+      "ok": true,
+      "detail": "bac n° 3 : 429, durée demandée démesurée ramenée à 600 s (plafond 600 s)",
+      "durationMs": 1723
+    },
+    {
+      "name": "rien-ne-reste",
+      "ok": true,
+      "detail": "0 conteneur(s) de bac restant(s)",
+      "durationMs": 0
+    }
+  ]
+}

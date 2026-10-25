@@ -13,6 +13,10 @@ import {
 } from '@/lib/memory/retrieval-tool-types'
 import { projectToolResultForCopilot } from '@/lib/mothership/request/tools/resolved-secret-result'
 import type { ToolExecutionResult } from '@/lib/mothership/tool-executor/types'
+import type { CitationRegistry } from '@/lib/nexora/citations'
+import { getActionOperationType } from '@/lib/nexora/connect-admin'
+import { gateToolCall } from '@/lib/nexora/tool-confirmation/gate'
+import type { ToolConfirmationSpec } from '@/lib/nexora/tool-confirmation/policy'
 import {
   CHILD_EXECUTION_ID_OUTPUT_KEY,
   CHILD_TRACE_DISABLED_OUTPUT_KEY,
@@ -44,6 +48,20 @@ export interface ProviderRuntimeContext {
   failedFunctionToolCost?: { total: number }
   /** Billed cost of this request's settled model steps and tool calls, charged if the run stops it. */
   settledCost?: TokenUsageCost
+  /** Nexora edition: numbers the results of the knowledge and web searches of this request. */
+  citations?: CitationRegistry
+  /** Nexora edition: tools (by provider wire id) that ask the person before they run. */
+  toolConfirmations?: ReadonlyMap<string, ToolConfirmationSpec>
+  /** Nexora edition: calls waiting for their run's approval pause, and the id of that run. */
+  deferredActions?: DeferredAction[]
+}
+
+/** A flagged call nobody could answer live: it waits for the pause of its workflow run. */
+export interface DeferredAction {
+  toolId: string
+  title: string
+  summary: string
+  params: Record<string, unknown>
 }
 
 export type ExecuteProviderToolOptions = ExecuteToolOptions
@@ -172,6 +190,22 @@ async function resolveMockedTool(
     if (abortSignal?.aborted) throw error
     return { success: false, output: {}, error: getErrorMessage(error) }
   }
+}
+
+const REFUSED_BY_PERSON =
+  "L'action a été refusée par la personne : elle n'a pas été exécutée. Dites-lui qu'elle n'a pas eu lieu et proposez une autre solution."
+const NOT_ANSWERED =
+  "Personne n'a répondu à temps : l'action n'a pas été exécutée. Dites-le et demandez si on la relance."
+const AWAITING_APPROVAL =
+  "L'action attend l'approbation de la personne responsable de ce workflow : elle n'a pas encore été exécutée. Ne la décrivez pas comme faite."
+
+/** The answer a tool call gets instead of running, for the model and for the run record. */
+function withheld(
+  message: string,
+  status: 'denied' | 'awaiting_approval'
+): ProviderToolExecutionResult {
+  const response: ToolResponse = { success: false, output: { status, message }, error: message }
+  return { rawResponse: response, modelResponse: response }
 }
 
 export async function executeProviderTool(
@@ -304,6 +338,29 @@ export async function executeProviderTool(
     return { rawResponse: response, modelResponse: response }
   }
 
+  const confirmation = runtimeContext?.toolConfirmations?.get(toolId)
+  if (confirmation?.required) {
+    const outcome = await gateToolCall({
+      spec: confirmation,
+      args: modelSuppliedToolInput(executionToolId, params),
+      executionId: (options.executionContext ?? runtimeContext?.executionContext)?.executionId,
+      lookupOperation: (actionId) => getActionOperationType(actionId),
+      signal: (options.executionContext ?? runtimeContext?.executionContext)?.abortSignal,
+    })
+    if (outcome.kind === 'denied') {
+      return withheld(outcome.reason === 'user' ? REFUSED_BY_PERSON : NOT_ANSWERED, 'denied')
+    }
+    if (outcome.kind === 'deferred') {
+      runtimeContext?.deferredActions?.push({
+        toolId: executionToolId,
+        title: outcome.title,
+        summary: outcome.summary,
+        params: structuredClone(params),
+      })
+      return withheld(AWAITING_APPROVAL, 'awaiting_approval')
+    }
+  }
+
   try {
     const executionContext = options.executionContext ?? runtimeContext?.executionContext
     const result = memoryRetrieval
@@ -314,12 +371,28 @@ export async function executeProviderTool(
           resolvedSecretTraceRegistry: toolCallRegistry,
         })
     accumulateToolCost(executionToolId, result, runtimeContext)
+    const numbered = (response: ToolResponse): ToolResponse =>
+      runtimeContext?.citations && response.success
+        ? {
+            ...response,
+            output: runtimeContext.citations.numberResults(
+              executionToolId,
+              params,
+              response.output
+            ) as ToolResponse['output'],
+          }
+        : response
     if (!registry || !toolCallRegistry) {
-      return recordResult({ rawResponse: result, modelResponse: withoutChildTraceHandle(result) })
+      return recordResult({
+        rawResponse: result,
+        modelResponse: numbered(withoutChildTraceHandle(result)),
+      })
     }
 
-    const modelResponse = withoutChildTraceHandle(
-      toProviderModelResponse(result, projectToolResultForCopilot(result, toolCallRegistry))
+    const modelResponse = numbered(
+      withoutChildTraceHandle(
+        toProviderModelResponse(result, projectToolResultForCopilot(result, toolCallRegistry))
+      )
     )
     registry.mergeToolCallRegistry(toolCallRegistry)
     return recordResult({ rawResponse: result, modelResponse })

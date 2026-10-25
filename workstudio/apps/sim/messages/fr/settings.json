@@ -311,6 +311,10 @@
         "label": "État",
         "description": "Vérifiez les services, le disque et la version"
       },
+      "code-execution": {
+        "label": "Exécution de code",
+        "description": "Autorisez l’interpréteur Python et voyez ses limites"
+      },
       "data-protection": {
         "label": "Données personnelles",
         "description": "Protégez les données envoyées aux modèles hors instance"
@@ -2166,6 +2170,44 @@
       "diskUnknown": "Illisible",
       "lastBackup": "Dernière sauvegarde",
       "lastBackupValue": "Voir <command>nexora status</command> sur le serveur"
+    }
+  },
+  "codeExecution": {
+    "forbidden": "Seuls les administrateurs de l’instance gèrent l’exécution de code.",
+    "loadError": "Impossible de lire le réglage d’exécution de code.",
+    "intro": "L’interpréteur Python permet aux agents et aux blocs Fonction d’analyser des fichiers, de calculer et de tracer des graphiques. Le code s’exécute dans un conteneur jetable, sans réseau, sur un système en lecture seule, avec processeur, mémoire, disque, processus et durée limités.",
+    "notInstalled": "L’interpréteur n’est pas installé sur ce serveur. Lancez « nexora code on » sur le serveur (ou répondez oui à la question sur l’interpréteur de code à l’installation), puis revenez ici.",
+    "unreachable": "L’interpréteur est installé mais ne répond pas. Vérifiez le service code-sandbox avec « nexora logs code-sandbox ».",
+    "switchLabel": "Autoriser l’exécution de code",
+    "switchHint": "Désactivée par défaut. Activée, les agents dotés de l’outil Interpréteur de code et les blocs Fonction en Python peuvent exécuter du code. La désactiver l’arrête en quelques secondes.",
+    "updatedAt": "Modifié le {date}",
+    "saveError": "Impossible de modifier le réglage.",
+    "notInstalledError": "Installez d’abord l’interpréteur sur le serveur.",
+    "limits": {
+      "title": "Limites de chaque exécution",
+      "cpus": "Cœurs de processeur",
+      "memory": "Mémoire",
+      "tmpfs": "Fichiers temporaires",
+      "pids": "Processus",
+      "time": "Durée",
+      "parallel": "Exécutions simultanées",
+      "runtime": "Isolation",
+      "values": {
+        "cpus": "{count}",
+        "memory": "{count} Mo",
+        "tmpfs": "{count} Mo",
+        "pids": "{count}",
+        "time": "{count} s",
+        "parallel": "{count}"
+      }
+    },
+    "security": {
+      "title": "Isolation",
+      "network": "Aucun réseau : le code ne peut joindre ni Internet, ni le serveur, ni les services de Nexora.",
+      "files": "Système en lecture seule, fichiers temporaires seulement, supprimés après chaque exécution.",
+      "privileges": "Utilisateur sans droits d’administration, aucun privilège, filtre d’appels système par défaut.",
+      "limits": "Mémoire, processus, disque et durée plafonnés ; une exécution qui les dépasse est arrêtée.",
+      "shared": "Le conteneur partage le noyau du serveur. Pour une isolation plus forte, demandez à votre administrateur d’installer gVisor (runsc) et de renseigner NEXORA_CODE_RUNTIME."
     }
   },
   "dataProtection": {

@@ -141,7 +141,12 @@ describe('createStreamingResponse', () => {
     expect(events.filter((event) => 'chunk' in event)).toEqual([
       { blockId: 'agent', chunk: 'Your image.' },
     ])
-    expect(events).toContainEqual({ blockId: 'agent', event: 'output', data: [file] })
+    expect(events).toContainEqual({
+      blockId: 'agent',
+      event: 'output',
+      path: 'files',
+      data: [file],
+    })
   })
 
   it('emits composite response-format selections once as structured outputs', async () => {
@@ -188,7 +193,7 @@ describe('createStreamingResponse', () => {
     const events = await collectSSEEvents(stream)
     expect(events.filter((event) => 'chunk' in event)).toEqual([])
     expect(events.filter((event) => event.event === 'output')).toEqual([
-      { blockId: 'agent', event: 'output', data: result },
+      { blockId: 'agent', event: 'output', path: 'result', data: result },
     ])
   })
 
@@ -263,8 +268,18 @@ describe('createStreamingResponse', () => {
 
       const events = await collectSSEEvents(stream)
       if (structured) {
-        expect(events).toContainEqual({ blockId: 'block', event: 'output', data: files })
-        expect(events).toContainEqual({ blockId: 'block', event: 'output', data: [] })
+        expect(events).toContainEqual({
+          blockId: 'block',
+          event: 'output',
+          path: 'files',
+          data: files,
+        })
+        expect(events).toContainEqual({
+          blockId: 'block',
+          event: 'output',
+          path: 'emptyFiles',
+          data: [],
+        })
         expect(events.some((event) => 'chunk' in event)).toBe(false)
       } else {
         expect(events).toContainEqual({ blockId: 'block', chunk: JSON.stringify(files, null, 2) })

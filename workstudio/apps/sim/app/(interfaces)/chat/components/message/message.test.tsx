@@ -28,7 +28,11 @@ vi.mock('@/app/(interfaces)/chat/components/message/components/markdown-renderer
   default: ({ content }: { content: string }) => <div data-testid='answer'>{content}</div>,
 }))
 
-import { escapeHtml } from '@/app/(interfaces)/chat/components/message/message'
+import {
+  type ChatMessage,
+  escapeHtml,
+  hasAssistantOutput,
+} from '@/app/(interfaces)/chat/components/message/message'
 
 describe('escapeHtml', () => {
   it('neutralizes a markup-breakout filename payload', () => {
@@ -41,5 +45,40 @@ describe('escapeHtml', () => {
 
   it('escapes ampersands first so entities are not double-broken', () => {
     expect(escapeHtml('a & b < c')).toBe('a &amp; b &lt; c')
+  })
+})
+
+describe('hasAssistantOutput', () => {
+  const assistant = (extra: Partial<ChatMessage>): ChatMessage => ({
+    id: 'm1',
+    content: '',
+    type: 'assistant',
+    timestamp: new Date(0),
+    ...extra,
+  })
+  const card = {
+    id: 'r1',
+    token: 't'.repeat(40),
+    title: 'postmark.send_email',
+    toolName: 'execute_action',
+    summary: '{}',
+    expiresAt: '2026-10-24T10:00:00.000Z',
+    state: 'pending' as const,
+    busy: false,
+    problem: null,
+  }
+
+  it('shows nothing for an answer that has not said anything yet', () => {
+    expect(hasAssistantOutput(assistant({}))).toBe(false)
+    expect(hasAssistantOutput(assistant({ content: '   ' }))).toBe(false)
+  })
+
+  it('shows an agent that only waits for the person to allow an action', () => {
+    expect(hasAssistantOutput(assistant({ confirmations: [card] }))).toBe(true)
+  })
+
+  it('shows text, files and tool chips', () => {
+    expect(hasAssistantOutput(assistant({ content: 'Bonjour' }))).toBe(true)
+    expect(hasAssistantOutput(assistant({ thinking: 'Je réfléchis' }))).toBe(true)
   })
 })

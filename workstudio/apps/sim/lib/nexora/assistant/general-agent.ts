@@ -28,6 +28,7 @@ import {
   AGENTS_FOLDER,
   buildAgentWorkflow,
   readsMessageFiles,
+  withAssistantTools,
   withMessageFiles,
 } from '@/lib/nexora/agents'
 import { assistantOperations } from '@/lib/nexora/assistant/operations'
@@ -50,6 +51,12 @@ const GENERAL_ASSISTANT_INSTRUCTIONS = [
   "Quand la question concerne l'entreprise, cherchez d'abord dans les bases de connaissances, puis citez les documents sur lesquels votre réponse s'appuie.",
   'Si la demande est ambiguë, posez une question pour la préciser avant de répondre.',
 ].join('\n')
+/** What the Assistant's chat shows of the Agent block: its answer, the files it produced, its sources. */
+const ASSISTANT_OUTPUT_PATHS = ['content', 'files', 'sources'] as const
+
+function assistantOutputConfigs(agentBlockId: string) {
+  return ASSISTANT_OUTPUT_PATHS.map((path) => ({ blockId: agentBlockId, path }))
+}
 /** The model id as blocks store it: the Nexora API's default model. */
 const GENERAL_ASSISTANT_MODEL = 'vllm/nexora-default'
 
@@ -171,11 +178,12 @@ async function findAgentBlock(workflowId: string): Promise<StoredAgentBlock | nu
 }
 
 /**
- * An assistant whose live version predates agents reading the files attached to a message: the
- * single Agent block of its active deployment has no `files` field. Read from the deployed
+ * An assistant whose live version predates agents reading the files attached to a message (the
+ * single Agent block of its active deployment has no `files` field) or the Python interpreter (no
+ * such tool, and no revision mark saying an administrator removed it). Read from the deployed
  * version, not the draft, so an upgrade saved to the draft but never deployed is retried.
  */
-async function liveVersionLacksMessageFiles(workflowId: string): Promise<boolean> {
+async function liveVersionNeedsUpgrade(workflowId: string): Promise<boolean> {
   const [active] = await db
     .select({ state: workflowDeploymentVersion.state })
     .from(workflowDeploymentVersion)
@@ -190,7 +198,12 @@ async function liveVersionLacksMessageFiles(workflowId: string): Promise<boolean
   const agents = Object.values(toRecord(toRecord(active.state).blocks)).filter(
     (block) => toRecord(block).type === 'agent'
   )
-  return agents.length === 1 && toRecord(toRecord(agents[0]).subBlocks).files === undefined
+  if (agents.length !== 1) return false
+  const agent = toRecord(agents[0])
+  return (
+    toRecord(agent.subBlocks).files === undefined ||
+    withAssistantTools({ subBlocks: agent.subBlocks, data: agent.data }) !== null
+  )
 }
 
 /**
@@ -209,7 +222,9 @@ async function upgradePublishedAssistant(params: {
   const { published } = params
   const agentBlock = await findAgentBlock(published.workflowId)
   if (!agentBlock) return published
-  const upgrade = withMessageFiles(agentBlock)
+  const filesUpgrade = withMessageFiles(agentBlock)
+  const toolsUpgrade = withAssistantTools(filesUpgrade ?? agentBlock)
+  const upgrade = toolsUpgrade ?? filesUpgrade
   if (upgrade) {
     await db
       .update(workflowBlocks)
@@ -229,6 +244,8 @@ async function upgradePublishedAssistant(params: {
     workspaceId: params.workspaceId,
     requestId: generateId(),
     projectLegacyAudit: false,
+    // The interpreter's files and the sources come to the chat as outputs of the Agent block.
+    ...(toolsUpgrade ? { outputConfigs: assistantOutputConfigs(agentBlock.id) } : {}),
   })
   if (!deployed.success) {
     throw new Error(deployed.error ?? 'Failed to republish the general assistant')
@@ -273,6 +290,9 @@ async function createAssistantWorkflow(params: {
     model: GENERAL_ASSISTANT_MODEL,
     tools: [],
     knowledgeBaseIds,
+    // Withdrawn at run time while code execution is off (see dropUnavailableBuiltinTools).
+    codeInterpreter: true,
+    webSearch: false,
     memory: true,
     reasoningEffort: 'auto',
     instructionsPrompt: null,
@@ -312,7 +332,7 @@ async function ensureGeneralAssistant(params: {
 }): Promise<GeneralAssistant | null> {
   const { workspaceId, userId } = params
   const ready = publishedAssistant(await readGeneralAssistantState(workspaceId))
-  if (ready && !(await liveVersionLacksMessageFiles(ready.workflowId))) return ready
+  if (ready && !(await liveVersionNeedsUpgrade(ready.workflowId))) return ready
 
   const lockKey = `nexora:general-assistant:${workspaceId}`
   const lockValue = generateId()
@@ -325,7 +345,7 @@ async function ensureGeneralAssistant(params: {
     const state = await readGeneralAssistantState(workspaceId)
     const published = publishedAssistant(state)
     if (published && state.chat) {
-      if (!(await liveVersionLacksMessageFiles(published.workflowId))) return published
+      if (!(await liveVersionNeedsUpgrade(published.workflowId))) return published
       return await upgradePublishedAssistant({
         workspaceId,
         userId,
@@ -336,7 +356,10 @@ async function ensureGeneralAssistant(params: {
     }
 
     const agentBlock = state.workflow ? await findAgentBlock(state.workflow.id) : null
-    const upgrade = agentBlock ? withMessageFiles(agentBlock) : null
+    const filesUpgrade = agentBlock ? withMessageFiles(agentBlock) : null
+    const upgrade = agentBlock
+      ? (withAssistantTools(filesUpgrade ?? agentBlock) ?? filesUpgrade)
+      : null
     if (agentBlock && upgrade) {
       // The redeploy below publishes the upgraded draft.
       await db
@@ -362,7 +385,7 @@ async function ensureGeneralAssistant(params: {
       description: GENERAL_ASSISTANT_DESCRIPTION,
       customizations: { welcomeMessage: GENERAL_ASSISTANT_WELCOME },
       authType: 'workspace',
-      outputConfigs: agentBlockId ? [{ blockId: agentBlockId, path: 'content' }] : undefined,
+      outputConfigs: agentBlockId ? assistantOutputConfigs(agentBlockId) : undefined,
       // Members see the reasoning through their session (chat route); the chat itself never shares it.
       includeThinking: false,
       workspaceId,

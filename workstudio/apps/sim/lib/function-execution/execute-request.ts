@@ -81,6 +81,7 @@ import {
   SIM_RESULT_PREFIX,
 } from '@/lib/execution/remote-sandbox'
 import { isBinarySandboxPath } from '@/lib/execution/remote-sandbox/encoding'
+import { isCodeSandboxConfigured } from '@/lib/execution/remote-sandbox/nexora'
 import { sandboxSessionInputProvenance } from '@/lib/execution/remote-sandbox/observer'
 import {
   isSandboxOutputFileError,
@@ -112,6 +113,7 @@ import {
   validateWorkspaceFileWriteTarget,
   writeWorkspaceFileByPath,
 } from '@/lib/mothership/vfs/resource-writer'
+import { isCodeExecutionEnabled } from '@/lib/nexora/code-execution'
 import { uploadExecutionFile } from '@/lib/uploads/contexts/execution/file-manager'
 import {
   createWorkspaceFileSecretProvenanceFromRegistry,
@@ -2380,11 +2382,16 @@ export async function executeFunctionRequest(
     // A selected Sim sandbox is layered on the Function base, even for a
     // trusted Mothership call. Only an unselected Mothership call uses the
     // separately built Mothership image.
-    const remoteSandboxEnabled = selectedSandboxId
-      ? isRemoteSandboxEnabled
-      : usesMothershipSandbox
-        ? isMothershipSandboxEnabled
-        : isRemoteSandboxEnabled
+    // With the Nexora code sandbox installed, it is the only remote sandbox: it serves Python, and
+    // only once an administrator turned code execution on (Réglages › Exécution de code).
+    const nexoraCodeSandbox = isCodeSandboxConfigured()
+    const remoteSandboxEnabled = nexoraCodeSandbox
+      ? await isCodeExecutionEnabled()
+      : selectedSandboxId
+        ? isRemoteSandboxEnabled
+        : usesMothershipSandbox
+          ? isMothershipSandboxEnabled
+          : isRemoteSandboxEnabled
     const remainingExecutionMs =
       executionDeadlineAt === undefined ? undefined : Math.max(1, executionDeadlineAt - Date.now())
     const timeout =
@@ -2622,6 +2629,24 @@ export async function executeFunctionRequest(
       jsIdentifierNames = extractionResult.identifierNames
 
       hasImports = jsImports.trim().length > 0 || extractionResult.hasRequireCalls
+    }
+
+    if (
+      nexoraCodeSandbox &&
+      (lang === CodeLanguage.Shell ||
+        (lang === CodeLanguage.JavaScript &&
+          remoteSandboxEnabled &&
+          (hasImports || Boolean(selectedSandboxId) || requestsSandboxFilesystem)))
+    ) {
+      throw new Error(
+        "L'interpréteur de code n'exécute que du Python : utilisez un bloc Fonction en Python, ou du JavaScript sans import ni fichier."
+      )
+    }
+
+    if (nexoraCodeSandbox && lang === CodeLanguage.Python && !remoteSandboxEnabled) {
+      throw new Error(
+        "L'exécution de code est désactivée. Un administrateur peut l'activer dans Réglages › Exécution de code."
+      )
     }
 
     if (lang === CodeLanguage.Shell && !remoteSandboxEnabled) {

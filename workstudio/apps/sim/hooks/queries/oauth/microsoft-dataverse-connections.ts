@@ -50,7 +50,9 @@ export function buildMicrosoftDataverseOAuthLinkRequest({
 /** Fails before a credential draft is created when this web-only flow cannot start. */
 export function assertMicrosoftDataverseWebOAuthAvailable(): void {
   if (getDesktopBridge()?.beginOAuthConnect) {
-    throw new Error('Microsoft Dataverse connections must currently be created in the Nexora web app.')
+    throw new Error(
+      'Microsoft Dataverse connections must currently be created in the Nexora web app.'
+    )
   }
 }
 
