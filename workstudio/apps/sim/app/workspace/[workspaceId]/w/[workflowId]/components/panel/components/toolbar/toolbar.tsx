@@ -97,12 +97,12 @@ const ToolbarItem = memo(function ToolbarItem({
     (e: React.DragEvent<HTMLElement>) => {
       const iconContainer = e.currentTarget.querySelector<HTMLElement>('[data-toolbar-item-icon]')
       onDragStart(e, item.type, isTriggerCapable, {
-        name: item.name,
+        name: label,
         bgColor: item.bgColor ?? '#666666',
         iconContainer,
       })
     },
-    [item.type, item.name, item.bgColor, isTriggerCapable, onDragStart]
+    [item.type, label, item.bgColor, isTriggerCapable, onDragStart]
   )
 
   const addBlockToPanel = useCallback(() => {

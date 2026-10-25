@@ -32,6 +32,18 @@ d="$(tree)"; w "$d" "<ChipCombobox options={o} value={v} />"; expect 0 "combobox
 d="$(tree)"; w "$d" "$(printf '<ChipModalField\n  type=\x27file\x27\n  onChange={onFiles}\n/>')"; expect 1 "file drop zone left on its English label fails" run "$d"
 d="$(tree)"; w "$d" "<ChipModalField type='file' label={t('drop')} onChange={onFiles} />"; expect 1 "file drop zone left on its English dragging label fails" run "$d"
 d="$(tree)"; w "$d" "<ChipModalField type='file' label={t('drop')} draggingLabel={t('dropHere')} onChange={onFiles} />"; expect 0 "file drop zone with translated labels passes" run "$d"
+# K2 follow-up: labels in camelCase properties, settings catalog labels, English date formatters.
+d="$(tree)"; w "$d" "export const HEADERS = { file: { rootLabel: 'Files' } }"; expect 1 "English rootLabel property fails" run "$d"
+d="$(tree)"; w "$d" "const x = { emptyMessage: 'Nothing here' }"; expect 1 "English emptyMessage property fails" run "$d"
+d="$(tree)"; w "$d" "const x = { keyLabel: 'Cohere', id: 'cohere' }"; expect 0 "keyLabel brand names pass" run "$d"
+d="$(tree)"; w "$d" "const x = { rootLabel: t('files'), listSegment: 'files' }"; expect 0 "translated rootLabel passes" run "$d"
+d="$(tree)"; w "$d" "$(printf 'import { allNavigationItems } from \x27@/app/workspace/[workspaceId]/settings/navigation\x27\nconst l = allNavigationItems.map((i) => i.label)')"; expect 1 "settings catalog labels read without the localized copy fail" run "$d"
+d="$(tree)"; w "$d" "$(printf 'import { allNavigationItems } from \x27@/app/workspace/[workspaceId]/settings/navigation\x27\nconst copy = useSettingsNavCopy()\nconst l = allNavigationItems.map((i) => copy.label(i))')"; expect 0 "settings catalog labels read through the localized copy pass" run "$d"
+d="$(tree)"; w "$d" "import { formatDate } from '@sim/utils/formatting'"; expect 1 "English formatDate import fails" run "$d"
+d="$(tree)"; w "$d" "import { formatDateTime, formatDuration } from '@sim/utils/formatting'"; expect 1 "English formatDateTime import fails" run "$d"
+d="$(tree)"; w "$d" "import { formatDuration } from '@sim/utils/formatting'"; expect 0 "other formatters pass" run "$d"
+d="$(tree)"; w "$d" "const label = date.toLocaleDateString('en-US', { month: 'short' })"; expect 1 "date formatted in en-US fails" run "$d"
+d="$(tree)"; w "$d" "const label = date.toLocaleDateString(locale, { month: 'short' })"; expect 0 "date formatted in the user's locale passes" run "$d"
 # Shared packages (K2): no hardcoded copy outside the package's labels file, whose keys must all be translated.
 shared() { local d; d="$(tree)"; mkdir -p "$d/workstudio/packages/kit/src" "$d/workstudio/apps/sim/messages/fr" "$d/workstudio/apps/sim/messages/en"
   echo "workstudio/packages/kit/src" > "$d/scripts/data/i18n-shared-packages.txt"; echo "$d"; }

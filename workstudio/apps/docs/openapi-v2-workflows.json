@@ -18793,6 +18793,7 @@
               "table.columns",
               "table.outputColumns",
               "workspace.secretNames",
+              "workspace.prompts",
               "workspace.sandboxes",
               "providers.ollamaEmbeddingModels",
               "providers.openrouterEmbeddingModels"
@@ -18979,6 +18980,7 @@
               "table.columns",
               "table.outputColumns",
               "workspace.secretNames",
+              "workspace.prompts",
               "workspace.sandboxes",
               "providers.ollamaEmbeddingModels",
               "providers.openrouterEmbeddingModels"

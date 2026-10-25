@@ -2191,6 +2191,18 @@ export const GENERATED_SCHEMA_TABLES = {
     'createdAt',
   ],
   nexoraApiKeyUsage: ['keyId', 'day', 'model', 'requests', 'promptTokens', 'completionTokens'],
+  nexoraPrompt: ['id', 'workspaceId', 'name', 'description', 'createdBy', 'createdAt', 'updatedAt'],
+  nexoraPromptVersion: [
+    'id',
+    'promptId',
+    'version',
+    'content',
+    'variables',
+    'note',
+    'createdBy',
+    'createdAt',
+  ],
+  nexoraPromptLabel: ['promptId', 'label', 'versionId', 'updatedBy', 'updatedAt'],
   nexoraTrace: [
     'id',
     'workspaceId',

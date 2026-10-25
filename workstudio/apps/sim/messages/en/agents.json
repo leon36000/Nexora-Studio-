@@ -45,7 +45,8 @@
       "invalid": "The request was refused: check the message and the settings.",
       "interrupted": "The answer was interrupted.",
       "unknown": "The answer could not be obtained."
-    }
+    },
+    "saveAsPrompt": "Save as prompt"
   },
   "thinking": {
     "title": "Reasoning",
@@ -80,7 +81,8 @@
       "knowledgeBaseIds": "Knowledge",
       "memory": "Conversation memory",
       "reasoningEffort": "Reasoning effort",
-      "welcomeMessage": "Welcome message"
+      "welcomeMessage": "Welcome message",
+      "instructionsPrompt": "Instructions prompt"
     },
     "welcomeHint": "Saved with the public chat, when publishing.",
     "tools": {
@@ -101,6 +103,27 @@
     "memory": {
       "on": "Yes",
       "off": "No"
+    },
+    "instructionsPrompt": {
+      "source": "Instructions source",
+      "written": "Text",
+      "fromPrompt": "Prompt",
+      "noPrompt": "Create a reusable prompt",
+      "prompt": "Prompt",
+      "label": "Version",
+      "missing": "This prompt no longer exists in the workspace",
+      "summary": "Instructions: prompt “{name}” {label} (version {version})",
+      "versionSummary": "Prompt “{name}” @{label}",
+      "labels": {
+        "production": "@production",
+        "test": "@test",
+        "latest": "Latest version"
+      },
+      "types": {
+        "text": "text",
+        "number": "number",
+        "boolean": "yes / no"
+      }
     }
   },
   "test": {
@@ -146,5 +169,53 @@
     "loadingVersion": "Loading versions…",
     "before": "Before",
     "after": "After"
+  },
+  "prompts": {
+    "metaTitle": "Prompts",
+    "title": "Prompts",
+    "help": "Help",
+    "newPrompt": "New prompt",
+    "loadFailed": "Could not load the prompts.",
+    "empty": "No prompts yet. A prompt is reusable, versioned instruction text your agents read on every message.",
+    "labelsSummary": "production v{production} · test v{test} · {latest, plural, one {# version} other {# versions}}",
+    "createTitle": "New prompt",
+    "createFailed": "The prompt could not be created.",
+    "creating": "Creating…",
+    "create": "Create",
+    "fields": {
+      "name": "Name",
+      "description": "Description",
+      "content": "Text",
+      "note": "Version note"
+    },
+    "variablesHint": "Write '{{variable}}' for a variable: the agent using the prompt gives its value.",
+    "back": "Prompts",
+    "delete": "Delete",
+    "versions": "Versions",
+    "versionLabel": "Version {version}",
+    "toProduction": "Promote to production",
+    "toTest": "Promote to test",
+    "versionText": "Text of version {version}",
+    "defaultSummary": "default: {value}",
+    "newVersion": "New version",
+    "compare": "Compare two versions",
+    "compareFrom": "Before",
+    "compareTo": "After",
+    "moveTitle": "Label {label} → version {version}",
+    "moveText": "Agents using the {label} label answer with version {version} from their next message, without republishing.",
+    "cancel": "Cancel",
+    "move": "Move",
+    "labelMoved": "{label} now points at version {version}",
+    "labelFailed": "The label could not be moved.",
+    "deleteTitle": "Delete “{name}”?",
+    "deleteText": "All its versions are deleted. Agents using it fail until their instructions are changed.",
+    "deleteFailed": "The prompt could not be deleted.",
+    "versionSaved": "Version {version} saved",
+    "versionFailed": "The version could not be saved.",
+    "variables": "Variables",
+    "variableType": "Type of {name}",
+    "variableDefault": "Default value of {name}",
+    "defaultValue": "Default value",
+    "saveVersion": "Save version"
   }
 }

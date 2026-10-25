@@ -2,9 +2,10 @@
 
 import { useEffect, useRef, useState } from 'react'
 import { Chip, ChipInput, ChipLink, ChipSelect, ChipTextarea, cn } from '@sim/emcn'
-import { HelpCircle, Plus, Send, Sparkles, Square } from '@sim/emcn/icons'
+import { FileText, HelpCircle, Plus, Send, Sparkles, Square } from '@sim/emcn/icons'
 import { generateId } from '@sim/utils/id'
 import { omit } from '@sim/utils/object'
+import { useRouter } from 'next/navigation'
 import { useTranslations } from 'next-intl'
 import { docsUrl } from '@/lib/branding/docs-url'
 import { DEFAULT_MODEL_ALIAS } from '@/lib/nexora/model-ids'
@@ -17,6 +18,7 @@ import {
   PlaygroundColumn,
 } from '@/app/workspace/[workspaceId]/playground/components/playground-column'
 import { streamPlaygroundAnswer } from '@/app/workspace/[workspaceId]/playground/stream-answer'
+import { CreatePromptModal } from '@/app/workspace/[workspaceId]/prompts/components/create-prompt-modal'
 import { useUserPermissionsContext } from '@/app/workspace/[workspaceId]/providers/workspace-permissions-provider'
 import { useProviderModels } from '@/hooks/queries/providers'
 
@@ -65,6 +67,7 @@ export function Playground({ workspaceId }: PlaygroundProps) {
   const controllersRef = useRef<Map<string, AbortController> | null>(null)
   controllersRef.current ??= new Map()
   const t = useTranslations('agents.playground')
+  const router = useRouter()
   const { canEdit } = useUserPermissionsContext()
   const { data: modelList } = useProviderModels('vllm')
   const { createAgent, isCreating } = useNewAgent(workspaceId)
@@ -77,6 +80,7 @@ export function Playground({ workspaceId }: PlaygroundProps) {
   const [temperature, setTemperature] = useState(DEFAULT_TEMPERATURE)
   const [maxTokens, setMaxTokens] = useState(DEFAULT_MAX_TOKENS)
   const [effort, setEffort] = useState<ReasoningEffort | typeof DEFAULT_EFFORT>(DEFAULT_EFFORT)
+  const [isSavingPrompt, setIsSavingPrompt] = useState(false)
 
   const temperatureValue = parseTemperature(temperature)
   const maxTokensValue = parseMaxTokens(maxTokens)
@@ -207,6 +211,15 @@ export function Playground({ workspaceId }: PlaygroundProps) {
               instructions={instructions}
             />
             {canEdit && (
+              <Chip
+                leftIcon={FileText}
+                disabled={!instructions.trim()}
+                onClick={() => setIsSavingPrompt(true)}
+              >
+                {t('saveAsPrompt')}
+              </Chip>
+            )}
+            {canEdit && (
               <Chip leftIcon={Sparkles} disabled={isCreating} onClick={handleSaveAsAgent}>
                 {t('saveAsAgent')}
               </Chip>
@@ -327,6 +340,13 @@ export function Playground({ workspaceId }: PlaygroundProps) {
           ))}
         </div>
       </div>
+      <CreatePromptModal
+        workspaceId={workspaceId}
+        open={isSavingPrompt}
+        onOpenChange={setIsSavingPrompt}
+        initialContent={instructions}
+        onCreated={(promptId) => router.push(`/workspace/${workspaceId}/prompts/${promptId}`)}
+      />
     </div>
   )
 }

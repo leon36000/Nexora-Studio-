@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { getLogWorkflowLabel, resolveLogWorkflowId } from './utils'
+import { formatDate, getLogWorkflowLabel, resolveLogWorkflowId } from './utils'
 
 describe('resolveLogWorkflowId', () => {
   it('returns null for Nexora agent jobs even when a workflow id exists', () => {
@@ -38,5 +38,25 @@ describe('getLogWorkflowLabel', () => {
     expect(getLogWorkflowLabel({ trigger: 'manual', workflowId: null, workflow: null })).toBe(
       'Deleted Workflow'
     )
+  })
+})
+
+describe('formatDate', () => {
+  /** Noon UTC stays on the 24th in every time zone a developer machine uses. */
+  const NOON = '2026-10-24T12:00:00Z'
+
+  it('writes the list date in French: day before month, 24-hour time', () => {
+    const french = formatDate(NOON, 'fr')
+    expect(french.compactDate).toBe('24 OCT.')
+    expect(french.compactTime).toMatch(/^\d{2}:\d{2}$/)
+    expect(french.full).toContain('24 oct. 2026')
+    expect(french.full).not.toMatch(/Oct|AM|PM/)
+  })
+
+  it('keeps the original English list date', () => {
+    const english = formatDate(NOON)
+    expect(english.compactDate).toBe('OCT 24')
+    expect(english.compactTime).toMatch(/^\d{1,2}:\d{2} (AM|PM)$/)
+    expect(formatDate(NOON, 'en')).toEqual(english)
   })
 })

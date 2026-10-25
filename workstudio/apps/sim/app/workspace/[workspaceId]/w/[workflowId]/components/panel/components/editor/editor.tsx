@@ -23,6 +23,7 @@ import { usePostHog } from 'posthog-js/react'
 import { useShallow } from 'zustand/react/shallow'
 import { useStoreWithEqualityFn } from 'zustand/traditional'
 import { docsUrl } from '@/lib/branding/docs-url'
+import { displaySubflowBlockName } from '@/lib/i18n/blocks'
 import { isMcpRuntimeReference } from '@/lib/mcp/operation-policy'
 import { resolveMcpBlockConfig } from '@/lib/mcp/workflow-config'
 import { captureEvent } from '@/lib/posthog/client'
@@ -63,7 +64,7 @@ import { useFolderMap } from '@/hooks/queries/folders'
 import { isWorkflowEffectivelyLocked } from '@/hooks/queries/utils/folder-tree'
 import { useWorkflowMap, useWorkflowState } from '@/hooks/queries/workflows'
 import { useCollaborativeWorkflow } from '@/hooks/use-collaborative-workflow'
-import { useBlockDisplay } from '@/hooks/use-translated-block-config'
+import { useBlockDisplay, useBlockTranslator } from '@/hooks/use-translated-block-config'
 import { usePanelEditorSearchStore, usePanelEditorStore } from '@/stores/panel'
 import { useWorkflowRegistry } from '@/stores/workflows/registry/store'
 import { useSubBlockStore } from '@/stores/workflows/subblock/store'
@@ -80,6 +81,7 @@ const EMPTY_SUBBLOCK_VALUES = {} as Record<string, any>
  */
 export function Editor() {
   const t = useTranslations('editor.panelEditor')
+  const tBlocks = useBlockTranslator()
   const {
     currentBlockId,
     connectionsHeight,
@@ -103,7 +105,6 @@ export function Editor() {
     currentBlock?.name ?? ''
   )
   const storedName = currentBlock?.name || t('title')
-  const heading = blockDisplayName || t('title')
   const isBlockNameSearchHighlighted =
     activeSearchTarget?.targetKind === 'block-name' && activeSearchTarget.blockId === currentBlockId
   const blockNameSearchHighlight =
@@ -118,6 +119,12 @@ export function Editor() {
 
   const isSubflow =
     currentBlock && (currentBlock.type === 'loop' || currentBlock.type === 'parallel')
+
+  // Loop / Parallel have no registry config: their generated name reads in the interface language.
+  const heading =
+    currentBlock && (currentBlock.type === 'loop' || currentBlock.type === 'parallel')
+      ? displaySubflowBlockName(currentBlock.name || t('title'), currentBlock.type, tBlocks)
+      : blockDisplayName || t('title')
 
   const subflowConfig = isSubflow ? (currentBlock.type === 'loop' ? LoopTool : ParallelTool) : null
 

@@ -541,7 +541,8 @@
       "knowledgeBases": "Bases de connaissances",
       "tests": "Tests",
       "logs": "Journaux",
-      "organization": "Organisation"
+      "organization": "Organisation",
+      "prompts": "Prompts"
     },
     "unknownWorkflow": "Workflow inconnu",
     "ariaLabel": "Barre latérale de l’espace de travail",

@@ -13,7 +13,6 @@ import {
   toast,
 } from '@sim/emcn'
 import { ArrowLeft, Download } from '@sim/emcn/icons'
-import { formatDateTime } from '@sim/utils/formatting'
 import { useRouter } from 'next/navigation'
 import { useTranslations } from 'next-intl'
 import { useQueryStates } from 'nuqs'
@@ -27,6 +26,7 @@ import {
 import { SettingsEmptyState } from '@/app/workspace/[workspaceId]/settings/components/settings-empty-state'
 import { SettingsPanel } from '@/app/workspace/[workspaceId]/settings/components/settings-panel'
 import { useUsageLogs } from '@/hooks/queries/usage-logs'
+import { useDateFormat } from '@/hooks/use-date-format'
 
 const PERIOD_VALUES = ['1d', '7d', '30d', 'all', 'custom'] as const
 
@@ -36,6 +36,7 @@ interface UsageLogRowProps {
 
 function UsageLogRow({ log }: UsageLogRowProps) {
   const t = useTranslations('settings.creditUsage')
+  const { formatDateTime } = useDateFormat()
   /** Workflow-sourced rows name the specific workflow; everything else uses the plain source label. */
   const rowLabel =
     log.source === 'workflow' && log.workflowName

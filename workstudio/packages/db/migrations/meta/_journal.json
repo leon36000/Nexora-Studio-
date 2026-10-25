@@ -3090,9 +3090,16 @@
       "breakpoints": true
     },
     {
+      "idx": 442,
+      "version": "7",
+      "when": 1792892387227,
+      "tag": "0442_nexora_prompts",
+      "breakpoints": true
+    },
+    {
       "idx": 444,
       "version": "7",
-      "when": 1792892713480,
+      "when": 1792897222733,
       "tag": "0444_nexora_traces",
       "breakpoints": true
     }

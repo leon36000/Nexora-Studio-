@@ -5,7 +5,6 @@ import { Chip, ChipConfirmModal, Label, Switch, Tooltip, toast } from '@sim/emcn
 import { CircleInfo, Plus } from '@sim/emcn/icons'
 import { createLogger } from '@sim/logger'
 import { getErrorMessage } from '@sim/utils/errors'
-import { formatDate } from '@sim/utils/formatting'
 import { useParams } from 'next/navigation'
 import { useTranslations } from 'next-intl'
 import { canMutateWorkspaceSettingsSection } from '@/components/settings/navigation'
@@ -31,6 +30,7 @@ import {
   useDeleteApiKey,
   useUpdateWorkspaceApiKeySettings,
 } from '@/hooks/queries/api-keys'
+import { useDateFormat } from '@/hooks/use-date-format'
 import { CreateApiKeyModal } from './components'
 
 const logger = createLogger('ApiKeys')
@@ -46,7 +46,11 @@ function copyKeyName(name: string, confirmation: string) {
 }
 
 /** Formats an API key's last-used timestamp, or `neverLabel` when unused. */
-function formatLastUsed(dateString: string | null | undefined, neverLabel: string): string {
+function formatLastUsed(
+  dateString: string | null | undefined,
+  neverLabel: string,
+  formatDate: (date: Date) => string
+): string {
   if (!dateString) return neverLabel
   return formatDate(new Date(dateString))
 }
@@ -90,6 +94,7 @@ interface ApiKeysProps {
 export function ApiKeys({ scope = 'workspace' }: ApiKeysProps) {
   const t = useTranslations('settings.apiKeys')
   const tShared = useTranslations('settings.shared')
+  const { formatDate } = useDateFormat()
   const { data: session } = useSession()
   const userId = session?.user?.id
   const params = useParams<{ workspaceId?: string }>()
@@ -276,7 +281,11 @@ export function ApiKeys({ scope = 'workspace' }: ApiKeysProps) {
                         badge={
                           <span className='whitespace-nowrap text-[var(--text-muted)] text-caption'>
                             {t('lastUsed', {
-                              when: formatLastUsed(key.lastUsed, t('never')).toLowerCase(),
+                              when: formatLastUsed(
+                                key.lastUsed,
+                                t('never'),
+                                formatDate
+                              ).toLowerCase(),
                             })}
                           </span>
                         }
@@ -306,7 +315,11 @@ export function ApiKeys({ scope = 'workspace' }: ApiKeysProps) {
                       badge={
                         <span className='whitespace-nowrap text-[var(--text-muted)] text-caption'>
                           {t('lastUsed', {
-                            when: formatLastUsed(key.lastUsed, t('never')).toLowerCase(),
+                            when: formatLastUsed(
+                              key.lastUsed,
+                              t('never'),
+                              formatDate
+                            ).toLowerCase(),
                           })}
                         </span>
                       }
@@ -339,7 +352,11 @@ export function ApiKeys({ scope = 'workspace' }: ApiKeysProps) {
                           badge={
                             <span className='whitespace-nowrap text-[var(--text-muted)] text-caption'>
                               {t('lastUsed', {
-                                when: formatLastUsed(key.lastUsed, t('never')).toLowerCase(),
+                                when: formatLastUsed(
+                                  key.lastUsed,
+                                  t('never'),
+                                  formatDate
+                                ).toLowerCase(),
                               })}
                             </span>
                           }

@@ -26,6 +26,7 @@ import type {
 } from '@/lib/table'
 import { getColumnId } from '@/lib/table/column-keys'
 import { withCellValueFilter } from '@/lib/table/query-builder/cell-filter'
+import { viewDisplayName } from '@/lib/table/views/display-name'
 import { resolveWorkflowGroupDeploymentMode } from '@/lib/table/workflow-groups/deployment-mode'
 import {
   FOLDERED_RESOURCE_HEADERS,
@@ -205,6 +206,7 @@ export function Table({
   const t = useTranslations('tables.detail')
   const tLocks = useTranslations('tables.locks')
   const tList = useTranslations('tables.list')
+  const tViews = useTranslations('tables.views')
   const params = useParams()
   const router = useRouter()
   const workspaceId = propWorkspaceId || (params.workspaceId as string)
@@ -1302,7 +1304,7 @@ export function Table({
   const breadcrumbs = useMemo(
     (): BreadcrumbItem[] =>
       folderBreadcrumbItems({
-        rootLabel: FOLDERED_RESOURCE_HEADERS.table.rootLabel,
+        rootLabel: tList('title'),
         rootIcon: FOLDERED_RESOURCE_HEADERS.table.rootIcon,
         breadcrumbs: folderChain,
         onNavigate: handleNavigateToFolder,
@@ -1635,7 +1637,7 @@ export function Table({
         open={viewModal?.mode === 'new' || renamingView !== null}
         onOpenChange={(open) => !open && setViewModal(null)}
         mode={viewModal?.mode === 'rename' ? 'rename' : 'new'}
-        initialName={renamingView?.name ?? ''}
+        initialName={renamingView ? viewDisplayName(renamingView, tViews('defaultName')) : ''}
         onSubmit={handleSubmitViewName}
         isSubmitting={createViewMutation.isPending || updateViewMutation.isPending}
       />

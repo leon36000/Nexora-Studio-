@@ -13,7 +13,6 @@ import {
 } from '@sim/emcn'
 import { Plus } from '@sim/emcn/icons'
 import { createLogger } from '@sim/logger'
-import { formatDate } from '@sim/utils/formatting'
 import { useTranslations } from 'next-intl'
 import { RowActionsMenu } from '@/app/workspace/[workspaceId]/settings/components/row-actions-menu'
 import { SettingsEmptyState } from '@/app/workspace/[workspaceId]/settings/components/settings-empty-state'
@@ -30,6 +29,7 @@ import {
   useDeleteCopilotKey,
   useGenerateCopilotKey,
 } from '@/hooks/queries/copilot-keys'
+import { useDateFormat } from '@/hooks/use-date-format'
 
 const logger = createLogger('CopilotSettings')
 
@@ -40,6 +40,7 @@ const logger = createLogger('CopilotSettings')
 export function Copilot() {
   const t = useTranslations('settings.copilot')
   const tSettings = useTranslations('settings')
+  const { formatDate } = useDateFormat()
   const { data: keys = [], isLoading } = useCopilotKeys()
   const generateKey = useGenerateCopilotKey()
   const deleteKeyMutation = useDeleteCopilotKey()

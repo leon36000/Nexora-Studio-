@@ -9,7 +9,7 @@ Ouvrez **Agents** dans la barre latérale, puis **Nouvel agent** (ou la carte *A
 | Champ | À quoi il sert |
 |---|---|
 | Nom, description | Ce que fait l'agent, pour vos collègues |
-| Consignes | Comment il doit répondre : rôle, ton, ce qu'il doit faire ou refuser |
+| Consignes | Comment il doit répondre : rôle, ton, ce qu'il doit faire ou refuser. Écrites ici (**Texte**) ou lues dans un **prompt** versionné de l'espace (`@production`, `@test`) : voir [Les prompts](prompts.md) |
 | Modèle | `nexora-default` suit le modèle par défaut ([Réglages › Modèles](modeles.md)) ; un autre modèle reste fixé |
 | Outils | Actions dans vos services (Nexora Connect, outils MCP) et autres workflows de l'espace |
 | Connaissances | Bases de documents dans lesquelles l'agent cherche avant de répondre |

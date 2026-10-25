@@ -12,7 +12,6 @@ import {
   Label,
   Skeleton,
 } from '@sim/emcn'
-import { formatDateTime } from '@sim/utils/formatting'
 import Link from 'next/link'
 import { useTranslations } from 'next-intl'
 import { useQueryStates } from 'nuqs'
@@ -31,6 +30,7 @@ import {
   useMothershipRequests,
   useMothershipUserBreakdown,
 } from '@/hooks/queries/mothership-admin'
+import { useDateFormat } from '@/hooks/use-date-format'
 import { useSettingsDirtyStore } from '@/stores/settings/dirty/store'
 
 const TABS: readonly MothershipTab[] = ['overview', 'licenses', 'byok']
@@ -56,11 +56,15 @@ function formatCost(cost: number) {
   return `$${cost.toFixed(4)}`
 }
 
-function formatDate(d: string | null | undefined) {
-  if (!d) return '—'
-  const date = new Date(d)
-  if (Number.isNaN(date.getTime())) return '—'
-  return formatDateTime(date)
+/** Timestamps in the interface language; `—` when missing or unreadable. */
+function useFormatDate() {
+  const { formatDateTime } = useDateFormat()
+  return (d: string | null | undefined) => {
+    if (!d) return '—'
+    const date = new Date(d)
+    if (Number.isNaN(date.getTime())) return '—'
+    return formatDateTime(date)
+  }
 }
 
 function Divider() {
@@ -178,6 +182,7 @@ function OverviewTab({
   end: string
 }) {
   const t = useTranslations('settings.mothership.overview')
+  const formatDate = useFormatDate()
   const { data: breakdown, isLoading: breakdownLoading } = useMothershipUserBreakdown(
     environment,
     start,
@@ -355,6 +360,7 @@ function OverviewTab({
 function LicensesTab({ environment }: { environment: MothershipEnv }) {
   const t = useTranslations('settings.mothership.licenses')
   const tSettings = useTranslations('settings')
+  const formatDate = useFormatDate()
   const { data, isLoading } = useMothershipLicenses(environment)
   const generateLicense = useGenerateLicense(environment)
   const [newName, setNewName] = useState('')

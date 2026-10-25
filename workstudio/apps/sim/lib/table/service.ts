@@ -34,12 +34,13 @@ import { generateRestoreName } from '@/lib/core/utils/restore-name'
 import { acquireAdvisoryXactLock } from '@/lib/db/advisory-locks'
 import type { DbOrTx } from '@/lib/db/types'
 import { resolveRestoredFolderId } from '@/lib/folders/queries'
+import { requestLocale } from '@/lib/i18n/request-locale.server'
 import { notifyWorkspaceTablesChanged } from '@/lib/realtime/notify'
 import { assertRowCapacity, notifyTableRowUsage } from '@/lib/table/billing'
 import { generateColumnId, getColumnId, withGeneratedColumnIds } from '@/lib/table/column-keys'
 import {
   COLUMN_TYPES,
-  DEFAULT_TABLE_VIEW_NAME,
+  defaultTableViewName,
   NAME_PATTERN,
   TABLE_LIMITS,
 } from '@/lib/table/constants'
@@ -657,7 +658,7 @@ export async function createTable(
         id: generateId(),
         tableId,
         workspaceId: data.workspaceId,
-        name: DEFAULT_TABLE_VIEW_NAME,
+        name: defaultTableViewName(requestLocale()),
         config: {},
         isDefault: true,
         createdBy: data.userId,

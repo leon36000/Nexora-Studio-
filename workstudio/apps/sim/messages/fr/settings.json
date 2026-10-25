@@ -907,7 +907,7 @@
     },
     "roles": {
       "member": "Membre",
-      "admin": "Admin",
+      "admin": "Administrateur",
       "editor": "Éditeur"
     },
     "memberRow": {
@@ -919,7 +919,7 @@
       "readTitle": "Consultation uniquement",
       "write": "Écriture",
       "writeTitle": "Modification du contenu",
-      "admin": "Admin",
+      "admin": "Administrateur",
       "adminTitle": "Accès complet",
       "member": "Membre",
       "memberTitle": "Membre de l’organisation",
@@ -1368,14 +1368,14 @@
     "memberLists": {
       "orgRoles": {
         "owner": "Propriétaire",
-        "admin": "Admin",
+        "admin": "Administrateur",
         "member": "Membre",
         "external": "Externe"
       },
       "workspaceRoles": {
         "read": "Lecture",
         "write": "Écriture",
-        "admin": "Admin"
+        "admin": "Administrateur"
       },
       "memberActions": "Actions sur le membre",
       "deactivatedByDirectory": "Désactivé par votre annuaire",
@@ -1407,7 +1407,7 @@
       "paymentMethodHint": "Les prochains prélèvements continueront d’être débités sur la carte que vous avez ajoutée. Ouvrez le portail de facturation Stripe pour la retirer avant de partir.",
       "searchMembers": "Rechercher des membres...",
       "noMatches": "Aucun membre ne correspond à « {search} »",
-      "admin": "Admin",
+      "admin": "Administrateur",
       "failed": "Impossible de transférer la propriété"
     },
     "noOrganization": {
@@ -1433,7 +1433,7 @@
     "roles": {
       "read": "Lecture",
       "write": "Écriture",
-      "admin": "Admin"
+      "admin": "Administrateur"
     },
     "joined": "Membre depuis le {date}",
     "external": "Externe",

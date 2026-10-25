@@ -34,6 +34,7 @@ export function useNewAgent(workspaceId: string) {
         knowledgeBaseIds: [],
         memory: true,
         reasoningEffort: 'auto',
+        instructionsPrompt: null,
         welcomeMessage: t('welcomeMessage'),
         ...overrides,
       }

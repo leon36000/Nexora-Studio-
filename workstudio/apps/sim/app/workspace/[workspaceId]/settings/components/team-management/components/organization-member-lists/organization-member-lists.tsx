@@ -5,7 +5,6 @@ import { ChipDropdown, ChipTag, toast } from '@sim/emcn'
 import { createLogger } from '@sim/logger'
 import { isOrgAdminRole } from '@sim/platform-authz/predicates'
 import { getErrorMessage } from '@sim/utils/errors'
-import { formatDate } from '@sim/utils/formatting'
 import { useTranslations } from 'next-intl'
 import {
   type OrgRole,
@@ -42,6 +41,7 @@ import {
   useUpdateInvitation,
   useUpdateOrganizationMemberRole,
 } from '@/hooks/queries/organization'
+import { useDateFormat } from '@/hooks/use-date-format'
 
 const logger = createLogger('OrganizationMemberLists')
 
@@ -93,6 +93,7 @@ export function OrganizationMemberLists({
 }: OrganizationMemberListsProps) {
   const t = useTranslations('settings.teamManagement.memberLists')
   const tShared = useTranslations('settings.shared')
+  const { formatDate } = useDateFormat()
   const orgRoleOptions = ORG_ROLE_VALUES.map((value) => ({
     value,
     label: t(`orgRoles.${value}`),

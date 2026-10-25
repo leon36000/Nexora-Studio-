@@ -17,6 +17,7 @@ import http.cookiejar
 import http.server
 import json
 import os
+from pathlib import Path
 import secrets
 import sys
 import threading
@@ -574,8 +575,12 @@ def main() -> int:
             require(status == 200, f"state save returned HTTP {status}")
             pdf_lines = ["Facture FA-2026-0142", "Date : 12/03/2026", "Atelier Dubois SARL",
                          "Total HT : 1 250,00 EUR", "TVA 20 % : 250,00 EUR", "Total TTC : 1 500,00 EUR"]
+            # The scan is a real rendering (150 dpi, slight skew and blur) from the K4 test set: a
+            # synthetic bitmap font is not something a 3B vision model reads reliably.
+            k4 = Path(__file__).resolve().parent.parent / "docs" / "verification" / "k4-factures"
+            scan = json.loads((k4 / "attendu.json").read_text(encoding="utf-8"))["facture-06-scan.png"]
             documents = [("facture.pdf", "application/pdf", text_pdf(pdf_lines)),
-                         ("facture-scannee.png", "image/png", text_png("\n".join(INVOICE_LINES), scale=4))]
+                         ("facture-06-scan.png", "image/png", (k4 / "facture-06-scan.png").read_bytes())]
             for name, mime, data in documents:
                 status, run = s.call("POST", f"/api/workflows/{wf}/execute", {"useDraftState": True, "stream": False,
                                      "input": {"document": [{"name": name, "mimeType": mime, "data": base64.b64encode(data).decode()}]}}, timeout=900)
@@ -583,9 +588,13 @@ def main() -> int:
             status, body = s.call("GET", f"/api/table/{table}/rows?workspaceId={state['ws']}&limit=10")
             rows = [{column_names.get(k, k): v for k, v in (row.get("data") or {}).items()} for row in (body.get("data") or {}).get("rows", [])]
             require(status == 200 and len(rows) == 2, f"expected 2 rows in the table, got HTTP {status}: {str(body)[:200]}")
-            for row in rows:
-                got = (str(row.get("numero")), str(row.get("date"))[:10], str(row.get("fournisseur")).upper(), row.get("total_ht"), row.get("total_tva"), row.get("total_ttc"))
-                require(got == ("FA-2026-0142", "2026-03-12", "ATELIER DUBOIS SARL", 1250, 250, 1500), f"unexpected row: {row}")
+            wanted = {"FA-2026-0142": ("2026-03-12", "ATELIER DUBOIS SARL", 1250, 250, 1500),
+                      scan["numero"]: (scan["date"], scan["fournisseur"].upper(), scan["total_ht"], scan["total_tva"], scan["total_ttc"])}
+            by_number = {str(row.get("numero")): row for row in rows}
+            require(set(by_number) == set(wanted), f"numéros lus {sorted(by_number)}, attendus {sorted(wanted)}")
+            for number, row in by_number.items():
+                got = (str(row.get("date"))[:10], str(row.get("fournisseur")).upper(), row.get("total_ht"), row.get("total_tva"), row.get("total_ttc"))
+                require(got == wanted[number], f"{number} : lu {got}, attendu {wanted[number]}")
                 require(row.get("a_verifier") is False, f"row flagged « à vérifier »: {row.get('motifs')}")
             return "facture PDF et facture scannée : six champs exacts, deux lignes dans la table, rien « à vérifier »"
         finally:
@@ -1121,6 +1130,83 @@ def main() -> int:
         finally:
             s.call("DELETE", f"/api/workflows/{wf}")
 
+    def prompts():
+        """K9: a published agent reads its instructions from a versioned prompt at run time: moving
+        the production label changes its answer without republishing, moving it back restores it,
+        each run records the version it used, and a workspace key reads the labelled version."""
+        name = f"Fumée prompts {secrets.token_hex(3)}"
+        status, body = s.call("POST", "/api/nexora/prompts", {
+            "workspaceId": state["ws"], "name": name, "note": "Première version",
+            "content": "Réponds uniquement par le mot POMME, en majuscules, sans rien ajouter."})
+        require(status == 200 and body.get("prompt", {}).get("labels") == {"production": 1, "test": 1},
+                f"prompt creation returned HTTP {status}: {str(body)[:200]}")
+        prompt_id = body["prompt"]["id"]
+        wf, key_id = None, None
+        try:
+            status, body = s.call("POST", f"/api/nexora/prompts/{prompt_id}/versions", {
+                "workspaceId": state["ws"], "note": "Un autre fruit",
+                "content": "Réponds uniquement par le mot {{fruit}}, en majuscules, sans rien ajouter.",
+                "variables": [{"name": "fruit", "type": "text", "defaultValue": "CERISE"}]})
+            require(status == 200 and body.get("version", {}).get("version") == 2, f"new version returned HTTP {status}: {str(body)[:200]}")
+            require(body["prompt"]["labels"]["production"] == 1, "a new version moved the production label")
+
+            status, body = s.call("POST", "/api/workflows", {"name": f"Agent à prompt {secrets.token_hex(3)}", "workspaceId": state["ws"]})
+            require(status in (200, 201), f"workflow creation returned HTTP {status}")
+            wf = body.get("id") or (body.get("workflow") or body.get("data") or {}).get("id")
+            start, agent_id = secrets.token_hex(8), secrets.token_hex(8)
+            sub = lambda i, t, v: {"id": i, "type": t, "value": v}
+            status, body = s.call("PUT", f"/api/workflows/{wf}/state", {"blocks": {
+                start: {"id": start, "type": "start_trigger", "name": "Start", "position": {"x": 0, "y": 0}, "enabled": True,
+                        "subBlocks": {"inputFormat": sub("inputFormat", "input-format", [])}, "outputs": {}},
+                agent_id: {"id": agent_id, "type": "agent", "name": "Agent", "position": {"x": 420, "y": 0}, "enabled": True,
+                           "subBlocks": {"messages": sub("messages", "messages-input", [{"role": "system", "content": "Réponds par le mot BANANE."}, {"role": "user", "content": "<start.input>"}]),
+                                         "model": sub("model", "combobox", os.environ.get("NEXORA_SMOKE_PROMPTS_MODEL", "vllm/nexora-default")),
+                                         "promptId": sub("promptId", "combobox", prompt_id),
+                                         "promptLabel": sub("promptLabel", "dropdown", "production")},
+                           "outputs": {}}},
+                "edges": [{"id": secrets.token_hex(8), "source": start, "target": agent_id, "sourceHandle": "source", "targetHandle": "target"}],
+                "loops": {}, "parallels": {}})
+            require(status == 200, f"state save returned HTTP {status}: {str(body)[:200]}")
+            status, body = s.call("POST", f"/api/workflows/{wf}/deploy", {})
+            require(status == 200, f"deploy returned HTTP {status}: {str(body)[:200]}")
+
+            def run_published() -> tuple[str, int]:
+                status, body = s.call("POST", f"/api/workflows/{wf}/execute", {"input": "Quel est ton mot ?", "stream": False}, timeout=300)
+                require(status == 200 and body.get("success"), f"run returned HTTP {status}: {str(body.get('error') or body)[:200]}")
+                output = body.get("output") or {}
+                return str(output.get("content") or ""), int((output.get("prompt") or {}).get("version") or 0)
+
+            def move(version: int):
+                status, body = s.call("PUT", f"/api/nexora/prompts/{prompt_id}/labels", {"workspaceId": state["ws"], "label": "production", "version": version})
+                require(status == 200 and body["prompt"]["labels"]["production"] == version, f"label move returned HTTP {status}: {str(body)[:200]}")
+
+            answer, used = run_published()
+            require("POMME" in answer.upper() and used == 1, f"production v1: expected POMME (v1), got {answer[:80]!r} (v{used})")
+            move(2)
+            answer, used = run_published()
+            require("CERISE" in answer.upper() and used == 2, f"after the move to v2 without republishing: expected CERISE (v2), got {answer[:80]!r} (v{used})")
+            move(1)
+            answer, used = run_published()
+            require("POMME" in answer.upper() and used == 1, f"back to v1: expected POMME, got {answer[:80]!r} (v{used})")
+
+            status, body = s.call("POST", f"/api/workspaces/{state['ws']}/api-keys", {"name": f"fumee-prompts-{secrets.token_hex(3)}"})
+            require(status in (200, 201), f"workspace key creation returned HTTP {status}: {str(body)[:200]}")
+            key_id, key = body["key"]["id"], body["key"]["key"]
+            status, body = s.call("GET", f"/api/v2/prompts/{prompt_id}?workspaceId={state['ws']}&label=production", headers={"x-api-key": key})
+            require(status == 200 and body["data"]["version"]["number"] == 1 and "POMME" in body["data"]["version"]["content"],
+                    f"v2 API, label=production: HTTP {status} {str(body)[:200]}")
+            status, body = s.call("GET", f"/api/v2/prompts/{prompt_id}?workspaceId={state['ws']}&version=2", headers={"x-api-key": key})
+            require(status == 200 and body["data"]["version"]["variables"][0]["name"] == "fruit", f"v2 API, version=2: HTTP {status} {str(body)[:200]}")
+            status, _ = s.call("GET", f"/api/v2/prompts/{prompt_id}?workspaceId={state['ws']}")
+            require(status == 401, f"v2 API without a key answered HTTP {status}")
+            return "POMME (v1) → CERISE (v2) sans republier → POMME (v1) ; API v2 avec une clé d'espace"
+        finally:
+            if wf:
+                s.call("DELETE", f"/api/workflows/{wf}")
+            if key_id:
+                s.call("DELETE", f"/api/workspaces/{state['ws']}/api-keys/{key_id}")
+            s.call("DELETE", f"/api/nexora/prompts/{prompt_id}?workspaceId={state['ws']}")
+
     if args.quick:
         # On demand (operators): the platform answers in French, a workspace gets its templates, a
         # template runs through the model. Needs no admin credentials, but signs up an account:
@@ -1146,6 +1232,7 @@ def main() -> int:
     s.check("Playground (réponse en flux)", playground)
     s.check("Playground : réflexion séparée de la réponse", playground_reasoning)
     s.check("Agent : publication, chat public, versions", agent)
+    s.check("Prompts : étiquette production déplacée sans republier, API v2", prompts)
     s.check("Assistant : conversation en flux, historique, cloisonnement", assistant)
     s.check("API développeur : clé, modèle et agent au format OpenAI, refus 401 et 403", developer_api)
     s.check("Traces : arbre, IBAN masqué, durée > 10 s, collecteur OTLP, purge, cloisonnement", traces)

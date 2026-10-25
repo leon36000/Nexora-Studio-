@@ -1,3 +1,4 @@
+import { displaySubflowName } from '@sim/workflow-renderer'
 import { getDefaultBlockName } from '@/lib/workflows/blocks/canvas-presentation'
 import type { BlockConfig, CanvasSentence, SubBlockConfig } from '@/blocks/types'
 
@@ -172,6 +173,25 @@ export function translateBlockConfig(config: BlockConfig, t: BlockTranslator): B
 /** A block type's display name: its French name when translated, the registry name otherwise. */
 export function translatedBlockName(type: string, name: string, t: BlockTranslator): string {
   return t.has(`${type}.name`) ? t(`${type}.name`) : name
+}
+
+const SUBFLOW_SOURCE_NAMES = { loop: 'Loop', parallel: 'Parallel' } as const
+
+/**
+ * The heading of a Loop / Parallel container (they have no registry config): the translated type
+ * name while the stored name is still the generated `Loop 2` / `Parallel`, a chosen name as typed.
+ * The stored name stays the identifier of its references (`<loop1.index>`).
+ */
+export function displaySubflowBlockName(
+  storedName: string,
+  type: 'loop' | 'parallel',
+  t: BlockTranslator
+): string {
+  return displaySubflowName(
+    storedName,
+    type,
+    translatedBlockName(type, SUBFLOW_SOURCE_NAMES[type], t)
+  )
 }
 
 const START_BLOCK_TYPES = new Set(['start_trigger', 'starter'])

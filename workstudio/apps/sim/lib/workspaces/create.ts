@@ -5,7 +5,9 @@ import { getPostgresConstraintName, getPostgresErrorCode } from '@sim/utils/erro
 import { generateId } from '@sim/utils/id'
 import { PlatformEvents } from '@/lib/core/telemetry'
 import type { DbTransaction } from '@/lib/db/types'
+import { requestLocale } from '@/lib/i18n/request-locale.server'
 import { ensureNexoraConnectServer } from '@/lib/nexora/connect'
+import { starterWorkflowCopy } from '@/lib/nexora/default-workflow'
 import { seedNexoraTemplates } from '@/lib/nexora/seed-templates'
 import { defaultWorkspaceName } from '@/lib/nexora/workspace-name'
 import { createProjectRecord } from '@/lib/projects/membership'
@@ -181,8 +183,7 @@ export async function createWorkspaceWithProjectInTransaction(
       userId,
       workspaceId,
       folderId: null,
-      name: 'default-agent',
-      description: 'Your first workflow - start building here!',
+      ...starterWorkflowCopy(requestLocale()),
       now,
     })
     await saveWorkflowToNormalizedTables(

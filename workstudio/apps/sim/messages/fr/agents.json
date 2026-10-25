@@ -45,7 +45,8 @@
       "invalid": "La demande a été refusée : vérifiez le message et les réglages.",
       "interrupted": "La réponse a été interrompue.",
       "unknown": "La réponse n’a pas pu être obtenue."
-    }
+    },
+    "saveAsPrompt": "Enregistrer comme prompt"
   },
   "thinking": {
     "title": "Réflexion",
@@ -80,7 +81,8 @@
       "knowledgeBaseIds": "Connaissances",
       "memory": "Mémoire de conversation",
       "reasoningEffort": "Effort de raisonnement",
-      "welcomeMessage": "Message d’accueil"
+      "welcomeMessage": "Message d’accueil",
+      "instructionsPrompt": "Prompt des consignes"
     },
     "welcomeHint": "Enregistré avec le chat public, à la publication.",
     "tools": {
@@ -101,6 +103,27 @@
     "memory": {
       "on": "Oui",
       "off": "Non"
+    },
+    "instructionsPrompt": {
+      "source": "Origine des consignes",
+      "written": "Texte",
+      "fromPrompt": "Prompt",
+      "noPrompt": "Créer un prompt réutilisable",
+      "prompt": "Prompt",
+      "label": "Version",
+      "missing": "Ce prompt n’existe plus dans l’espace",
+      "summary": "Consignes : prompt « {name} » {label} (version {version})",
+      "versionSummary": "Prompt « {name} » @{label}",
+      "labels": {
+        "production": "@production",
+        "test": "@test",
+        "latest": "Dernière version"
+      },
+      "types": {
+        "text": "texte",
+        "number": "nombre",
+        "boolean": "oui / non"
+      }
     }
   },
   "test": {
@@ -146,5 +169,53 @@
     "loadingVersion": "Chargement des versions…",
     "before": "Avant",
     "after": "Après"
+  },
+  "prompts": {
+    "metaTitle": "Prompts",
+    "title": "Prompts",
+    "help": "Aide",
+    "newPrompt": "Nouveau prompt",
+    "loadFailed": "Impossible de charger les prompts.",
+    "empty": "Aucun prompt. Un prompt est un texte de consignes réutilisable, versionné, que vos agents lisent à chaque message.",
+    "labelsSummary": "production v{production} · test v{test} · {latest, plural, one {# version} other {# versions}}",
+    "createTitle": "Nouveau prompt",
+    "createFailed": "Le prompt n’a pas pu être créé.",
+    "creating": "Création…",
+    "create": "Créer",
+    "fields": {
+      "name": "Nom",
+      "description": "Description",
+      "content": "Texte",
+      "note": "Note de version"
+    },
+    "variablesHint": "Écrivez '{{variable}}' pour une variable : sa valeur est donnée par l’agent qui utilise le prompt.",
+    "back": "Prompts",
+    "delete": "Supprimer",
+    "versions": "Versions",
+    "versionLabel": "Version {version}",
+    "toProduction": "Mettre en production",
+    "toTest": "Mettre en test",
+    "versionText": "Texte de la version {version}",
+    "defaultSummary": "par défaut : {value}",
+    "newVersion": "Nouvelle version",
+    "compare": "Comparer deux versions",
+    "compareFrom": "Avant",
+    "compareTo": "Après",
+    "moveTitle": "Étiquette {label} → version {version}",
+    "moveText": "Les agents qui utilisent l’étiquette {label} répondront avec la version {version} dès leur prochain message, sans republication.",
+    "cancel": "Annuler",
+    "move": "Déplacer",
+    "labelMoved": "{label} pointe maintenant vers la version {version}",
+    "labelFailed": "L’étiquette n’a pas pu être déplacée.",
+    "deleteTitle": "Supprimer « {name} » ?",
+    "deleteText": "Toutes ses versions sont supprimées. Les agents qui l’utilisent échoueront tant que leurs consignes ne seront pas changées.",
+    "deleteFailed": "Le prompt n’a pas pu être supprimé.",
+    "versionSaved": "Version {version} enregistrée",
+    "versionFailed": "La version n’a pas pu être enregistrée.",
+    "variables": "Variables",
+    "variableType": "Type de {name}",
+    "variableDefault": "Valeur par défaut de {name}",
+    "defaultValue": "Valeur par défaut",
+    "saveVersion": "Enregistrer la version"
   }
 }
