@@ -169,6 +169,20 @@ describe('exportTrace', () => {
     expect(result).toMatchObject({ ok: false, status: 401 })
   })
 
+  it('refuse une redirection sans la suivre ni retenter, pour ne pas envoyer l’autorisation ailleurs', async () => {
+    const fetchFn = vi.fn(
+      async () =>
+        new Response(null, { status: 302, headers: { Location: 'https://autre.example/v1/traces' } })
+    )
+    const result = await exportTrace(settings, stored(), fetchFn as unknown as typeof fetch)
+    expect(fetchFn).toHaveBeenCalledTimes(1)
+    const [, init] = fetchFn.mock.calls[0] as unknown as [string, RequestInit]
+    expect(init.redirect).toBe('manual')
+    expect(result).toMatchObject({ ok: false, status: 302 })
+    expect(result.error).toContain('redirection')
+    expect(JSON.stringify(lastExportStatus())).not.toContain('Basic abc')
+  })
+
   it('réussit au second essai après une coupure réseau', async () => {
     const fetchFn = vi
       .fn()

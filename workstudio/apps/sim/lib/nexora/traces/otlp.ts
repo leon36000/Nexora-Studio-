@@ -161,8 +161,17 @@ async function post(
         ...Object.fromEntries(target.headers.map(({ name, value }) => [name, value])),
       },
       body,
+      redirect: 'manual',
       signal: AbortSignal.timeout(EXPORT_TIMEOUT_MS),
     })
+    if (response.status >= 300 && response.status < 400) {
+      return {
+        ok: false,
+        status: response.status,
+        error: `HTTP ${response.status} : redirection refusée, les en-têtes d’autorisation ne sont jamais renvoyés vers une autre adresse. Réglez l’adresse finale du collecteur.`,
+        retry: false,
+      }
+    }
     if (response.ok) return { ok: true, status: response.status, retry: false }
     const detail = await response.text().catch(() => '')
     return {
