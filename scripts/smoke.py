@@ -231,6 +231,16 @@ class Smoke:
             except json.JSONDecodeError:
                 return error.code, {}
 
+    def fetch(self, path: str, timeout: int = 60) -> tuple[int, dict[str, str], bytes]:
+        """GET with the response headers (lower-cased names), for checks that read them."""
+        request = urllib.request.Request(f"{self.url}{path}", method="GET")
+        request.add_header("Accept-Language", "fr-FR,fr;q=0.9")
+        try:
+            with self.opener.open(request, timeout=timeout) as response:
+                return response.status, {k.lower(): v for k, v in response.headers.items()}, response.read()
+        except urllib.error.HTTPError as error:
+            return error.code, {k.lower(): v for k, v in error.headers.items()}, error.read()
+
     only: str | None = None
     # Checks every other one builds on: always run, even with --only.
     FOUNDATIONS = ("Inscription d'un compte", "Nouvel espace avec les modèles PME")
@@ -517,6 +527,55 @@ def main() -> int:
         require('lang="fr"' in html, "the public chat page is not served in French")
         require("Ask me anything" not in html and "Chat not found" not in html, "English text left on the public chat page")
         return f'lang="fr" (HTTP {status})'
+
+    def site_integration():
+        """K15: the one-line script, the frame rules of a published chat and the installable manifest. HTTP only."""
+        notes: list[str] = []
+        status, headers, body = s.fetch("/embed.js")
+        require(status == 200, f"/embed.js returned HTTP {status}")
+        require("javascript" in headers.get("content-type", ""), f"/embed.js is not JavaScript ({headers.get('content-type')})")
+        require(headers.get("access-control-allow-origin") == "*", "/embed.js lacks Access-Control-Allow-Origin: *")
+        require(headers.get("cross-origin-resource-policy") == "cross-origin", "/embed.js lacks Cross-Origin-Resource-Policy: cross-origin")
+        require("max-age" in headers.get("cache-control", ""), "/embed.js has no cache lifetime")
+        require(headers.get("x-content-type-options") == "nosniff", "/embed.js lacks nosniff")
+        require(b"NexoraChat" in body and b"data-nexora-chat" in body, "/embed.js is not the Nexora widget")
+        require(len(body) < 6144, f"/embed.js is {len(body)} bytes (limit 6144)")
+        notes.append(f"/embed.js {len(body)} octets")
+
+        wf, identifier, _ = agent_chat("Agent site", "site-fumee", "Réponds en une phrase.", [], ["content"])
+        try:
+            status, headers, _ = s.fetch(f"/chat/{identifier}")
+            require(status == 200, f"/chat/{identifier} returned HTTP {status}")
+            policy = headers.get("content-security-policy", "")
+            ancestors = next((d.split()[1:] for d in policy.split(";") if d.strip().startswith("frame-ancestors")), None)
+            require(ancestors is not None, f"no frame-ancestors on the chat page: {policy[:200]}")
+            expected = os.environ.get("NEXORA_SMOKE_EMBED_ORIGINS")
+            if expected:
+                allowed = ["'self'", *[o.strip() for o in expected.split(",") if o.strip()]]
+                require(ancestors == allowed, f"frame-ancestors {ancestors}, expected {allowed}")
+            else:
+                require(ancestors == ["*"], f"frame-ancestors {ancestors}, expected every site (no NEXORA_EMBED_ORIGINS)")
+            require("x-frame-options" not in headers, "the chat page forbids framing (X-Frame-Options)")
+            notes.append(f"chat publié : frame-ancestors {' '.join(ancestors)}")
+        finally:
+            s.call("DELETE", f"/api/workflows/{wf}")
+
+        status, headers, body = s.fetch("/manifest.webmanifest")
+        require(status == 200, f"manifest returned HTTP {status}")
+        try:
+            manifest = json.loads(body)
+        except json.JSONDecodeError as error:
+            raise AssertionError(f"manifest is not JSON: {error}") from error
+        require(manifest.get("name") and manifest.get("start_url") and manifest.get("display") == "standalone", f"incomplete manifest: {str(manifest)[:200]}")
+        require(manifest.get("lang") == "fr", f"manifest language is {manifest.get('lang')}")
+        require("sim" not in str(manifest.get("name", "")).lower().split(), "upstream brand in the manifest")
+        icons = manifest.get("icons") or []
+        require({i.get("purpose", "any") for i in icons} >= {"any", "maskable"}, "manifest lacks a plain or a maskable icon")
+        for icon in icons:
+            status, icon_headers, data = s.fetch(icon["src"])
+            require(status == 200 and icon_headers.get("content-type", "").startswith("image/") and data[:4] == b"\x89PNG", f"icon {icon['src']} unreachable (HTTP {status})")
+        notes.append(f"manifeste « {manifest['name']} », {len(icons)} icônes")
+        return " ; ".join(notes)
 
     def web_search():
         status, body = s.call("POST", "/api/workflows", {"name": "Fumée recherche web", "workspaceId": state["ws"]})
@@ -2673,6 +2732,7 @@ print(json.dumps(summary))
     s.check("Planification (cron)", schedule)
     s.check("Générer avec l'IA (modèle Nexora)", wand)
     s.check("Chat public en français", public_chat)
+    s.check("Intégration au site : script /embed.js, chat dans un cadre, manifeste installable", site_integration)
     s.check("Playground (réponse en flux)", playground)
     s.check("Playground : réflexion séparée de la réponse", playground_reasoning)
     s.check("Agent : publication, chat public, versions", agent)

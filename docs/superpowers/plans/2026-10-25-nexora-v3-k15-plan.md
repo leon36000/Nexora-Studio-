@@ -42,12 +42,12 @@
 
 ## Tâche 4 — Guide (spec §8)
 
-- [ ] `docs/guide/integration-site.md` (script, iframe, lien ; Next.js 15 / React 19 avec `next/script` ; Directus / HTML statique ; origines autorisées ; API `/v1` depuis le serveur ; installer comme application ; réseau HTTPS ; section « Application PC ») ; ligne dans `docs/guide/README.md` ; variable dans `docs/guide/installation.md` si l'on y liste les variables.
+- [x] `docs/guide/integration-site.md` (script, iframe, lien ; Next.js 15 / React 19 avec `next/script` ; Directus / HTML statique ; origines autorisées ; API `/v1` depuis le serveur ; installer comme application ; réseau HTTPS ; section « Application PC ») ; ligne dans `docs/guide/README.md` ; variable dans `docs/guide/installation.md` si l'on y liste les variables.
 
 ## Tâche 5 — Fumée
 
-- [ ] `scripts/smoke.py` : contrôle « Intégration au site » (`/embed.js` 200, JavaScript, en-têtes ; `/chat/<identifiant>` du chat public créé par le contrôle précédent porte `frame-ancestors`, `*` par défaut ; manifeste JSON valide, icônes joignables en 200 image).
-- [ ] Rejeu du contrôle contre un `next dev` ou la pile (si disponible).
+- [x] `scripts/smoke.py` : contrôle « Intégration au site » (`/embed.js` 200, JavaScript, en-têtes ; `/chat/<identifiant>` du chat public créé par le contrôle précédent porte `frame-ancestors`, `*` par défaut ; manifeste JSON valide, icônes joignables en 200 image).
+- [x] Rejeu du contrôle contre un `next dev` ou la pile (si disponible). Fait en partie : `next dev` privé (sans base de données) : `/embed.js`, `/chat/<id>` (avec et sans origines) et le manifeste vérifiés par HTTP avec l'aide `Smoke.fetch` ; la publication d'un agent par le contrôle complet attend la pile (déploiement).
 
 ## Tâche 6 — Vérifications finales
 

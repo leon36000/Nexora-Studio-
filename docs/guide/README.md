@@ -18,6 +18,7 @@ Bienvenue dans la documentation de Nexora WorkStudio et de sa plateforme.
 | [Consommation et budgets](consommation.md) | Administrateurs | Qui consomme quoi, empreinte carbone, plafonds mensuels |
 | [Les modèles](modeles.md) | Administrateurs | Modèle par défaut, ajouter un modèle local, Mistral AI ou compatible OpenAI, tester, retirer |
 | [L'API des développeurs](api-developpeurs.md) | Développeurs | Modèles et agents au format OpenAI : clés dans l'interface, exemples Python, TypeScript, cURL et n8n, erreurs |
+| [Intégration à votre site et application PC](integration-site.md) | Développeurs, responsables de site, informatique | Mettre un agent sur votre site en une ligne (`/embed.js`), cadre ou lien, exemples Next.js 15 / Directus / HTML, sites autorisés (`NEXORA_EMBED_ORIGINS`), appeler l'API depuis le serveur du site, installer Nexora comme application depuis Chrome ou Edge |
 | [Les traitements par lot](lots.md) | Tous les utilisateurs, développeurs | Faire traiter une table (ou un fichier JSONL) par un modèle, un prompt ou un agent, en arrière-plan : colonne de résultat, progression, annulation, export CSV, API `/v1/batches` |
 | [Les évaluations](evaluations.md) | Tous les utilisateurs | Jeux de tests, juges, campagnes, comparaison de modèles et de prompts, seuils d'alerte, campagnes planifiées |
 | [Les traces](traces.md) | Tous les utilisateurs, administrateurs | Voir ce que chaque appel de modèle a fait, masquage des données personnelles, conservation, export vers Langfuse, Phoenix ou Grafana |
