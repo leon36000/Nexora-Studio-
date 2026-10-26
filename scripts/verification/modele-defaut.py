@@ -4,6 +4,7 @@
 Usage : python3 -I scripts/verification/modele-defaut.py URL ORIGINE NOM [URL_AMONT]
   URL_AMONT  adresse OpenAI-compatible du modèle s'il faut l'ajouter (ex. http://host.docker.internal:18141)
 Sortie : « ancien-id nom-ancien » sur une ligne, à repasser à restaurer (NOM = « --restaurer », puis l'identifiant).
+La clé du modèle, si besoin, vient de NEXORA_VERIF_UPSTREAM_KEY (jamais en argument).
 Les identifiants de l'administrateur viennent de NEXORA_SMOKE_ADMIN_EMAIL / NEXORA_SMOKE_ADMIN_PASSWORD.
 """
 
@@ -34,7 +35,8 @@ def main() -> int:
         return 0 if status == 200 else 1
     target = next((m for m in body["models"] if m["name"] == name), None)
     if target is None:
-        status, added = admin.call("POST", "/api/nexora/models", {"source": "openai-compatible", "model": name, "url": sys.argv[4]}, timeout=180)
+        status, added = admin.call("POST", "/api/nexora/models", {"source": "openai-compatible", "model": name, "url": sys.argv[4],
+                                                         **({"key": os.environ["NEXORA_VERIF_UPSTREAM_KEY"]} if os.environ.get("NEXORA_VERIF_UPSTREAM_KEY") else {})}, timeout=180)
         if status != 200:
             print(f"ajout refusé (HTTP {status}): {added}")
             return 1
