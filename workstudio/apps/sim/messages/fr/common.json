@@ -129,5 +129,11 @@
     "webhook": "Webhook",
     "webhookPath": "Chemin : {path}",
     "webhookTriggered": "Ce workflow est déclenché par un webhook."
+  },
+  "manifest": {
+    "description": "{name} : créez, déployez et pilotez vos agents et automatisations IA. {count} intégrations.",
+    "shortcutDescription": "Créer un nouveau workflow IA",
+    "shortcutName": "Créer un workflow",
+    "shortcutShortName": "Nouveau"
   }
 }

@@ -36,9 +36,9 @@
 
 **Fichiers :** `app/manifest.ts` (+ `manifest.test.ts`), `messages/{fr,en}/shell.json` (ou `common.json`), `public/favicon/maskable-{192,512}x*.png`.
 
-- [ ] Test rouge : `lang: fr`, `id`, `name` = « Nexora WorkStudio », `short_name`, `start_url`, `scope`, `display: standalone`, couleurs hexadécimales, pas d'`orientation` bloquante ; icônes 192 et 512 `any` + 192 et 512 `maskable`, **chaque fichier existe sur disque** avec les dimensions déclarées ; aucune marque Sim ; raccourcis traduits ; aucun service worker (`public/sw.js`, `service-worker.js`, `app/sw`, `serviceWorker.register` absents).
-- [ ] Icônes `maskable` générées depuis le logo « n » (fond plein bleu de la marque, glyphe dans la zone sûre).
-- [ ] Code `manifest.ts` (textes par next-intl, locale par défaut `fr`) + messages fr/en.
+- [x] Test rouge : `lang: fr`, `id`, `name` = « Nexora WorkStudio », `short_name`, `start_url`, `scope`, `display: standalone`, couleurs hexadécimales, pas d'`orientation` bloquante ; icônes 192 et 512 `any` + 192 et 512 `maskable`, **chaque fichier existe sur disque** avec les dimensions déclarées ; aucune marque Sim ; raccourcis traduits ; aucun service worker (`public/sw.js`, `service-worker.js`, `app/sw`, `serviceWorker.register` absents).
+- [x] Icônes `maskable` générées depuis le logo « n » (fond plein bleu de la marque, glyphe dans la zone sûre).
+- [x] Code `manifest.ts` (textes par next-intl, locale par défaut `fr`) + messages fr/en.
 
 ## Tâche 4 — Guide (spec §8)
 
