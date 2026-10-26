@@ -105,5 +105,5 @@
 ### Task 11: vérification et liste des écrans
 
 - [x] biome, `type-check`, `check:audits`, `check:test-types`, vitest ciblés puis suite complète, `bun run --cwd apps/sim build`, `check-i18n/brand/no-ee/licenses`.
-- [ ] Parcours au navigateur des 15 écrans sur pc6 (session principale, après reconstruction de l'image).
+- [ ] Parcours au navigateur des 15 écrans sur pc6 (session principale, après reconstruction de l'image). — écran d'Accueil vérifié au navigateur sur pc6 le 26/10 (français, GLM 5.3 par défaut, toutes sections) ; les 15 écrans ne sont pas tous parcourus à la main, l'audit i18n et la fumée HTTP couvrent le reste.
 - [x] `docs/verification/k2-ecrans.md` : les 15 écrans à parcourir sur pc6 (route, à regarder).

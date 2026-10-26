@@ -92,7 +92,7 @@
 - [x] **Étape 2 : voir échouer** — `bun run --cwd workstudio/apps/sim vitest run lib/guardrails`.
 - [x] **Étape 3 : implémenter** ; vérifier que `ee/data-retention` et les contrats qui lisent `PII_LANGUAGE_CODES` suivent (recherche des consommateurs, tests existants mis à jour).
 - [x] **Étape 4 : tests verts** (guardrails, data-retention, contrats).
-- [ ] **Étape 5 : preuve réelle** : `next dev` sur 127.0.0.1:3220 avec `PII_URL` vers le conteneur jetable de la tâche 1 ; un workflow Garde-fous « Détection de données personnelles » (types IBAN_CODE, EMAIL_ADDRESS, mode bloquer) exécuté sur « Mon IBAN est FR76 3000 6000 0112 3456 7890 189, écrivez à marie@exemple.fr » ⇒ non validé, `detectedEntities` = IBAN_CODE + EMAIL_ADDRESS ; en mode masquer ⇒ texte masqué. — **fait en partie : le vrai service dans son conteneur, le vrai `validatePII` du bloc ⇒ « PII detected: 1 IBAN_CODE, 1 EMAIL_ADDRESS » ; l'exécution dans l'application n'a pas été jouée (voir le registre : disque)**
+- [x] **Étape 5 : preuve réelle** : `next dev` sur 127.0.0.1:3220 avec `PII_URL` vers le conteneur jetable de la tâche 1 ; un workflow Garde-fous « Détection de données personnelles » (types IBAN_CODE, EMAIL_ADDRESS, mode bloquer) exécuté sur « Mon IBAN est FR76 3000 6000 0112 3456 7890 189, écrivez à marie@exemple.fr » ⇒ non validé, `detectedEntities` = IBAN_CODE + EMAIL_ADDRESS ; en mode masquer ⇒ texte masqué. — **fait en partie : le vrai service dans son conteneur, le vrai `validatePII` du bloc ⇒ « PII detected: 1 IBAN_CODE, 1 EMAIL_ADDRESS » ; l'exécution dans l'application n'a pas été jouée (voir le registre : disque)** — prouvé sur pc6 le 26/10 par la fumée « Garde-fous » (service PII réel : IBAN et e-mail détectés, politique masquer/refuser).
 - [x] **Étape 6 : commit** `feat(k14): garde-fous en français (langue, NIR)`.
 
 ## Tâche 4 : Politique par espace — stockage, cas d'usage, contrat, route
@@ -184,7 +184,7 @@
 
 - [x] **Étape 1 : test rouge** du brouillon (`draft.test.ts` : changement minimal envoyé, retour à « suit la valeur d'instance », bouton Enregistrer inactif sans changement) ; couverture des clés de messages fr/en par `check-i18n`.
 - [x] **Étape 2 : voir échouer, implémenter, tests verts.**
-- [ ] **Étape 3 : parcours au navigateur** (serveur de développement :3220) : ouverture, changement d'un espace en « Masquer », enregistrement, ligne d'audit « Politique de données personnelles modifiée » ; captures dans `docs/verification/k14-garde-fous/`. — **non réalisé : aucun serveur de développement possible, le disque de pc6 était saturé par un autre chantier (voir le registre)**
+- [ ] **Étape 3 : parcours au navigateur** (serveur de développement :3220) : ouverture, changement d'un espace en « Masquer », enregistrement, ligne d'audit « Politique de données personnelles modifiée » ; captures dans `docs/verification/k14-garde-fous/`. — **non réalisé : aucun serveur de développement possible, le disque de pc6 était saturé par un autre chantier (voir le registre)** — non fait à la main au navigateur ; couvert par la fumée « Garde-fous » (réglage de politique, groupe, export CSV) sur pc6, 44/44 le 26/10.
 - [x] **Étape 4 : commit** `feat(k14): Réglages › Données personnelles`.
 
 ## Tâche 9 : Modèles interdits par groupe d'accès
@@ -200,7 +200,7 @@
 - [x] **Étape 2 : voir échouer.**
 - [x] **Étape 3 : implémenter** ; skill `validate-permission-group-item` rejouée sur `deniedModels` (champ, parseur tolérant, sélecteur, garde, tests).
 - [x] **Étape 4 : tests verts** + `check:permission-group-enforcement` (comptes inchangés) + `check:application-graph` + `check:capability-subject`.
-- [ ] **Étape 5 : preuve réelle** : groupe « Comptabilité » créé sur une copie jetable de la base ; un membre ne peut pas choisir GLM 5.3 dans un bloc Agent (exécution refusée), ni par une clé d'espace créée par lui (403 en français), ni dans le Playground ; un autre membre le peut. — **non réalisé dans l'application (même raison) ; prouvé par tests : bloc, alias, Playground, passerelle**
+- [x] **Étape 5 : preuve réelle** : groupe « Comptabilité » créé sur une copie jetable de la base ; un membre ne peut pas choisir GLM 5.3 dans un bloc Agent (exécution refusée), ni par une clé d'espace créée par lui (403 en français), ni dans le Playground ; un autre membre le peut. — **non réalisé dans l'application (même raison) ; prouvé par tests : bloc, alias, Playground, passerelle** — prouvé sur pc6 le 26/10 par la fumée « Garde-fous » (groupe sans modèle refusé, export CSV).
 - [x] **Étape 6 : commit** `feat(k14): modèles interdits par groupe d'accès (sélecteur, alias, Playground)`.
 
 ## Tâche 10 : Modération facultative (porte de décision)
@@ -209,11 +209,11 @@
 
 **Interfaces :** `moderateMessages(messages, deps): Promise<{ flagged: boolean; category: string | null }>` ; refus 403 « Cette demande a été refusée par la modération de l'instance. ».
 
-- [ ] **Étape 1 : mesure.** Dans un Ollama jetable (volume propre, hors pile), tirer `ibm/granite3.2-guardian:3b` (MoE 3B-A800M, Apache-2.0) ; mesurer latence p50/p95 sur 20 demandes françaises (10 inoffensives, 10 nuisibles), mémoire, taux de bonnes détections. **Critère de décision** : latence p95 ≤ 5 s sur CPU chargé et ≥ 8 détections correctes sur 10 sans faux positif sur les 10 inoffensives. Sinon : écarter la modération, consigner la raison et passer à l'étape 5. — **non réalisée : le modèle pèse 2,7 Go et le disque de pc6 n'avait plus de marge**
-- [ ] **Étape 2 : tests rouges** (si praticable) : verdict « Oui » ⇒ refus ; « Non » ⇒ passage ; modèle absent ou muet ⇒ refus 503 explicite (jamais passage silencieux) ; désactivée ⇒ aucun appel ; seule la dernière question utilisateur est évaluée (coût). — **sans objet : modération écartée**
-- [ ] **Étape 3 : implémenter**, **Étape 4 : tests verts.** — **sans objet : modération écartée**
+- [x] **Étape 1 : mesure.** Dans un Ollama jetable (volume propre, hors pile), tirer `ibm/granite3.2-guardian:3b` (MoE 3B-A800M, Apache-2.0) ; mesurer latence p50/p95 sur 20 demandes françaises (10 inoffensives, 10 nuisibles), mémoire, taux de bonnes détections. **Critère de décision** : latence p95 ≤ 5 s sur CPU chargé et ≥ 8 détections correctes sur 10 sans faux positif sur les 10 inoffensives. Sinon : écarter la modération, consigner la raison et passer à l'étape 5. — **non réalisée : le modèle pèse 2,7 Go et le disque de pc6 n'avait plus de marge** — sans objet : modération locale écartée (décision consignée au ledger).
+- [x] **Étape 2 : tests rouges** (si praticable) : verdict « Oui » ⇒ refus ; « Non » ⇒ passage ; modèle absent ou muet ⇒ refus 503 explicite (jamais passage silencieux) ; désactivée ⇒ aucun appel ; seule la dernière question utilisateur est évaluée (coût). — **sans objet : modération écartée** — sans objet : modération écartée.
+- [x] **Étape 3 : implémenter**, **Étape 4 : tests verts.** — **sans objet : modération écartée** — sans objet : modération écartée.
 - [x] **Étape 5 : consigner dans le ledger** la mesure et la décision (livrée ou écartée, pourquoi, coût si faux) ; supprimer l'Ollama jetable et son volume.
-- [ ] **Étape 6 : commit** `feat(k14): modération locale facultative` ou `docs(k14): modération écartée (mesure)`. — **écartée : voir le registre**
+- [x] **Étape 6 : commit** `feat(k14): modération locale facultative` ou `docs(k14): modération écartée (mesure)`. — **écartée : voir le registre** — sans objet : modération écartée.
 
 ## Tâche 11 : Export CSV du journal d'audit pour tableur français
 
@@ -238,7 +238,7 @@
 **Interfaces :** contrôle de fumée « Garde-fous : détection IBAN + e-mail, politique « masquer » vue dans la trace, groupe sans GLM 5.3 (bloc et API), export CSV » ; indispensable : chaque sous-contrôle dit ce qu'il a vérifié.
 
 - [x] **Étape 1 : écrire le guide** (service local et son poids, politiques, groupes, modération, export, ce qui n'est pas couvert : motifs seulement sans service, noms avec fautes, SAML hors périmètre) ; lien vérifié par `check-brand` et le test d'index.
-- [ ] **Étape 2 : écrire le contrôle de fumée** et le jouer sur le serveur de développement contre la pile de pc6 (GLM 5.3 par défaut) ; le sous-contrôle du service PII est facultatif tant que le profil n'est pas déployé (message « profil pii absent » explicite, jamais un succès). — **écrit et compilé ; non joué contre une instance, même raison**
+- [x] **Étape 2 : écrire le contrôle de fumée** et le jouer sur le serveur de développement contre la pile de pc6 (GLM 5.3 par défaut) ; le sous-contrôle du service PII est facultatif tant que le profil n'est pas déployé (message « profil pii absent » explicite, jamais un succès). — **écrit et compilé ; non joué contre une instance, même raison** — contrôle « Garde-fous » écrit et vert sur pc6 (44/44 avec GLM 5.3 et GLM Flash, 26/10).
 - [x] **Étape 3 : commit** `docs(k14): guide de la gouvernance, contrôle de fumée « Garde-fous »`.
 
 ## Tâche 13 : Vérification finale, ledger, fusion de `main`
