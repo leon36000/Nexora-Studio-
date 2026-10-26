@@ -142,3 +142,17 @@ class TestChatCompletionChunk:
             "model": "chat-router",
             "usage": usage.model_dump(),
         }
+
+
+class TestProviderServiceTier:
+    """Upstreams other than OpenAI (DeepSeek through LiteLLM, for one) answer with their own service tier names."""
+
+    def test_should_accept_a_completion_whose_service_tier_openai_does_not_know(self):
+        completion = ChatCompletion(id="c", created=0, model="m", object="chat.completion", choices=[], service_tier="asap")
+
+        assert completion.service_tier == "asap"
+
+    def test_should_accept_a_chunk_whose_service_tier_openai_does_not_know(self):
+        chunk = ChatCompletionChunk(id="c", created=0, model="m", object="chat.completion.chunk", choices=[], service_tier="asap")
+
+        assert chunk.service_tier == "asap"

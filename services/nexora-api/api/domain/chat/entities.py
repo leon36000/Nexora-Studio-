@@ -39,6 +39,7 @@ class CreateChatCompletionsBody(ForwardablePayload):
 
 class ChatCompletion(ChatCompletion, ProviderJsonResponse):
     id: Annotated[str, Field(default=None, description="A unique identifier for the chat completion.")]
+    service_tier: Annotated[str | None, Field(default=None, description="Service tier as named by the provider (not limited to OpenAI's).")]
     usage: Annotated[Usage, Field(default_factory=Usage, description="Usage information for the request.")]
 
     def get_completions(self) -> list[str]:
@@ -66,6 +67,8 @@ class ChatCompletion(ChatCompletion, ProviderJsonResponse):
 
 
 class ChatCompletionChunk(ChatCompletionChunk):
+    service_tier: Annotated[str | None, Field(default=None, description="Service tier as named by the provider (not limited to OpenAI's).")]
+
     @staticmethod
     def parse_chunk(chunk: str) -> Literal["[DONE]"] | dict | None:
         if not chunk.startswith("data: "):
