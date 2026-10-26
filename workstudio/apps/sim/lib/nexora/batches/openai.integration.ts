@@ -5,10 +5,10 @@
  * batch cannot be cancelled, and the output and error files read back the results line by line.
  */
 import { db } from '@sim/db'
-import { nexoraApiKey, permissions, user, workspace } from '@sim/db/schema'
+import { nexoraApiKey, nexoraBatchItem, permissions, user, workspace } from '@sim/db/schema'
 import { deleteWorkspaceFixture, insertWorkspaceFixture } from '@sim/db/testing/workspace-fixtures'
 import { generateId } from '@sim/utils/id'
-import { inArray } from 'drizzle-orm'
+import { eq, inArray } from 'drizzle-orm'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import {
   type BatchApiDeps,
@@ -406,6 +406,92 @@ describe('reading and cancelling', () => {
     await finishBatch(batch.id, 'p', 'cancelled', new Date())
     const error = await refusal(cancelBatch(call, batch.id, d))
     expect(error).toMatchObject({ status: 409, code: 'batch_not_cancellable' })
+  })
+})
+
+describe('keys of one workspace', () => {
+  it('keeps the files and batches of a key out of reach of another key of the same workspace', async () => {
+    const workspaceId = await seedWorkspace()
+    const keyA = await callFor(workspaceId)
+    const keyB = await callFor(workspaceId)
+    const d = deps()
+    const batch = await launch(keyA, [chatLine('a')], d)
+    const file = await upload(keyA, chatLine('b'), d)
+
+    expect((await refusal(retrieveFile(keyB, file.id, d))).status).toBe(404)
+    expect((await refusal(readFileContent(keyB, file.id, d))).status).toBe(404)
+    expect((await refusal(deleteFile(keyB, file.id, d))).status).toBe(404)
+    expect((await refusal(retrieveBatch(keyB, batch.id, d))).status).toBe(404)
+    expect((await refusal(cancelBatch(keyB, batch.id, d))).status).toBe(404)
+    expect((await listFiles(keyB, {}, d)).data).toEqual([])
+    expect((await listBatches(keyB, {}, d)).data).toEqual([])
+
+    expect((await retrieveFile(keyA, file.id, d)).id).toBe(file.id)
+    expect((await retrieveBatch(keyA, batch.id, d)).id).toBe(batch.id)
+    expect((await listBatches(keyA, {}, d)).data.map((entry) => entry.id)).toEqual([batch.id])
+    expect((await cancelBatch(keyA, batch.id, d)).status).toBe('cancelling')
+  })
+
+  it('shares the storage quota of the workspace between its keys', async () => {
+    const workspaceId = await seedWorkspace()
+    const keyA = await callFor(workspaceId)
+    const keyB = await callFor(workspaceId)
+    const text = chatLine('a')
+    const quotaBytes = Buffer.byteLength(text, 'utf8') * 2 - 1
+    const d = deps({ filesQuotaBytes: quotaBytes })
+
+    const first = await upload(keyA, text, d)
+    expect((await refusal(upload(keyB, text, d))).status).toBe(429)
+
+    await deleteFile(keyA, first.id, d)
+    expect((await upload(keyB, text, d)).object).toBe('file')
+  })
+})
+
+describe('erasing an input file', () => {
+  it('leaves no trace of the requests and answers of the batches that read it', async () => {
+    const call = await callFor(await seedWorkspace())
+    const d = deps()
+    const batch = await launch(call, [chatLine('secret-a'), chatLine('secret-b')], d)
+    const now = new Date()
+    await acquireBatch(batch.id, 'p', now, new Date(now.getTime() + 60_000))
+    const claimed = await claimNextItem(batch.id, now)
+    await completeItem(
+      claimed?.id ?? '',
+      {
+        response: { status_code: 200, request_id: 'req_1', body: { id: 'cmpl-1' } },
+        answer: 'réponse confidentielle',
+        promptTokens: 5,
+        completionTokens: 2,
+        latencyMs: 10,
+      },
+      now
+    )
+    await finishBatch(batch.id, 'p', 'cancelled', now)
+    const ended = await retrieveBatch(call, batch.id, d)
+    const outputId = ended.output_file_id ?? ''
+    const inputId = ended.input_file_id ?? ''
+
+    await deleteFile(call, inputId, d)
+
+    expect(
+      await db.select().from(nexoraBatchItem).where(eq(nexoraBatchItem.batchId, batch.id))
+    ).toEqual([])
+    expect((await refusal(readFileContent(call, outputId, d))).status).toBe(404)
+    expect((await refusal(readFileContent(call, inputId, d))).status).toBe(404)
+  })
+
+  it('stops a batch still running when its input file is deleted', async () => {
+    const call = await callFor(await seedWorkspace())
+    const d = deps()
+    const batch = await launch(call, [chatLine('a')], d)
+
+    await deleteFile(call, batch.input_file_id ?? '', d)
+
+    expect((await retrieveBatch(call, batch.id, d)).status).toBe('cancelling')
+    expect(
+      await db.select().from(nexoraBatchItem).where(eq(nexoraBatchItem.batchId, batch.id))
+    ).toEqual([])
   })
 })
 

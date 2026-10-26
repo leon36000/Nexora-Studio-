@@ -47,6 +47,9 @@ function frenchDate(date: Date, timeZone: string): string {
 
 const frenchNumber = new Intl.NumberFormat('fr-FR')
 
+const megabytesOf = (bytes: number) =>
+  new Intl.NumberFormat('fr-FR', { maximumFractionDigits: 1 }).format(bytes / (1024 * 1024))
+
 /** Every refusal the gateway can answer, with its status, code and French message. */
 export const gatewayErrors = {
   invalidKey: () =>
@@ -148,6 +151,13 @@ export const gatewayErrors = {
       'file_too_large',
       `Fichier trop volumineux : ${megabytes} Mo au plus par fichier de lot. Découpez-le en plusieurs fichiers.`,
       'invalid_request_error'
+    ),
+  batchFilesStorageFull: (usedBytes: number, quotaBytes: number) =>
+    new GatewayError(
+      429,
+      'file_storage_full',
+      `Espace de stockage des fichiers de lot plein : ${megabytesOf(usedBytes)} Mo utilisés sur ${megabytesOf(quotaBytes)} Mo. Supprimez des fichiers (DELETE /v1/files/{id}) avant d’en envoyer d’autres.`,
+      'insufficient_quota'
     ),
   fileNotFound: (fileId: string) =>
     new GatewayError(404, 'file_not_found', `Fichier « ${fileId} » introuvable pour cette clé.`),

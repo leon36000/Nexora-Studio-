@@ -172,7 +172,10 @@ describe('exportTrace', () => {
   it('refuse une redirection sans la suivre ni retenter, pour ne pas envoyer l’autorisation ailleurs', async () => {
     const fetchFn = vi.fn(
       async () =>
-        new Response(null, { status: 302, headers: { Location: 'https://autre.example/v1/traces' } })
+        new Response(null, {
+          status: 302,
+          headers: { Location: 'https://autre.example/v1/traces' },
+        })
     )
     const result = await exportTrace(settings, stored(), fetchFn as unknown as typeof fetch)
     expect(fetchFn).toHaveBeenCalledTimes(1)

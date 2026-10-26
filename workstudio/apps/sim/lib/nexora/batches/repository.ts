@@ -28,13 +28,32 @@ import {
 const INSERT_CHUNK = 500
 const OPEN_STATUSES: BatchStatus[] = ['in_progress', 'cancelling']
 
-/** Whose files and batches a call may see: a workspace's, or those of the instance keys (`null`). */
+/**
+ * Whose files and batches a call may see: a workspace's, or those of the instance keys (`null`).
+ * A call made with an API key also names it (`apiKeyId`) and then sees only what that key created;
+ * the website, which has no key, sees the whole workspace.
+ */
 export interface BatchScope {
   workspaceId: string | null
+  apiKeyId?: string
 }
 
-function scopeIs(column: AnyPgColumn, scope: BatchScope): SQL {
-  return scope.workspaceId === null ? isNull(column) : eq(column, scope.workspaceId)
+interface ScopedColumns {
+  workspaceId: AnyPgColumn
+  apiKeyId: AnyPgColumn
+}
+
+function workspaceIs(columns: ScopedColumns, scope: BatchScope): SQL {
+  return scope.workspaceId === null
+    ? isNull(columns.workspaceId)
+    : eq(columns.workspaceId, scope.workspaceId)
+}
+
+function scopeIs(columns: ScopedColumns, scope: BatchScope): SQL | undefined {
+  const workspace = workspaceIs(columns, scope)
+  return scope.apiKeyId === undefined
+    ? workspace
+    : and(workspace, eq(columns.apiKeyId, scope.apiKeyId))
 }
 
 export function newBatchId(): string {
@@ -227,7 +246,7 @@ export async function getFile(scope: BatchScope, fileId: string): Promise<FileRe
     .where(
       and(
         eq(nexoraBatchFile.id, fileId),
-        scopeIs(nexoraBatchFile.workspaceId, scope),
+        scopeIs(nexoraBatchFile, scope),
         isNull(nexoraBatchFile.deletedAt)
       )
     )
@@ -243,7 +262,7 @@ export async function getFileText(scope: BatchScope, fileId: string): Promise<st
     .where(
       and(
         eq(nexoraBatchFile.id, fileId),
-        scopeIs(nexoraBatchFile.workspaceId, scope),
+        scopeIs(nexoraBatchFile, scope),
         isNull(nexoraBatchFile.deletedAt)
       )
     )
@@ -259,9 +278,7 @@ export async function listFiles(
     ? await db
         .select({ createdAt: nexoraBatchFile.createdAt })
         .from(nexoraBatchFile)
-        .where(
-          and(eq(nexoraBatchFile.id, options.after), scopeIs(nexoraBatchFile.workspaceId, scope))
-        )
+        .where(and(eq(nexoraBatchFile.id, options.after), scopeIs(nexoraBatchFile, scope)))
         .limit(1)
     : []
   const rows = await db
@@ -269,7 +286,7 @@ export async function listFiles(
     .from(nexoraBatchFile)
     .where(
       and(
-        scopeIs(nexoraBatchFile.workspaceId, scope),
+        scopeIs(nexoraBatchFile, scope),
         isNull(nexoraBatchFile.deletedAt),
         options.purpose ? eq(nexoraBatchFile.purpose, options.purpose) : undefined,
         anchor[0] ? lt(nexoraBatchFile.createdAt, anchor[0].createdAt) : undefined
@@ -280,20 +297,63 @@ export async function listFiles(
   return { files: rows.slice(0, options.limit).map(toFile), hasMore: rows.length > options.limit }
 }
 
-/** Deletes a file for the caller: its text goes at once; the row stays hidden. */
-export async function deleteFile(scope: BatchScope, fileId: string): Promise<boolean> {
-  const updated = await db
-    .update(nexoraBatchFile)
-    .set({ deletedAt: new Date(), content: null })
+/**
+ * Bytes of the input files kept for the scope's workspace, every key together: what the storage
+ * quota counts. A deleted file no longer counts, so deleting one frees its space.
+ */
+export async function storedFileBytes(scope: BatchScope): Promise<number> {
+  const [row] = await db
+    .select({ used: sql<string>`COALESCE(SUM(${nexoraBatchFile.bytes}), 0)` })
+    .from(nexoraBatchFile)
     .where(
       and(
-        eq(nexoraBatchFile.id, fileId),
-        scopeIs(nexoraBatchFile.workspaceId, scope),
+        workspaceIs(nexoraBatchFile, scope),
+        eq(nexoraBatchFile.purpose, 'batch'),
         isNull(nexoraBatchFile.deletedAt)
       )
     )
-    .returning({ id: nexoraBatchFile.id })
-  return updated.length > 0
+  return Number(row?.used ?? 0) || 0
+}
+
+/**
+ * Deletes a file for the caller, and with it every trace of its content: the text goes at once,
+ * the requests and answers of the batches that read it are deleted, and their output and error
+ * files are hidden. A batch still running is asked to stop, as it has nothing left to read.
+ */
+export async function deleteFile(scope: BatchScope, fileId: string): Promise<boolean> {
+  return db.transaction(async (tx) => {
+    const now = new Date()
+    const updated = await tx
+      .update(nexoraBatchFile)
+      .set({ deletedAt: now, content: null })
+      .where(
+        and(
+          eq(nexoraBatchFile.id, fileId),
+          scopeIs(nexoraBatchFile, scope),
+          isNull(nexoraBatchFile.deletedAt)
+        )
+      )
+      .returning({ id: nexoraBatchFile.id })
+    if (updated.length === 0) return false
+
+    const readers = await tx
+      .select({ id: nexoraBatch.id })
+      .from(nexoraBatch)
+      .where(eq(nexoraBatch.inputFileId, fileId))
+    const batchIds = readers.map((batch) => batch.id)
+    if (batchIds.length === 0) return true
+
+    await tx
+      .update(nexoraBatch)
+      .set({ status: 'cancelling', cancelRequestedAt: now })
+      .where(and(inArray(nexoraBatch.id, batchIds), eq(nexoraBatch.status, 'in_progress')))
+    await tx.delete(nexoraBatchItem).where(inArray(nexoraBatchItem.batchId, batchIds))
+    await tx
+      .update(nexoraBatchFile)
+      .set({ deletedAt: now, content: null })
+      .where(and(inArray(nexoraBatchFile.batchId, batchIds), isNull(nexoraBatchFile.deletedAt)))
+    return true
+  })
 }
 
 export interface NewItem {
@@ -394,7 +454,7 @@ export async function getBatch(scope: BatchScope, batchId: string): Promise<Batc
   const [row] = await db
     .select()
     .from(nexoraBatch)
-    .where(and(eq(nexoraBatch.id, batchId), scopeIs(nexoraBatch.workspaceId, scope)))
+    .where(and(eq(nexoraBatch.id, batchId), scopeIs(nexoraBatch, scope)))
     .limit(1)
   return row ? toBatch(row) : null
 }
@@ -413,7 +473,7 @@ export async function listBatches(
     ? await db
         .select({ createdAt: nexoraBatch.createdAt })
         .from(nexoraBatch)
-        .where(and(eq(nexoraBatch.id, options.after), scopeIs(nexoraBatch.workspaceId, scope)))
+        .where(and(eq(nexoraBatch.id, options.after), scopeIs(nexoraBatch, scope)))
         .limit(1)
     : []
   const rows = await db
@@ -421,7 +481,7 @@ export async function listBatches(
     .from(nexoraBatch)
     .where(
       and(
-        scopeIs(nexoraBatch.workspaceId, scope),
+        scopeIs(nexoraBatch, scope),
         options.source ? eq(nexoraBatch.source, options.source) : undefined,
         anchor[0] ? lt(nexoraBatch.createdAt, anchor[0].createdAt) : undefined
       )
@@ -434,14 +494,14 @@ export async function listBatches(
   }
 }
 
-/** Requests still waiting or running in the open batches of the scope. */
+/** Requests still waiting or running in the open batches of the scope's workspace (every key together). */
 export async function pendingLinesInScope(scope: BatchScope): Promise<number> {
   const [row] = await db
     .select({
       pending: sql<string>`COALESCE(SUM(${nexoraBatch.total} - ${nexoraBatch.completed} - ${nexoraBatch.failed}), 0)`,
     })
     .from(nexoraBatch)
-    .where(and(scopeIs(nexoraBatch.workspaceId, scope), inArray(nexoraBatch.status, OPEN_STATUSES)))
+    .where(and(workspaceIs(nexoraBatch, scope), inArray(nexoraBatch.status, OPEN_STATUSES)))
   return Number(row?.pending ?? 0) || 0
 }
 
@@ -460,7 +520,7 @@ export async function requestCancel(
     .where(
       and(
         eq(nexoraBatch.id, batchId),
-        scopeIs(nexoraBatch.workspaceId, scope),
+        scopeIs(nexoraBatch, scope),
         eq(nexoraBatch.status, 'in_progress')
       )
     )
@@ -875,7 +935,7 @@ export async function deleteBatch(scope: BatchScope, batchId: string): Promise<b
     .where(
       and(
         eq(nexoraBatch.id, batchId),
-        scopeIs(nexoraBatch.workspaceId, scope),
+        scopeIs(nexoraBatch, scope),
         notInArray(nexoraBatch.status, OPEN_STATUSES),
         isNotNull(nexoraBatch.finishedAt)
       )

@@ -196,7 +196,13 @@ export async function runCampaign(campaignId: string, deps: RunnerDeps): Promise
     const processItem = async (item: ItemRecord) => {
       const target = campaign.targets.find((candidate) => candidate.key === item.targetKey)
       if (!target) {
-        await store.failItem(item.id, item.attempt, 'Cible introuvable dans la campagne.', null, deps.now())
+        await store.failItem(
+          item.id,
+          item.attempt,
+          'Cible introuvable dans la campagne.',
+          null,
+          deps.now()
+        )
         return
       }
       let result: TargetResult
