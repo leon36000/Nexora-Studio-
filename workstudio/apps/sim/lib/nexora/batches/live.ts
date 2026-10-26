@@ -9,6 +9,7 @@ import { type ApiExecutorDeps, executeApiItem } from '@/lib/nexora/batches/api-e
 import { type EngineDeps, type ItemOutcome, runBatch } from '@/lib/nexora/batches/engine'
 import type { BatchApiDeps } from '@/lib/nexora/batches/openai'
 import * as repository from '@/lib/nexora/batches/repository'
+import { resolveFilesQuotaBytes } from '@/lib/nexora/batches/types'
 import {
   createTableBatch,
   executeTableItem,
@@ -241,4 +242,5 @@ export const liveBatchApiDeps: BatchApiDeps = {
   },
   start: startBatch,
   abort: abortBatch,
+  filesQuotaBytes: resolveFilesQuotaBytes(process.env.NEXORA_BATCH_FILES_QUOTA_MB),
 }

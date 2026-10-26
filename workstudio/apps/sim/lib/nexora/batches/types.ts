@@ -14,6 +14,18 @@ export const MAX_BATCH_LINES = 10_000
 export const MAX_PENDING_LINES = 50_000
 export const MAX_BATCH_FILE_BYTES = 25 * 1024 * 1024
 export const MAX_BATCH_LINE_BYTES = 1024 * 1024
+
+const MEGABYTE = 1024 * 1024
+const DEFAULT_FILES_QUOTA_MB = 1024
+
+/**
+ * Bytes of batch files one workspace (or the instance keys together) may keep: the whole number of
+ * megabytes in `NEXORA_BATCH_FILES_QUOTA_MB`, 1 Go when it is missing or not a positive number.
+ */
+export function resolveFilesQuotaBytes(raw: string | undefined): number {
+  const megabytes = raw !== undefined && /^\d+$/.test(raw.trim()) ? Number(raw) : 0
+  return (megabytes > 0 ? megabytes : DEFAULT_FILES_QUOTA_MB) * MEGABYTE
+}
 export const MAX_REPORTED_LINE_ERRORS = 20
 
 export const DEFAULT_COMPLETION_HOURS = 24

@@ -122,6 +122,13 @@ class ContainerSpecTest(unittest.TestCase):
         s = sandbox.Settings.from_env({"NEXORA_CODE_SANDBOX_TOKEN": "x" * 32, "NEXORA_CODE_MEMORY_MB": "2048", "NEXORA_CODE_MAX_SANDBOXES": "4"})
         self.assertEqual(s.memory_mb, 2048)
         self.assertEqual(s.max_sandboxes, 4)
+        self.assertEqual(s.max_per_workspace, 1)
+
+    def test_settings_read_the_per_workspace_limit_from_env(self):
+        s = sandbox.Settings.from_env({"NEXORA_CODE_SANDBOX_TOKEN": "x" * 32, "NEXORA_CODE_MAX_PER_WORKSPACE": "3"})
+        self.assertEqual(s.max_per_workspace, 3)
+        with self.assertRaises(ValueError):
+            sandbox.Settings.from_env({"NEXORA_CODE_SANDBOX_TOKEN": "x" * 32, "NEXORA_CODE_MAX_PER_WORKSPACE": "0"})
 
 
 class PathTest(unittest.TestCase):
@@ -153,6 +160,43 @@ class ServiceTest(unittest.TestCase):
         with self.assertRaises(sandbox.Busy):
             self.service.create(None)
         self.assertEqual(len(self.docker.created), 2)
+
+    def test_one_workspace_cannot_take_every_sandbox(self):
+        self.service.create(None, workspace_id="ws-1")
+        with self.assertRaises(sandbox.Busy) as refused:
+            self.service.create(None, workspace_id="ws-1")
+        self.assertEqual(refused.exception.scope, "workspace")
+        self.service.create(None, workspace_id="ws-2")
+        self.assertEqual(len(self.docker.created), 2)
+
+    def test_the_instance_limit_still_applies_across_workspaces(self):
+        self.service.create(None, workspace_id="ws-1")
+        self.service.create(None, workspace_id="ws-2")
+        with self.assertRaises(sandbox.Busy) as refused:
+            self.service.create(None, workspace_id="ws-3")
+        self.assertEqual(refused.exception.scope, "instance")
+
+    def test_a_workspace_gets_its_slot_back_when_its_sandbox_ends(self):
+        first = self.service.create(None, workspace_id="ws-1")
+        self.service.kill(first["sandboxId"])
+        self.service.create(None, workspace_id="ws-1")
+        self.service.create(None, workspace_id="ws-1-bis")
+        self.clock.now += 601
+        self.service.reap()
+        self.service.create(None, workspace_id="ws-1")
+
+    def test_the_per_workspace_limit_is_configurable(self):
+        service = sandbox.SandboxService(settings(max_per_workspace=2, max_sandboxes=3), self.docker, clock=self.clock)
+        service.create(None, workspace_id="ws-1")
+        service.create(None, workspace_id="ws-1")
+        with self.assertRaises(sandbox.Busy):
+            service.create(None, workspace_id="ws-1")
+
+    def test_a_workspace_id_must_be_a_plain_identifier(self):
+        for bad in ["", "a b", "ws/../x", "x" * 65, 12, ["ws"]]:
+            with self.assertRaises(ValueError, msg=str(bad)):
+                self.service.create(None, workspace_id=bad)
+        self.assertEqual(self.docker.created, [])
 
     def test_lifetime_and_timeout_are_clamped(self):
         created = self.service.create(10 * 3600 * 1000)
@@ -320,6 +364,15 @@ class HttpTest(unittest.TestCase):
         self.call("POST", "/v1/sandboxes", {})
         self.call("POST", "/v1/sandboxes", {})
         self.assertEqual(self.call("POST", "/v1/sandboxes", {})[0], 429)
+
+    def test_a_busy_workspace_is_429_and_says_so(self):
+        self.assertEqual(self.call("POST", "/v1/sandboxes", {"workspaceId": "ws-1"})[0], 201)
+        status, body = self.call("POST", "/v1/sandboxes", {"workspaceId": "ws-1"})
+        self.assertEqual((status, body["scope"]), (429, "workspace"))
+        self.assertEqual(self.call("POST", "/v1/sandboxes", {"workspaceId": "ws-2"})[0], 201)
+
+    def test_a_malformed_workspace_id_is_400(self):
+        self.assertEqual(self.call("POST", "/v1/sandboxes", {"workspaceId": "a b"})[0], 400)
 
     def test_oversized_body_is_413(self):
         self.service.settings = settings(max_body_bytes=1000)

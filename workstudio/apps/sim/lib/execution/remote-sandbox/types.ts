@@ -379,6 +379,8 @@ export interface CreateSandboxOptions {
    * and creates the sandbox as ephemeral.
    */
   lifetimeMs?: number
+  /** The workspace the execution runs for; the Nexora code controller caps its simultaneous sandboxes. */
+  workspaceId?: string
   /**
    * Tags the sandbox as a reusable session sandbox so a later execution can
    * find and reconnect to it via {@link SandboxProvider.findSessionSandbox}.

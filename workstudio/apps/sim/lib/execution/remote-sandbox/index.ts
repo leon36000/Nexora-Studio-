@@ -884,6 +884,7 @@ async function executeInSandboxWithinBudget(
       language,
       imageRef: selected?.imageRef,
       lifetimeMs: remainingSandboxBudgetMs(signal),
+      workspaceId: req.workspaceId,
     },
     selected,
     signal,
@@ -1081,7 +1082,11 @@ async function executeShellInSandboxWithinBudget(
 
   const lease = await leaseSandbox(
     kind,
-    { imageRef: selected?.imageRef, lifetimeMs: remainingSandboxBudgetMs(signal) },
+    {
+      imageRef: selected?.imageRef,
+      lifetimeMs: remainingSandboxBudgetMs(signal),
+      workspaceId: req.workspaceId,
+    },
     selected,
     signal,
     req.meterUsage,

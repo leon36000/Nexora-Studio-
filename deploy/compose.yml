@@ -209,6 +209,8 @@ services:
       NEXORA_EMBED_ORIGINS: ${NEXORA_EMBED_ORIGINS:-}
       # Délégation entre agents: how many agents may be chained (1 to 10).
       NEXORA_DELEGATION_MAX_DEPTH: ${NEXORA_DELEGATION_MAX_DEPTH:-3}
+      # Storage the files of the /v1/batches API may use per workspace, in MB (1024 when empty).
+      NEXORA_BATCH_FILES_QUOTA_MB: ${NEXORA_BATCH_FILES_QUOTA_MB:-}
       # Réglages › État: the installed version, and the transcription service to check when it is on.
       NEXORA_VERSION: ${NEXORA_VERSION:-local}
       NEXORA_WHISPER_URL: ${NEXORA_WHISPER_URL:-}
@@ -282,6 +284,7 @@ services:
       - workstudio-uploads:/app/apps/sim/uploads
     extra_hosts:
       - 'host.docker.internal:host-gateway'
+    networks: [default, code]
     ports:
       - '${NEXORA_BIND_ADDRESS:-127.0.0.1}:${NEXORA_WORKSTUDIO_PORT:-3000}:3000'
     depends_on:
@@ -338,6 +341,9 @@ services:
   # Python in throwaway containers of this image, without network, read-only, user 10001, no
   # capability, bounded CPU, memory, /tmp, processes and time (docs/guide/interpreteur.md). This
   # controller is the only service that sees the Docker socket; WorkStudio calls it with a token.
+  # The controller runs as root, so it sits alone with WorkStudio on the internal network « code »
+  # (no other container can reach it), keeps no capability, has a read-only root, and cannot gain
+  # privileges.
   code-sandbox:
     build:
       context: ./code
@@ -354,8 +360,17 @@ services:
       NEXORA_CODE_MAX_SECONDS: ${NEXORA_CODE_MAX_SECONDS:-120}
       NEXORA_CODE_MAX_LIFETIME_SECONDS: ${NEXORA_CODE_MAX_LIFETIME_SECONDS:-600}
       NEXORA_CODE_MAX_SANDBOXES: ${NEXORA_CODE_MAX_SANDBOXES:-2}
+      # Sandboxes one workspace may run at once, so that one member cannot take them all.
+      NEXORA_CODE_MAX_PER_WORKSPACE: ${NEXORA_CODE_MAX_PER_WORKSPACE:-1}
       # « runsc » when the administrator installed gVisor on this server (stronger isolation).
       NEXORA_CODE_RUNTIME: ${NEXORA_CODE_RUNTIME:-}
+    networks: [code]
+    cap_drop: [ALL]
+    security_opt:
+      - no-new-privileges:true
+    read_only: true
+    tmpfs:
+      - /tmp
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock
 
@@ -477,3 +492,8 @@ volumes:
   nexora-api-redis-data:
   connect-data:
   bootstrap:
+
+networks:
+  # Only WorkStudio and the code interpreter controller (profile « code ») are on it; no outside access.
+  code:
+    internal: true

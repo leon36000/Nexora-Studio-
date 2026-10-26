@@ -13,6 +13,7 @@ import {
   DEFAULT_BATCH_CONCURRENCY,
   MAX_BATCH_FILE_BYTES,
   MAX_PENDING_LINES,
+  resolveFilesQuotaBytes,
 } from '@/lib/nexora/batches/types'
 import { gatewayErrors } from '@/lib/nexora/developer-api/errors'
 import type { GatewayCall } from '@/lib/nexora/developer-api/gateway'
@@ -28,6 +29,7 @@ export interface BatchApiDeps {
     | 'getFileText'
     | 'listFiles'
     | 'deleteFile'
+    | 'storedFileBytes'
     | 'insertBatchWithItems'
     | 'insertFailedBatch'
     | 'getBatch'
@@ -46,6 +48,8 @@ export interface BatchApiDeps {
   abort: (batchId: string) => void
   /** Waiting requests an instance (or workspace) accepts; {@link MAX_PENDING_LINES} unless a test lowers it. */
   pendingLimit?: number
+  /** Bytes of batch files a workspace may keep; 1 Go unless the instance or a test sets another. */
+  filesQuotaBytes?: number
 }
 
 const MAX_METADATA_KEYS = 16
@@ -55,9 +59,12 @@ const RESULT_PAGE = 200
 const MAX_LIST_LIMIT = 100
 const DEFAULT_LIST_LIMIT = 20
 
-/** Files and batches belong to the key's workspace, or to the instance keys together. */
+/**
+ * Files and batches belong to the key that created them, within its workspace (or the instance
+ * keys together): another key of the same workspace neither sees nor touches them.
+ */
 function scopeOf(key: GatewayKey): repository.BatchScope {
-  return { workspaceId: key.scope === 'workspace' ? key.workspaceId : null }
+  return { workspaceId: key.scope === 'workspace' ? key.workspaceId : null, apiKeyId: key.id }
 }
 
 const seconds = (date: Date | null): number | null =>
@@ -153,12 +160,17 @@ export async function createFile(
       'Cette instance accepte seulement les fichiers de lot : « purpose » doit valoir « batch ».'
     )
   }
-  if (Buffer.byteLength(input.text, 'utf8') > MAX_BATCH_FILE_BYTES) {
+  const bytes = Buffer.byteLength(input.text, 'utf8')
+  if (bytes > MAX_BATCH_FILE_BYTES) {
     throw gatewayErrors.batchFileTooLarge(MAX_BATCH_FILE_BYTES / (1024 * 1024))
   }
+  const scope = scopeOf(call.key)
+  const quota = deps.filesQuotaBytes ?? resolveFilesQuotaBytes(undefined)
+  const used = await deps.repo.storedFileBytes(scope)
+  if (used + bytes > quota) throw gatewayErrors.batchFilesStorageFull(used, quota)
   const lineCount = input.text.split('\n').filter((line) => line.trim() !== '').length
   const file = await deps.repo.insertFile({
-    scope: scopeOf(call.key),
+    scope,
     apiKeyId: call.key.id,
     filename: input.filename.slice(0, 255) || 'lot.jsonl',
     text: input.text,

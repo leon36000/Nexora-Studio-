@@ -43,7 +43,7 @@ Le premier lancement construit l'image `nexora/code` (environ 120 Mo) ; chaque e
 Ce que le service fait **par conception** :
 
 - chaque exécution a lieu dans un **conteneur jetable** (détruit après usage, ou à l'expiration de sa durée de vie) : **aucun réseau**, système de fichiers **en lecture seule**, seul `/tmp` est inscriptible (plafonné, sans exécution de programme), utilisateur sans droits, **aucune capacité Linux**, `no-new-privileges`, filtre d'appels système et profil AppArmor par défaut de Docker, nombre de processus, mémoire, processeur et durée bornés ;
-- seul le service `code-sandbox` accède à Docker : le **socket Docker n'est jamais visible du code**, et WorkStudio ne l'utilise pas lui-même. Le service ne publie aucun port et exige un jeton ;
+- seul le service `code-sandbox` accède à Docker : le **socket Docker n'est jamais visible du code**, et WorkStudio ne l'utilise pas lui-même. Le service ne publie aucun port, exige un jeton, ne partage avec WorkStudio qu'un réseau Docker interne (aucun autre conteneur ne peut l'atteindre), n'a aucune capacité Linux et son système de fichiers est en lecture seule ;
 - aucun secret de WorkStudio (clés, base de données, jeton) n'est dans l'environnement du code ; le code n'a accès qu'aux fichiers joints à l'exécution et aux variables que le bloc lui donne ;
 - les fichiers produits sont relus **dans `/tmp` seulement** ; les chemins en dehors sont refusés.
 
@@ -61,6 +61,7 @@ Le script `scripts/verification/interpreteur-evasion.py` vérifie, lui, que les 
 |---|---|
 | « Non installé » dans Réglages | `nexora code on` n'a pas été lancé (profil `code` absent) |
 | « Injoignable » | Le service ne répond pas : `nexora logs code-sandbox` |
-| « Exécution de code saturée » | Deux exécutions déjà en cours : réessayez, ou augmentez `NEXORA_CODE_MAX_SANDBOXES` |
+| « Exécution de code saturée » | Deux exécutions déjà en cours sur l'instance : réessayez, ou augmentez `NEXORA_CODE_MAX_SANDBOXES` |
+| « Une exécution de code de cet espace de travail est déjà en cours » | Un espace n'occupe qu'un bac à la fois, pour ne pas priver les autres : attendez la fin, ou augmentez `NEXORA_CODE_MAX_PER_WORKSPACE` |
 | Une exécution s'arrête sans résultat | Durée ou mémoire dépassée : réduisez le volume de données ou relevez les limites |
 | Le graphique n'apparaît pas | Le modèle n'a pas enregistré son fichier dans `/tmp/sim/outputs` ; redemandez en le précisant |

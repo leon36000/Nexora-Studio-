@@ -88,7 +88,9 @@ class NotFound(Exception):
 
 
 class Busy(Exception):
-    pass
+    def __init__(self, message: str, scope: str = "instance"):
+        super().__init__(message)
+        self.scope = scope
 
 
 class TooLarge(Exception):
@@ -111,6 +113,7 @@ class Settings:
     max_run_seconds: int = 120
     max_lifetime_seconds: int = 600
     max_sandboxes: int = 2
+    max_per_workspace: int = 1
     runtime: str = ""
     max_body_bytes: int = 64 * 1024 * 1024
     max_read_bytes: int = 32 * 1024 * 1024
@@ -146,6 +149,7 @@ class Settings:
             max_run_seconds=number("NEXORA_CODE_MAX_SECONDS", 120),
             max_lifetime_seconds=number("NEXORA_CODE_MAX_LIFETIME_SECONDS", 600),
             max_sandboxes=number("NEXORA_CODE_MAX_SANDBOXES", 2),
+            max_per_workspace=number("NEXORA_CODE_MAX_PER_WORKSPACE", 1),
             runtime=env.get("NEXORA_CODE_RUNTIME", "").strip(),
             socket_path=env.get("NEXORA_CODE_DOCKER_SOCKET", "/var/run/docker.sock"),
         )
@@ -159,6 +163,7 @@ class Settings:
             "maxRunSeconds": self.max_run_seconds,
             "maxLifetimeSeconds": self.max_lifetime_seconds,
             "maxSandboxes": self.max_sandboxes,
+            "maxPerWorkspace": self.max_per_workspace,
             "network": False,
             "runtime": self.runtime or "runc",
         }
@@ -392,7 +397,20 @@ class Sandbox:
     sandbox_id: str
     container_id: str | None
     expires_at: float
+    workspace_id: str | None = None
     lock: threading.Lock = field(default_factory=threading.Lock)
+
+
+WORKSPACE_ID = re.compile(r"^[A-Za-z0-9_-]{1,64}$")
+
+
+def check_workspace_id(value):
+    """The workspace a sandbox is created for (absent: only the instance-wide limit applies)."""
+    if value is None:
+        return None
+    if not isinstance(value, str) or not WORKSPACE_ID.match(value):
+        raise ValueError("workspaceId must be 1 to 64 letters, digits, dashes or underscores")
+    return value
 
 
 class SandboxService:
@@ -423,7 +441,8 @@ class SandboxService:
             except DockerUnavailable:
                 pass
 
-    def create(self, lifetime_ms) -> dict:
+    def create(self, lifetime_ms, workspace_id=None) -> dict:
+        workspace_id = check_workspace_id(workspace_id)
         maximum = self.settings.max_lifetime_seconds
         lifetime_s = maximum if lifetime_ms is None else min(maximum, max(10, math.ceil(float(lifetime_ms) / 1000)))
         sandbox_id = secrets.token_hex(12)
@@ -432,7 +451,11 @@ class SandboxService:
             live = [entry for entry in self.sandboxes.values() if entry.expires_at > now]
             if len(live) >= self.settings.max_sandboxes:
                 raise Busy("too many sandboxes")
-            entry = Sandbox(sandbox_id, None, now + lifetime_s)
+            if workspace_id is not None:
+                mine = [entry for entry in live if entry.workspace_id == workspace_id]
+                if len(mine) >= self.settings.max_per_workspace:
+                    raise Busy("too many sandboxes for this workspace", scope="workspace")
+            entry = Sandbox(sandbox_id, None, now + lifetime_s, workspace_id)
             self.sandboxes[sandbox_id] = entry
         try:
             name = f"nexora-code-{self.settings.instance}-{sandbox_id}"
@@ -635,7 +658,7 @@ def make_server(address, service: SandboxService) -> ThreadingHTTPServer:
             try:
                 body = self._body()
                 if self.path == "/v1/sandboxes":
-                    return self._send(201, service.create(body.get("lifetimeMs")))
+                    return self._send(201, service.create(body.get("lifetimeMs"), body.get("workspaceId")))
                 match = ROUTE.match(self.path)
                 if not match:
                     return self._send(404, {"error": "not_found"})
@@ -664,8 +687,8 @@ def make_server(address, service: SandboxService) -> ThreadingHTTPServer:
                 self._send(413, {"error": "too_large", "message": str(error)})
             except NotFound as error:
                 self._send(404, {"error": "not_found", "message": str(error)})
-            except Busy:
-                self._send(429, {"error": "busy", "message": "every sandbox is in use"})
+            except Busy as busy:
+                self._send(429, {"error": "busy", "scope": busy.scope, "message": str(busy)})
             except DockerUnavailable as error:
                 log("docker_unavailable", error=str(error)[:300])
                 self._send(503, {"error": "docker_unavailable"})

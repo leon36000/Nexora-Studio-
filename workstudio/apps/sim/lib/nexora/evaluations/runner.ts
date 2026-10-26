@@ -67,9 +67,15 @@ export interface RunnerStore {
   ) => Promise<{ campaign: CampaignRecord; resumed: boolean } | null>
   heartbeat: (campaignId: string, owner: string, leaseUntil: Date) => Promise<boolean>
   claimNextItem: (campaignId: string, now: Date) => Promise<ItemRecord | null>
-  completeItem: (itemId: string, result: ItemResult, now: Date) => Promise<void>
-  failItem: (itemId: string, error: string, latencyMs: number | null, now: Date) => Promise<void>
-  releaseItem: (itemId: string) => Promise<void>
+  completeItem: (itemId: string, attempt: number, result: ItemResult, now: Date) => Promise<void>
+  failItem: (
+    itemId: string,
+    attempt: number,
+    error: string,
+    latencyMs: number | null,
+    now: Date
+  ) => Promise<void>
+  releaseItem: (itemId: string, attempt: number) => Promise<void>
   finishCampaign: (
     campaignId: string,
     owner: string,
@@ -190,7 +196,13 @@ export async function runCampaign(campaignId: string, deps: RunnerDeps): Promise
     const processItem = async (item: ItemRecord) => {
       const target = campaign.targets.find((candidate) => candidate.key === item.targetKey)
       if (!target) {
-        await store.failItem(item.id, 'Cible introuvable dans la campagne.', null, deps.now())
+        await store.failItem(
+          item.id,
+          item.attempt,
+          'Cible introuvable dans la campagne.',
+          null,
+          deps.now()
+        )
         return
       }
       let result: TargetResult
@@ -198,14 +210,15 @@ export async function runCampaign(campaignId: string, deps: RunnerDeps): Promise
         result = await deps.runTarget(target, { input: item.input }, context)
       } catch (error) {
         if (controller.signal.aborted) {
-          await store.releaseItem(item.id)
+          await store.releaseItem(item.id, item.attempt)
         } else if (isBudgetRefusal(error)) {
           state.budgetMessage ??= getErrorMessage(error, 'Budget mensuel atteint.')
           state.stop = true
-          await store.releaseItem(item.id)
+          await store.releaseItem(item.id, item.attempt)
         } else {
           await store.failItem(
             item.id,
+            item.attempt,
             getErrorMessage(error, 'Échec de la cible.'),
             null,
             deps.now()
@@ -224,7 +237,7 @@ export async function runCampaign(campaignId: string, deps: RunnerDeps): Promise
         context
       )
       if (controller.signal.aborted) {
-        await store.releaseItem(item.id)
+        await store.releaseItem(item.id, item.attempt)
         return
       }
       const kgCo2eq = await deps
@@ -232,6 +245,7 @@ export async function runCampaign(campaignId: string, deps: RunnerDeps): Promise
         .catch(() => null)
       await store.completeItem(
         item.id,
+        item.attempt,
         {
           answer: result.answer,
           verdict: judged.verdict,
@@ -269,7 +283,7 @@ export async function runCampaign(campaignId: string, deps: RunnerDeps): Promise
           // Waiting happens once an item is in hand, so a worker that finds the queue empty never waits.
           await waitForInteractiveIdle()
           if (state.stop) {
-            await store.releaseItem(item.id)
+            await store.releaseItem(item.id, item.attempt)
             break
           }
           await processItem(item)
