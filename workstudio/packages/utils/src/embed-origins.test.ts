@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { parseEmbedOrigins } from '@/lib/core/security/embed-origins'
+import { parseEmbedOrigins } from './embed-origins'
 
 describe('parseEmbedOrigins', () => {
   it.each([undefined, '', '   ', ' , ,'])('treats %j as « no restriction »', (raw) => {

@@ -51,6 +51,10 @@
         "lib/api/contracts/project-file-folders.ts": ["types"],
         "lib/api/contracts/project-file-lifecycle.ts": ["types"],
         "sandboxes/index.ts": ["files"],
+        // The chat widget served at /embed.js: embed.src.js is bundled into public/embed.js by
+        // scripts/build-embed.ts (read by path, never imported), and the browser loads the result.
+        "lib/nexora/embed/embed.src.js": ["files"],
+        "public/embed.js": ["files"],
         // Nexora edition: clean-room stubs that exist only as the module ids the shared
         // @sim/testing fork mocks target (check:test-patterns requires each target to resolve).
         // Forking is disabled, so no production module imports them.

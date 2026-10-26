@@ -4,7 +4,7 @@ import { createTranslator } from 'next-intl'
 import { DEFAULT_LOCALE } from '@/lib/i18n/config'
 import { WORKSPACES_PATH } from '@/lib/navigation/paths'
 import { getBrandConfig } from '@/ee/whitelabeling'
-import { getLocaleMessages } from '@/i18n/messages'
+import frCommon from '@/messages/fr/common.json'
 
 export const dynamic = 'force-dynamic'
 
@@ -20,8 +20,8 @@ export default function manifest(): MetadataRoute.Manifest {
   const brand = getBrandConfig()
   const t = createTranslator({
     locale: DEFAULT_LOCALE,
-    messages: getLocaleMessages(DEFAULT_LOCALE),
-    namespace: 'common.manifest',
+    messages: { manifest: frCommon.manifest },
+    namespace: 'manifest',
   })
 
   return {

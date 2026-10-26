@@ -1,9 +1,9 @@
 import { createLogger } from '@sim/logger'
+import { parseEmbedOrigins } from '@sim/utils/embed-origins'
 import { CHANGELOG_MEDIA_ORIGIN } from '../../changelog/media'
 import { CONSENT_BACKEND_URL } from '../../consent/constants'
 import { env, envBoolean, getEnv } from '../config/env'
 import { isDev, isHosted, isReactGrabEnabled } from '../config/env-flags'
-import { parseEmbedOrigins } from './embed-origins'
 
 const embedOriginsLogger = createLogger('EmbedOrigins')
 

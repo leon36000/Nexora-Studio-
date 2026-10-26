@@ -26,7 +26,7 @@
 
 ## Tâche 2 — Script `/embed.js` (spec §1–4)
 
-**Fichiers :** `public/embed.js`, `lib/nexora/embed/embed-script.test.ts` (jsdom), `next.config.ts` (en-têtes), `proxy.ts` (matcher).
+**Fichiers :** `public/embed.js`, `lib/nexora/embed/script.test.ts` (jsdom), `next.config.ts` (en-têtes), `proxy.ts` (matcher).
 
 - [x] Test rouge (jsdom) : bulle créée (bouton `aria-label`, `aria-expanded=false`) ; ouvrir ⇒ iframe `https://instance/chat/<id>` sandboxée sans `allow-top-navigation`, panneau visible, `aria-expanded=true` ; Échap ferme et rend le focus au bouton ; `NexoraChat.open/close/toggle` ; `data-open` ouvre au chargement ; `data-position=left` ; `data-label` posé en `textContent` ; plein écran ≤ 640 px ; refus d'un identifiant invalide (`../x`, `A B`, `"><img src=x onerror=…>`, vide) : aucune bulle, aucun élément ajouté ; **aucune injection** par `data-label`, `data-color`, `data-target` (pas d'élément `img`/`script` créé, couleur non hexadécimale ignorée) ; `data-mode=inline` + `data-target` insère l'iframe dans la cible et pas de bulle ; cible introuvable ⇒ rien ; message `postMessage` d'une autre origine ou d'une autre fenêtre ignoré, de la bonne origine/fenêtre `close` ferme ; `prefers-reduced-motion` ⇒ aucune transition ; taille < 6 144 octets ; une seconde exécution ne crée pas deux bulles.
 - [x] Code : source lisible `lib/nexora/embed/embed.src.js`, construite en `public/embed.js` minifié (< 6 Ko) par `bun run build:embed` ; l'empreinte de la source est dans la bannière et un test la compare.

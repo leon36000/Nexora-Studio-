@@ -62,6 +62,10 @@
       "types": "./src/paste.ts",
       "default": "./src/paste.ts"
     },
+    "./embed-origins": {
+      "types": "./src/embed-origins.ts",
+      "default": "./src/embed-origins.ts"
+    },
     "./site": {
       "types": "./src/site.ts",
       "default": "./src/site.ts"

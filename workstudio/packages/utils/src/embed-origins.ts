@@ -1,16 +1,16 @@
 /**
  * Origins allowed to frame the public chat pages (`NEXORA_EMBED_ORIGINS`).
  *
- * Loaded by `csp.ts`, which `next.config.ts` imports before `@/` aliases resolve: no `@/` import here.
+ * Imported by `csp.ts`, which `next.config.ts` loads before `@/` aliases resolve, hence a workspace package.
  * Pure on purpose: the caller logs what was rejected.
  */
 
-export interface RejectedEmbedOrigin {
+interface RejectedEmbedOrigin {
   entry: string
   reason: string
 }
 
-export interface ParsedEmbedOrigins {
+interface ParsedEmbedOrigins {
   /** True when the variable holds at least one entry, valid or not. */
   configured: boolean
   origins: string[]
