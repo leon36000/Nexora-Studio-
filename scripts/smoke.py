@@ -1965,16 +1965,19 @@ print(json.dumps(summary))
                 request = urllib.request.Request(f"{s.url}/api/chat/{relais_chat}", method="POST", headers={
                     "Content-Type": "application/json", "Origin": s.origin, "X-Sim-Stream-Protocol": "agent-events-v1, chat-outputs-v1"},
                     data=json.dumps({"input": "Envoie un e-mail de relance au client : sujet « Relance facture F-118 »", "conversationId": secrets.token_hex(8)}).encode())
-                asked = None
+                asked, seen, deadline = None, [], time.monotonic() + 300
                 with s.opener.open(request, timeout=600) as stream:
                     for raw in stream:
+                        require(time.monotonic() < deadline, f"no confirmation card within 5 minutes; events seen: {seen[-12:]}")
                         line = raw.decode().strip()
                         if not line.startswith("data:") or not line[5:].strip().startswith("{"):
                             continue
                         frame = json.loads(line[5:])
-                        if frame.get("event") == "confirmation" and asked is None:
-                            asked = frame["data"]
-                            status, _ = s.call("POST", f"/api/nexora/tool-confirmations/{asked['id']}", {"token": asked["token"], "decision": "deny"})
+                        seen.append(frame.get("event") or ("chunk" if "chunk" in frame else "?"))
+                        if frame.get("event") == "confirmation":  # a model may ask for several actions at once: refuse them all
+                            card = frame["data"]
+                            asked = asked or card
+                            status, _ = s.call("POST", f"/api/nexora/tool-confirmations/{card['id']}", {"token": card["token"], "decision": "deny"})
                             require(status == 200, f"the answer was refused (HTTP {status})")
                         elif frame.get("event") == "error":
                             raise AssertionError(f"chat reported an error: {frame}")
