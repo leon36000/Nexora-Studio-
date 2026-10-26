@@ -15,9 +15,9 @@
 
 ## Tâche 1 — Origines autorisées (spec §5, §6)
 
-**Fichiers :** `lib/core/security/embed-origins.ts` (+ `.test.ts`), `lib/core/security/csp.ts` (+ `csp.test.ts`), `lib/core/config/env.ts`, `proxy.ts` (+ `proxy.test.ts`), `next.config.ts`.
+**Fichiers :** `packages/utils/src/embed-origins.ts` (+ `.test.ts`, paquet `@sim/utils`), `lib/core/security/csp.ts` (+ `csp.test.ts`), `lib/core/config/env.ts`, `proxy.ts` (+ `proxy.test.ts`), `next.config.ts`.
 
-- [x] Test rouge `embed-origins.test.ts` : liste vide/absente ⇒ aucune restriction ; liste valide (https, `http://localhost:3000`, `http://127.0.0.1`, `http://[::1]:8080`) normalisée et dédoublonnée ; ignorées : `*`, `https://*.exemple.fr`, `ftp://x`, `javascript:alert(1)`, `http://exemple.fr` (http hors localhost), `https://exemple.fr/chemin`, `https://u:p@exemple.fr`, `exemple.fr`, valeur vide entre deux virgules ; chaque entrée rejetée est signalée avec sa raison.
+- [x] Test rouge `embed-origins.test.ts` (paquet `@sim/utils`) : liste vide/absente ⇒ aucune restriction ; liste valide (https, `http://localhost:3000`, `http://127.0.0.1`, `http://[::1]:8080`) normalisée et dédoublonnée ; ignorées : `*`, `https://*.exemple.fr`, `ftp://x`, `javascript:alert(1)`, `http://exemple.fr` (http hors localhost), `https://exemple.fr/chemin`, `https://u:p@exemple.fr`, `exemple.fr`, valeur vide entre deux virgules ; chaque entrée rejetée est signalée avec sa raison.
 - [x] Code `embed-origins.ts` (fonction pure, sans journal).
 - [x] Test rouge `csp.test.ts` : `getChatEmbedCSPPolicy()` sans variable ⇒ `frame-ancestors *` ; liste valide ⇒ `frame-ancestors 'self' https://…` et jamais `*` ; entrée invalide ignorée + `logger.warn` ; liste sans entrée valide ⇒ `frame-ancestors 'self'` + `logger.error` ; la variable est relue à chaque appel (exécution, pas construction).
 - [x] Code : `NEXORA_EMBED_ORIGINS` dans `env.ts` ; `getChatEmbedCSPPolicy()` lit `getEnv` et journalise.
@@ -51,5 +51,5 @@
 
 ## Tâche 6 — Vérifications finales
 
-- [ ] `check:audits`, `check:test-types`, `check:api-validation:strict`, `type-check` ; `check-i18n`, `check-brand`, `check-no-ee`, `check-licenses`, `test-compose-env` ; suite complète d'`apps/sim`.
-- [ ] Ledger : section K15 (rulings, preuves, non livré) ; plan coché ; commits.
+- [x] `check:audits`, `check:test-types`, `check:api-validation:strict`, `type-check` ; `check-i18n`, `check-brand`, `check-no-ee`, `check-licenses`, `test-compose-env` ; suite complète d'`apps/sim`.
+- [x] Ledger : section K15 (rulings, preuves, non livré) ; plan coché ; commits.
