@@ -61,6 +61,13 @@ required_env="$(mktemp)"; cp "$env_file" "$required_env"; printf "NEXORA_OIDC_RE
 required="$(dc compose -f "$ROOT/deploy/compose.yml" --env-file "$required_env" config --format json 2>/dev/null | python3 -I -c 'import json,sys; print(json.load(sys.stdin)["services"]["workstudio"]["environment"].get("NEXORA_OIDC_REQUIRED") or "")')"; rm -f "$required_env"
 [ "$required" = "true" ] && ok "« connexion obligatoire » set in deploy/.env reaches WorkStudio" || ko "« connexion obligatoire » set in deploy/.env reaches WorkStudio (got: $required)"
 
+# Intégration au site: every site may frame the chat by default; NEXORA_EMBED_ORIGINS limits it (read at runtime).
+embed_default="$(python3 -I -c 'import json,sys; e=json.load(sys.stdin)["services"]["workstudio"]["environment"]; print("present" if "NEXORA_EMBED_ORIGINS" in e else "absent", repr(e.get("NEXORA_EMBED_ORIGINS") or ""))' <<< "$rendered")"
+[ "$embed_default" = "present ''" ] && ok "no site restriction by default (NEXORA_EMBED_ORIGINS empty)" || ko "no site restriction by default (got: $embed_default)"
+embed_env="$(mktemp)"; cp "$env_file" "$embed_env"; printf "NEXORA_EMBED_ORIGINS=https://www.pme-test.fr,http://localhost:3000\n" >> "$embed_env"
+embed_set="$(dc compose -f "$ROOT/deploy/compose.yml" --env-file "$embed_env" config --format json 2>/dev/null | python3 -I -c 'import json,sys; print(json.load(sys.stdin)["services"]["workstudio"]["environment"].get("NEXORA_EMBED_ORIGINS") or "")')"; rm -f "$embed_env"
+[ "$embed_set" = "https://www.pme-test.fr,http://localhost:3000" ] && ok "NEXORA_EMBED_ORIGINS set in deploy/.env reaches WorkStudio" || ko "NEXORA_EMBED_ORIGINS set in deploy/.env reaches WorkStudio (got: $embed_set)"
+
 # HTTPS: Caddy serves the public domain only when the « https » profile is on.
 has_service() { python3 -I -c 'import json,sys; print(sys.argv[1] in json.load(sys.stdin)["services"])' "$1" <<< "$rendered"; }
 [ "$(has_service caddy)" = "False" ] && ok "no HTTPS proxy by default" || ko "no HTTPS proxy by default"

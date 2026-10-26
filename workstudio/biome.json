@@ -27,6 +27,7 @@
       "!**/.vercel",
       "!**/coverage",
       "!**/public/sw.js",
+      "!**/apps/sim/public/embed.js",
       "!**/public/workbox-*.js",
       "!**/public/worker-*.js",
       "!**/public/fallback-*.js",

@@ -268,4 +268,35 @@ describe('proxy matcher', () => {
     expect(matches('/api/v1/files/file-1')).toBe(true)
     expect(matches('/api/knowledge/kb-1/documents')).toBe(true)
   })
+
+  it('leaves the embed script alone: it is a public static file, served to every site', () => {
+    expect(matches('/embed.js')).toBe(false)
+    expect(matches('/embed.json')).toBe(true)
+  })
+})
+
+describe('proxy on the public chat pages', () => {
+  const frameAncestors = (pathname: string) =>
+    proxy(new NextRequest(`https://nexora.test${pathname}`))
+      .headers.get('Content-Security-Policy')
+      ?.split('; ')
+      .find((directive) => directive.startsWith('frame-ancestors '))
+
+  afterEach(() => {
+    setEnv({ NEXORA_EMBED_ORIGINS: undefined })
+  })
+
+  it('lets every site frame a chat while NEXORA_EMBED_ORIGINS is empty', () => {
+    expect(frameAncestors('/chat/support')).toBe('frame-ancestors *')
+  })
+
+  it('applies NEXORA_EMBED_ORIGINS to the chat at request time', () => {
+    setEnv({ NEXORA_EMBED_ORIGINS: 'https://www.exemple.fr' })
+    expect(frameAncestors('/chat/support')).toBe("frame-ancestors 'self' https://www.exemple.fr")
+  })
+
+  it('never opens the rest of the app to framing', () => {
+    setEnv({ NEXORA_EMBED_ORIGINS: 'https://www.exemple.fr' })
+    expect(frameAncestors('/login')).toBe("frame-ancestors 'self'")
+  })
 })
