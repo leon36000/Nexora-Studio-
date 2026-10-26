@@ -13,7 +13,7 @@ import { resolveMarketingRedirect } from '@/lib/nexora/marketing'
 import { isOAuthAuthorizationCallback, resolveAuthRedirect } from '@/app/(auth)/auth-redirect'
 import { getEnv } from './lib/core/config/env'
 import { isAuthDisabled, isDev, isHosted } from './lib/core/config/env-flags'
-import { generateRuntimeCSP } from './lib/core/security/csp'
+import { generateRuntimeCSP, getChatEmbedCSPPolicy } from './lib/core/security/csp'
 import { getClientIp } from './lib/core/utils/request'
 import { isNonCanonicalSimHost } from './lib/core/utils/urls'
 
@@ -415,9 +415,12 @@ export function proxy(request: NextRequest) {
     return applyIndexingPolicy(request, response)
   }
 
-  // Chat pages are publicly accessible embeds — CSP is set in next.config.ts headers
+  // Chat pages are publicly accessible embeds. Their CSP carries the origins allowed to frame them
+  // (NEXORA_EMBED_ORIGINS), a runtime variable: next.config.ts headers would freeze it at build time.
   if (url.pathname.startsWith('/chat/')) {
-    return applyIndexingPolicy(request, NextResponse.next())
+    const response = NextResponse.next()
+    response.headers.set('Content-Security-Policy', getChatEmbedCSPPolicy())
+    return applyIndexingPolicy(request, response)
   }
 
   if (isAppSurfacePath(url.pathname)) {
@@ -502,6 +505,6 @@ export const config = {
     // Next's image optimizer fetches public editorial images without a User-Agent. Nexora edition:
     // the developer API (`/v1`, rewritten to `/api/nexora/v1`) is server-to-server: no page rules,
     // no CORS, and its routes bound their own bodies (an audio file goes past the 10 MB clamp).
-    '/((?!api/|api$|v1/|v1$|_next/static|_next/image|(?:blog|changelog)/.*\\.(?:avif|gif|jpe?g|png|svg|webp)$|ingest|favicon.ico|logo/|landing/|static/|footer/|social/|enterprise/|favicon/|twitter/|robots.txt|sitemap.xml).*)',
+    '/((?!api/|api$|v1/|v1$|_next/static|_next/image|(?:blog|changelog)/.*\\.(?:avif|gif|jpe?g|png|svg|webp)$|ingest|favicon.ico|logo/|landing/|static/|footer/|social/|enterprise/|favicon/|twitter/|robots.txt|sitemap.xml|embed\\.js$).*)',
   ],
 }

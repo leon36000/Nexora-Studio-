@@ -20,6 +20,7 @@ await vi.hoisted(async () => {
 })
 
 import { setEnv } from '@sim/testing/mocks/env.mock'
+import { getMockLogger } from '@sim/testing/mocks/logger.mock'
 import { buildCSPString, generateRuntimeCSP, getChatEmbedCSPPolicy, getMainCSPPolicy } from './csp'
 
 describe('buildCSPString', () => {
@@ -119,5 +120,52 @@ describe('getChatEmbedCSPPolicy', () => {
     expect(policy).toMatch(/connect-src[^;]*https:\/\/appsforoffice\.microsoft\.com/)
     expect(policy).toContain("object-src 'none'")
     expect(policy).toContain("base-uri 'self'")
+  })
+})
+
+describe('getChatEmbedCSPPolicy NEXORA_EMBED_ORIGINS', () => {
+  const logger = getMockLogger('EmbedOrigins')
+  const frameAncestors = () =>
+    getChatEmbedCSPPolicy()
+      .split('; ')
+      .find((directive) => directive.startsWith('frame-ancestors '))
+
+  afterEach(() => {
+    setEnv({ NEXORA_EMBED_ORIGINS: undefined })
+  })
+
+  it.each([undefined, '', '  '])('lets every site frame the chat when the list is %j', (raw) => {
+    setEnv({ NEXORA_EMBED_ORIGINS: raw })
+    expect(frameAncestors()).toBe('frame-ancestors *')
+    expect(logger.warn).not.toHaveBeenCalled()
+    expect(logger.error).not.toHaveBeenCalled()
+  })
+
+  it('limits framing to the listed origins and the instance itself', () => {
+    setEnv({ NEXORA_EMBED_ORIGINS: 'https://www.exemple.fr, http://localhost:3000' })
+    expect(frameAncestors()).toBe(
+      "frame-ancestors 'self' https://www.exemple.fr http://localhost:3000"
+    )
+  })
+
+  it('ignores an invalid entry and says so', () => {
+    setEnv({ NEXORA_EMBED_ORIGINS: 'https://www.exemple.fr,https://*.exemple.fr' })
+    expect(frameAncestors()).toBe("frame-ancestors 'self' https://www.exemple.fr")
+    expect(logger.warn).toHaveBeenCalledTimes(1)
+    expect(JSON.stringify(logger.warn.mock.calls)).toContain('https://*.exemple.fr')
+  })
+
+  it('refuses every site, rather than all of them, when no entry is valid', () => {
+    setEnv({ NEXORA_EMBED_ORIGINS: '*,ftp://exemple.fr' })
+    expect(frameAncestors()).toBe("frame-ancestors 'self'")
+    expect(logger.error).toHaveBeenCalledTimes(1)
+  })
+
+  it('reads the list at call time, not at build time', () => {
+    setEnv({ NEXORA_EMBED_ORIGINS: 'https://a.exemple.fr' })
+    expect(frameAncestors()).toContain('https://a.exemple.fr')
+    setEnv({ NEXORA_EMBED_ORIGINS: 'https://b.exemple.fr' })
+    expect(frameAncestors()).toContain('https://b.exemple.fr')
+    expect(frameAncestors()).not.toContain('https://a.exemple.fr')
   })
 })

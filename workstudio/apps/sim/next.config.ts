@@ -6,7 +6,6 @@ import { env, isTruthy } from './lib/core/config/env'
 import { isDev } from './lib/core/config/env-flags'
 import {
   FILE_DELIVERY_CSP_PATH_PATTERN,
-  getChatEmbedCSPPolicy,
   getMainCSPPolicy,
   getWorkflowExecutionCSPPolicy,
 } from './lib/core/security/csp'
@@ -411,7 +410,19 @@ const nextConfig: NextConfig = {
           },
         ],
       },
-      // Chat pages - allow iframe embedding from any origin
+      // The one-line embed script is public: any site may load it, whatever NEXORA_EMBED_ORIGINS says
+      // (that list limits who may frame the chat, not who may fetch the script).
+      {
+        source: '/embed.js',
+        headers: [
+          { key: 'Access-Control-Allow-Origin', value: '*' },
+          { key: 'Cross-Origin-Resource-Policy', value: 'cross-origin' },
+          { key: 'Cache-Control', value: 'public, max-age=3600, stale-while-revalidate=86400' },
+          { key: 'X-Content-Type-Options', value: 'nosniff' },
+        ],
+      },
+      // Chat pages - iframe embedding. Their Content-Security-Policy (frame-ancestors: every site, or
+      // the origins of NEXORA_EMBED_ORIGINS) is set by proxy.ts at request time.
       {
         source: '/chat/:path*',
         headers: [
@@ -420,10 +431,6 @@ const nextConfig: NextConfig = {
             value: 'nosniff',
           },
           // No X-Frame-Options to allow iframe embedding
-          {
-            key: 'Content-Security-Policy',
-            value: getChatEmbedCSPPolicy(),
-          },
           // Permissive CORS for chat requests from embedded chats
           { key: 'Cross-Origin-Embedder-Policy', value: 'unsafe-none' },
           { key: 'Cross-Origin-Opener-Policy', value: 'unsafe-none' },

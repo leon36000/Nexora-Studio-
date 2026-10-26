@@ -58,6 +58,7 @@ Le script crée `deploy/.env`, lisible par vous seul, et génère tous les secre
 | Variable | Rôle |
 |---|---|
 | `NEXORA_PUBLIC_URL` | L'adresse que vos utilisateurs tapent dans leur navigateur (par exemple `https://ia.mon-entreprise.fr`) |
+| `NEXORA_EMBED_ORIGINS` | Facultatif : sites autorisés à afficher vos chats dans un cadre, séparés par des virgules (vide = tous). Voir [Intégration à votre site](integration-site.md) |
 | `NEXORA_BIND_ADDRESS` | `127.0.0.1` par défaut : seul le serveur lui-même accède à Nexora. Mettez `0.0.0.0` derrière un pare-feu, ou placez un proxy HTTPS (Caddy, Traefik, Nginx) devant |
 | `NEXORA_UPSTREAM_URL` | L'adresse de votre modèle, sans `/v1` |
 | `NEXORA_UPSTREAM_MODEL` | Le nom du modèle chez ce fournisseur |

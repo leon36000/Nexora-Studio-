@@ -1,7 +1,11 @@
+import { createLogger } from '@sim/logger'
+import { parseEmbedOrigins } from '@sim/utils/embed-origins'
 import { CHANGELOG_MEDIA_ORIGIN } from '../../changelog/media'
 import { CONSENT_BACKEND_URL } from '../../consent/constants'
 import { env, envBoolean, getEnv } from '../config/env'
 import { isDev, isHosted, isReactGrabEnabled } from '../config/env-flags'
+
+const embedOriginsLogger = createLogger('EmbedOrigins')
 
 /**
  * Content Security Policy (CSP) configuration builder
@@ -327,10 +331,33 @@ export function getWorkflowExecutionCSPPolicy(): string {
 }
 
 /**
+ * `frame-ancestors` of the chat pages. `NEXORA_EMBED_ORIGINS` empty or absent keeps every site
+ * allowed; a list limits framing to the instance and those origins. A list without a single valid
+ * entry allows the instance only: a typo must not reopen it to every site.
+ */
+function getChatFrameAncestors(): string[] {
+  const { configured, origins, rejected } = parseEmbedOrigins(getEnv('NEXORA_EMBED_ORIGINS'))
+  if (!configured) return ['*']
+  if (rejected.length > 0) {
+    const logEntries = { ignored: rejected }
+    if (origins.length > 0) {
+      embedOriginsLogger.warn('NEXORA_EMBED_ORIGINS : entrées ignorées', logEntries)
+    } else {
+      embedOriginsLogger.error(
+        "NEXORA_EMBED_ORIGINS ne contient aucune origine valide : seul l'instance peut afficher le chat",
+        logEntries
+      )
+    }
+  }
+  return ["'self'", ...origins]
+}
+
+/**
  * CSP for embeddable chat pages.
  * Extends the shared embed policy with Microsoft Office.js sources so the
  * chat page can serve as an Office (Excel/Word/Outlook) add-in surface
- * when loaded with `?embed=office`.
+ * when loaded with `?embed=office`. Read at request time (the proxy sets it): the allowed
+ * origins come from a runtime variable that a build-time header would freeze.
  */
 export function getChatEmbedCSPPolicy(): string {
   return buildCSPString({
@@ -340,6 +367,6 @@ export function getChatEmbedCSPPolicy(): string {
       ...(buildTimeCSPDirectives['connect-src'] ?? []),
       'https://appsforoffice.microsoft.com',
     ],
-    'frame-ancestors': ['*'],
+    'frame-ancestors': getChatFrameAncestors(),
   })
 }
