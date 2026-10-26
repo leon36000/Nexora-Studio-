@@ -742,6 +742,15 @@ export async function claimNextItem(campaignId: string, now: Date): Promise<Item
   })
 }
 
+/** An item still running under the attempt a worker read when it claimed it. */
+function claimedItem(itemId: string, attempt: number) {
+  return and(
+    eq(nexoraEvalItem.id, itemId),
+    eq(nexoraEvalItem.status, 'running'),
+    eq(nexoraEvalItem.attempt, attempt)
+  )
+}
+
 export interface ItemResult {
   answer: string | null
   verdict: JudgeVerdict
@@ -754,8 +763,17 @@ export interface ItemResult {
   executionId: string | null
 }
 
-/** Records a judged item. Only an item still running is written (a cancelled campaign keeps its state). */
-export async function completeItem(itemId: string, result: ItemResult, now: Date): Promise<void> {
+/**
+ * Records a judged item. Only an item still running under the attempt that claimed it is written:
+ * a cancelled campaign keeps its state, and a worker whose lease was taken over cannot overwrite
+ * the item's new owner (its write is ignored, without error).
+ */
+export async function completeItem(
+  itemId: string,
+  attempt: number,
+  result: ItemResult,
+  now: Date
+): Promise<void> {
   await db
     .update(nexoraEvalItem)
     .set({
@@ -772,12 +790,13 @@ export async function completeItem(itemId: string, result: ItemResult, now: Date
       error: result.verdict === 'error' ? result.judgeNote : null,
       finishedAt: now,
     })
-    .where(and(eq(nexoraEvalItem.id, itemId), eq(nexoraEvalItem.status, 'running')))
+    .where(claimedItem(itemId, attempt))
 }
 
-/** Records an item whose target could not answer. */
+/** Records an item whose target could not answer (ignored once another attempt owns the item). */
 export async function failItem(
   itemId: string,
+  attempt: number,
   error: string,
   latencyMs: number | null,
   now: Date
@@ -785,15 +804,15 @@ export async function failItem(
   await db
     .update(nexoraEvalItem)
     .set({ status: 'error', error, latencyMs, finishedAt: now })
-    .where(and(eq(nexoraEvalItem.id, itemId), eq(nexoraEvalItem.status, 'running')))
+    .where(claimedItem(itemId, attempt))
 }
 
 /** Puts an item back in the queue (the budget stopped the campaign before it could be answered). */
-export async function releaseItem(itemId: string): Promise<void> {
+export async function releaseItem(itemId: string, attempt: number): Promise<void> {
   await db
     .update(nexoraEvalItem)
     .set({ status: 'pending', attempt: sql`GREATEST(${nexoraEvalItem.attempt} - 1, 0)` })
-    .where(and(eq(nexoraEvalItem.id, itemId), eq(nexoraEvalItem.status, 'running')))
+    .where(claimedItem(itemId, attempt))
 }
 
 /**

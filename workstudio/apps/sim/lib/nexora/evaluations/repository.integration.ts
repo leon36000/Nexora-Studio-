@@ -289,6 +289,7 @@ describe('campaigns', () => {
     if (!first || !second) throw new Error('expected two items')
     await completeItem(
       first.id,
+      first.attempt,
       {
         answer: 'x',
         verdict: 'pass',
@@ -304,6 +305,7 @@ describe('campaigns', () => {
     )
     await completeItem(
       second.id,
+      second.attempt,
       {
         answer: 'y',
         verdict: 'fail',
@@ -352,6 +354,39 @@ describe('leases and resumption', () => {
     const again = await claimNextItem(campaign.id, later)
     expect(again?.id).toBe(stuck.id)
     expect(again?.attempt).toBe(2)
+  })
+
+  it('ignores the write of a worker whose lease was taken over', async () => {
+    const { userId, workspaceId } = await seedWorkspace()
+    const { campaign } = await seedCampaign(workspaceId, userId, 1)
+    const now = new Date()
+    await acquireCampaign(campaign.id, 'dead-process', now, lease(now))
+    const staleClaim = await claimNextItem(campaign.id, now)
+    if (!staleClaim) throw new Error('expected an item')
+
+    const later = new Date(now.getTime() + 5 * 60_000)
+    await acquireCampaign(campaign.id, 'new-process', later, lease(later))
+    const freshClaim = await claimNextItem(campaign.id, later)
+    if (!freshClaim) throw new Error('expected the item back')
+    const verdict = (answer: string) => ({
+      answer,
+      verdict: 'pass' as const,
+      score: null,
+      judgeNote: 'ok',
+      latencyMs: 10,
+      inputTokens: 1,
+      outputTokens: 1,
+      kgCo2eq: null,
+      executionId: null,
+    })
+
+    await completeItem(staleClaim.id, staleClaim.attempt, verdict('périmée'), later)
+    const [afterStale] = await listItems(campaign.id, { answerPreview: 100 })
+    expect(afterStale).toMatchObject({ status: 'running', answer: null })
+
+    await completeItem(freshClaim.id, freshClaim.attempt, verdict('courante'), later)
+    const [afterFresh] = await listItems(campaign.id, { answerPreview: 100 })
+    expect(afterFresh).toMatchObject({ status: 'done', answer: 'courante' })
   })
 
   it('does not list a campaign whose lease is still valid', async () => {

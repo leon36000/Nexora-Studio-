@@ -27,6 +27,7 @@ class FakeStore implements RunnerStore {
   completed = new Map<string, ItemResult>()
   failed = new Map<string, string>()
   released: string[] = []
+  writtenAttempts = new Map<string, number>()
   campaign: CampaignRecord
 
   constructor(itemCount: number, overrides: Partial<CampaignRecord> = {}) {
@@ -88,17 +89,20 @@ class FakeStore implements RunnerStore {
     item.attempt += 1
     return { ...item }
   }
-  async completeItem(itemId: string, result: ItemResult) {
+  async completeItem(itemId: string, attempt: number, result: ItemResult) {
+    this.writtenAttempts.set(itemId, attempt)
     const item = this.items.find((candidate) => candidate.id === itemId)
     if (item) item.status = result.verdict === 'error' ? 'error' : 'done'
     this.completed.set(itemId, result)
   }
-  async failItem(itemId: string, error: string) {
+  async failItem(itemId: string, attempt: number, error: string) {
+    this.writtenAttempts.set(itemId, attempt)
     const item = this.items.find((candidate) => candidate.id === itemId)
     if (item) item.status = 'error'
     this.failed.set(itemId, error)
   }
-  async releaseItem(itemId: string) {
+  async releaseItem(itemId: string, attempt: number) {
+    this.writtenAttempts.set(itemId, attempt)
     const item = this.items.find((candidate) => candidate.id === itemId)
     if (item) item.status = 'pending'
     this.released.push(itemId)
@@ -267,6 +271,26 @@ describe('résultat d’un élément', () => {
       kgCo2eq: 0.001,
     })
     expect(store.completed.get('item-1')?.kgCo2eq).toBeNull()
+  })
+
+  it('écrit chaque issue avec la tentative réclamée, pour qu’un exécutant périmé soit ignoré', async () => {
+    const store = new FakeStore(3)
+    store.items[0].attempt = 1
+    const { deps } = harness(store, {
+      runTarget: async (target) => {
+        if (target.key === 't2') throw new Error('Délai dépassé')
+        return {
+          answer: 'oui',
+          latencyMs: 5,
+          usage: { promptTokens: 1, completionTokens: 1 },
+          executionId: null,
+        }
+      },
+    })
+    await runCampaign('camp-1', deps)
+    expect(store.writtenAttempts.get('item-0')).toBe(2)
+    expect(store.writtenAttempts.get('item-1')).toBe(1)
+    expect(store.writtenAttempts.get('item-2')).toBe(1)
   })
 
   it('marque un élément en erreur quand la cible échoue, et continue', async () => {
