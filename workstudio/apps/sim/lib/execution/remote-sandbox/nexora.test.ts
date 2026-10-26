@@ -85,6 +85,15 @@ describe('nexoraProvider', () => {
     expect(calls[0].authorization).toBe('Bearer secret-token-secret-token-secret-token')
   })
 
+  it('tells the controller which workspace the sandbox is for', async () => {
+    await nexoraProvider.create('code', {
+      language: CodeLanguage.Python,
+      lifetimeMs: 90_000,
+      workspaceId: 'ws-1',
+    })
+    expect(calls[0].body).toEqual({ lifetimeMs: 90_000, workspaceId: 'ws-1' })
+  })
+
   it('maps a finished run to stdout, stderr and no error', async () => {
     respond = (path) =>
       path === '/v1/sandboxes'
@@ -139,6 +148,13 @@ describe('nexoraProvider', () => {
     await expect(nexoraProvider.create('code', { language: CodeLanguage.Python })).rejects.toThrow(
       /saturée/
     )
+  })
+
+  it('tells a workspace that its own execution is still running, not that the instance is full', async () => {
+    respond = () => ({ status: 429, json: { error: 'busy', scope: 'workspace' } })
+    await expect(
+      nexoraProvider.create('code', { language: CodeLanguage.Python, workspaceId: 'ws-1' })
+    ).rejects.toThrow(/déjà en cours/)
   })
 
   it('explains an unreachable controller', async () => {

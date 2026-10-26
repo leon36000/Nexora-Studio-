@@ -94,7 +94,7 @@ Les erreurs suivent le format d'OpenAI (`{"error": {"message", "type", "code"}}`
 | 402 | `monthly_budget_reached` | budget mensuel de l'espace ou de l'instance atteint (Réglages › Consommation) |
 | 429 | `rate_limit_exceeded` | trop de requêtes par minute (en-têtes `x-ratelimit-*`, `Retry-After`) |
 | 429 | `monthly_cap_reached` | plafond mensuel de la clé atteint |
-| 404, 409, 429 | `file_not_found`, `batch_not_found`, `batch_not_cancellable`, `batch_queue_full` | fichiers et lots : voir [Les traitements par lot](lots.md#par-lapi) |
+| 404, 409, 429 | `file_not_found`, `batch_not_found`, `batch_not_cancellable`, `batch_queue_full`, `file_storage_full` | fichiers et lots : voir [Les traitements par lot](lots.md#par-lapi) |
 | 502 | `upstream_error` | Nexora API a refusé ou n'a pas pu traiter la requête (y compris quand elle refuse la clé propre de WorkStudio : votre clé n'est pas en cause) |
 | 503 | `service_unavailable`, `model_busy` | Nexora API ne répond pas, ou le modèle est occupé |
 

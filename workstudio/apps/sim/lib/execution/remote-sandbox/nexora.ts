@@ -20,6 +20,8 @@ const UNREACHABLE =
   "L'interpréteur de code est injoignable. Demandez à un administrateur de vérifier le service « code-sandbox » (nexora code on)."
 const BUSY =
   'Exécution de code saturée : tous les bacs à sable sont occupés. Réessayez dans un instant.'
+const WORKSPACE_BUSY =
+  'Une exécution de code de cet espace de travail est déjà en cours. Attendez sa fin, puis réessayez.'
 
 /** Whether the code sandbox controller (profile « code ») is configured for this instance. */
 export function isCodeSandboxConfigured(): boolean {
@@ -67,7 +69,10 @@ async function callController(
 }
 
 function describeFailure({ status, body }: ControllerResponse): string {
-  if (status === 429) return BUSY
+  if (status === 429) {
+    const scope = typeof body === 'object' && body !== null && 'scope' in body ? body.scope : null
+    return scope === 'workspace' ? WORKSPACE_BUSY : BUSY
+  }
   if (status === 401)
     return "L'interpréteur de code refuse le jeton de WorkStudio (NEXORA_CODE_SANDBOX_TOKEN)."
   const message =
@@ -205,7 +210,7 @@ export const nexoraProvider: SandboxProvider = {
     }
     const response = await callController(
       '/v1/sandboxes',
-      { lifetimeMs: options.lifetimeMs },
+      { lifetimeMs: options.lifetimeMs, workspaceId: options.workspaceId },
       30_000
     )
     const body = expect(response, [201]) as { sandboxId: string }

@@ -111,6 +111,13 @@ assert any(v.get("target", "").endswith("fetch-whisper-model.py") and v.get("rea
   && ok "transcription server offline; its model fetched once before it starts" \
   || ko "transcription server offline; its model fetched once before it starts"
 
+# Batch files (/v1/files): storage per workspace is capped, 1 Go unless the administrator sets a size.
+python3 -I -c 'import json,sys; assert "NEXORA_BATCH_FILES_QUOTA_MB" in json.load(sys.stdin)["services"]["workstudio"]["environment"]' <<< "$rendered" 2>/dev/null \
+  && ok "WorkStudio receives the batch files quota setting" || ko "WorkStudio receives the batch files quota setting"
+quota_env="$(mktemp)"; cp "$env_file" "$quota_env"; printf "NEXORA_BATCH_FILES_QUOTA_MB=512\n" >> "$quota_env"
+quota="$(dc compose -f "$ROOT/deploy/compose.yml" --env-file "$quota_env" config --format json 2>/dev/null | python3 -I -c 'import json,sys; print(json.load(sys.stdin)["services"]["workstudio"]["environment"].get("NEXORA_BATCH_FILES_QUOTA_MB") or "")')"; rm -f "$quota_env"
+[ "$quota" = "512" ] && ok "the batch files quota follows NEXORA_BATCH_FILES_QUOTA_MB" || ko "the batch files quota follows NEXORA_BATCH_FILES_QUOTA_MB (got: $quota)"
+
 # Code interpreter (profile « code »): off by default; on, only its controller sees the Docker socket,
 # it publishes no port, and WorkStudio reaches it with a token.
 [ "$(has_service code-sandbox)" = "False" ] && ok "no code interpreter by default" || ko "no code interpreter by default"
@@ -135,6 +142,22 @@ assert w["NEXORA_CODE_SANDBOX_TOKEN"] == c["environment"]["NEXORA_CODE_SANDBOX_T
 ' <<< "$code_rendered" 2>/dev/null \
   && ok "code interpreter: only its controller holds the Docker socket, no published port, token shared with WorkStudio" \
   || ko "code interpreter: only its controller holds the Docker socket, no published port, token shared with WorkStudio"
+python3 -I -c '
+import json, sys
+config = json.load(sys.stdin)
+services = config["services"]
+c = services["code-sandbox"]
+assert list(c["networks"]) == ["code"], c["networks"]
+assert config["networks"]["code"].get("internal") is True, config["networks"]["code"]
+on_code = sorted(name for name, service in services.items() if "code" in (service.get("networks") or {}))
+assert on_code == ["code-sandbox", "workstudio"], on_code
+assert c.get("cap_drop") == ["ALL"] and not c.get("cap_add"), (c.get("cap_drop"), c.get("cap_add"))
+assert "no-new-privileges:true" in c.get("security_opt", []), c.get("security_opt")
+assert c.get("read_only") is True and "/tmp" in c.get("tmpfs", []), (c.get("read_only"), c.get("tmpfs"))
+assert c["environment"]["NEXORA_CODE_MAX_PER_WORKSPACE"] == "1", c["environment"]
+' <<< "$code_rendered" 2>/dev/null \
+  && ok "code interpreter: controller alone with WorkStudio on an internal network, no capability, read-only root, one sandbox per workspace" \
+  || ko "code interpreter: controller alone with WorkStudio on an internal network, no capability, read-only root, one sandbox per workspace"
 
 # Speaker diarization and speech synthesis (profile « voice »): one more internal service, built here,
 # its models baked into the image; the Whisper server fetches the French voice with its own model.
