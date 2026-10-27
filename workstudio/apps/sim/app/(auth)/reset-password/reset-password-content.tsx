@@ -6,7 +6,7 @@ import { getErrorMessage } from '@sim/utils/errors'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { useTranslations } from 'next-intl'
 import { requestJson } from '@/lib/api/client/request'
-import { resetPasswordContract } from '@/lib/api/contracts'
+import { resetPasswordContract } from '@/lib/api/contracts/user'
 import { AuthHeader, AuthNavPrompt } from '@/app/(auth)/components'
 import { SetNewPasswordForm } from '@/app/(auth)/reset-password/reset-password-form'
 

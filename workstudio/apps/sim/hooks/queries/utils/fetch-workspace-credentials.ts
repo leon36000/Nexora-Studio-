@@ -1,11 +1,11 @@
 import { queryOptions } from '@tanstack/react-query'
 import { requestJson } from '@/lib/api/client/request'
 import {
-  type ContractJsonResponse,
   listWorkspaceCredentialsContract,
   type WorkspaceCredential,
   type WorkspaceCredentialType,
-} from '@/lib/api/contracts'
+} from '@/lib/api/contracts/credentials'
+import type { ContractJsonResponse } from '@/lib/api/contracts/types'
 import { workspaceCredentialKeys } from '@/hooks/queries/utils/credential-keys'
 
 export const WORKSPACE_CREDENTIAL_LIST_STALE_TIME = 60 * 1000

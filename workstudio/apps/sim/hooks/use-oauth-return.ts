@@ -8,7 +8,7 @@ import { type QueryClient, useQueryClient } from '@tanstack/react-query'
 import { useParams, useRouter } from 'next/navigation'
 import { createSerializer, parseAsString } from 'nuqs/server'
 import { requestJson } from '@/lib/api/client/request'
-import { listWorkspaceCredentialsContract } from '@/lib/api/contracts'
+import { listWorkspaceCredentialsContract } from '@/lib/api/contracts/credentials'
 import { listOrganizationCredentialsContract } from '@/lib/api/contracts/organization-credentials'
 import { type ResourceScope, resourceScopeFromOwner } from '@/lib/core/resource-scope'
 import {

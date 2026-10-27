@@ -2,6 +2,7 @@
 
 import type { ReactNode } from 'react'
 import { QueryClientProvider } from '@tanstack/react-query'
+import '@/lib/core/zod-browser-config'
 import { getQueryClient } from '@/app/_shell/providers/get-query-client'
 
 export { getQueryClient } from '@/app/_shell/providers/get-query-client'

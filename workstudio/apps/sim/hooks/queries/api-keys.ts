@@ -7,9 +7,9 @@ import {
   createWorkspaceApiKeyContract,
   deletePersonalApiKeyContract,
   deleteWorkspaceApiKeyContract,
-  updateWorkspaceContract,
-} from '@/lib/api/contracts'
+} from '@/lib/api/contracts/api-keys'
 import type { WorkspaceHostContext } from '@/lib/api/contracts/workspaces'
+import { updateWorkspaceContract } from '@/lib/api/contracts/workspaces'
 import { type ApiKeyScope, apiKeysKeys, apiKeysQueryOptions } from '@/hooks/queries/api-key-list'
 import { workspaceKeys } from '@/hooks/queries/workspace'
 import { workspaceHostKeys } from '@/hooks/queries/workspace-host'

@@ -5,10 +5,10 @@ import { Chip, cn } from '@sim/emcn'
 import { createLogger } from '@sim/logger'
 import { getErrorMessage } from '@sim/utils/errors'
 import { useTranslations } from 'next-intl'
-import { GithubIcon, GoogleIcon, MicrosoftIcon } from '@/components/icons'
 import { type SocialSignInProvider, startSocialSignIn } from '@/lib/auth/social-sign-in'
 import { DEFAULT_POST_AUTH_ROUTE } from '@/app/(auth)/auth-redirect'
 import { AUTH_BUTTON_CLASS } from '@/app/(auth)/components/constants'
+import { GithubIcon, GoogleIcon, MicrosoftIcon } from '@/app/(auth)/components/provider-icons'
 
 const logger = createLogger('SocialLoginButtons')
 

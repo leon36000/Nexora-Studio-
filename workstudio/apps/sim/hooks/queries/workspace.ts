@@ -11,8 +11,10 @@ import { requestJson } from '@/lib/api/client/request'
 import type { ContractBodyInput } from '@/lib/api/contracts'
 import {
   createPinnedItemContract,
-  createWorkspaceContract,
   deletePinnedItemContract,
+} from '@/lib/api/contracts/pinned-items'
+import {
+  createWorkspaceContract,
   deleteWorkspaceContract,
   getWorkspaceContract,
   getWorkspaceMembersContract,
@@ -26,7 +28,7 @@ import {
   type WorkspacePermissions,
   type WorkspaceQueryScope,
   type WorkspacesResponse,
-} from '@/lib/api/contracts'
+} from '@/lib/api/contracts/workspaces'
 import {
   normalizeWorkspace,
   normalizeWorkspacesResponse,

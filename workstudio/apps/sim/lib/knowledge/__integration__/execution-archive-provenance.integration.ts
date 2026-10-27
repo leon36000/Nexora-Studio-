@@ -64,7 +64,7 @@ vi.mock('@/lib/embeddings', async () => ({
   },
 }))
 
-import { functionExecuteBodySchema } from '@/lib/api/contracts'
+import { functionExecuteBodySchema } from '@/lib/api/contracts/hotspots'
 import {
   fileManageBodySchema,
   fileManageDecompressBodySchema,

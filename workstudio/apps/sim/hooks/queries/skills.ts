@@ -16,7 +16,7 @@ import {
   type SkillEditor,
   upsertSkillMemberContract,
   upsertSkillsContract,
-} from '@/lib/api/contracts'
+} from '@/lib/api/contracts/skills'
 
 const logger = createLogger('SkillsQueries')
 

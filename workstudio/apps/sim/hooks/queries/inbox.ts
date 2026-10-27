@@ -12,10 +12,9 @@ import {
   listInboxSendersContract,
   listInboxTasksContract,
   removeInboxSenderContract,
-  type SecretMountPolicyInput,
   updateInboxConfigContract,
-} from '@/lib/api/contracts'
-
+} from '@/lib/api/contracts/inbox'
+import type { SecretMountPolicyInput } from '@/lib/api/contracts/secret-mount-policy'
 export type { InboxConfig, InboxSendersResponseBody }
 export type InboxTaskItem = InboxTask
 export type InboxTasksResponse = InboxTasksResponseBody

@@ -9,7 +9,7 @@ import {
   type Sandbox,
   type SandboxListResponse,
   updateSandboxContract,
-} from '@/lib/api/contracts'
+} from '@/lib/api/contracts/sandboxes'
 
 const logger = createLogger('SandboxQueries')
 

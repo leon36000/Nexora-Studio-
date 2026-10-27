@@ -175,6 +175,21 @@ describe('embed.js: the floating bubble', () => {
   })
 })
 
+describe('embed.js: talking to the chat frame', () => {
+  it('posts nothing to a frame that has not loaded yet (Firefox logs it as an origin mismatch on the host site)', () => {
+    const postMessage = vi.fn()
+    vi.spyOn(HTMLIFrameElement.prototype, 'contentWindow', 'get').mockReturnValue({
+      postMessage,
+    } as unknown as Window)
+    install()
+    chatApi()?.open()
+    expect(postMessage).not.toHaveBeenCalled()
+    frame()?.dispatchEvent(new Event('load'))
+    chatApi()?.close()
+    expect(postMessage).toHaveBeenCalledWith({ source: 'nexora-embed', type: 'close' }, ORIGIN)
+  })
+})
+
 describe('embed.js: refusing what it cannot trust', () => {
   it.each([
     ['empty', ''],

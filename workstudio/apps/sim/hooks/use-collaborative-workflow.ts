@@ -23,7 +23,7 @@ import type { Edge } from '@xyflow/react'
 import { isEqual } from 'es-toolkit'
 import { useShallow } from 'zustand/react/shallow'
 import { requestJson } from '@/lib/api/client/request'
-import { getWorkflowStateContract } from '@/lib/api/contracts'
+import { getWorkflowStateContract } from '@/lib/api/contracts/workflows'
 import { useSession } from '@/lib/auth/client'
 import { WORKFLOW_EXTERNAL_UPDATE_EVENT } from '@/lib/workflows/external-update'
 import {

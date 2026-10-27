@@ -14,7 +14,7 @@ import {
   type OrganizationBYOKKeysResponse,
   upsertByokKeyContract,
   upsertOrganizationByokKeyContract,
-} from '@/lib/api/contracts'
+} from '@/lib/api/contracts/byok-keys'
 
 const logger = createLogger('BYOKKeysQueries')
 

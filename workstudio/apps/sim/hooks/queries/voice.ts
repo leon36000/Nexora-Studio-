@@ -1,7 +1,6 @@
 import { useQuery } from '@tanstack/react-query'
 import { requestJson } from '@/lib/api/client/request'
-import { getVoiceSettingsContract } from '@/lib/api/contracts'
-
+import { getVoiceSettingsContract } from '@/lib/api/contracts/common'
 /**
  * Query key factory for voice capability queries
  */

@@ -1,6 +1,6 @@
 import { useQuery } from '@tanstack/react-query'
 import { requestJson } from '@/lib/api/client/request'
-import { listOAuthCredentialsContract } from '@/lib/api/contracts'
+import { listOAuthCredentialsContract } from '@/lib/api/contracts/credentials'
 import {
   listOrganizationCredentialsContract,
   listOrganizationOAuthCredentialsContract,

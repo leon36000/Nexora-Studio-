@@ -7,23 +7,25 @@ import {
   createCredentialDraftContract,
   createWorkspaceCredentialContract,
   deleteWorkspaceCredentialContract,
-  getSecretReferencesContract,
-  getSecretUsageContract,
   getWorkspaceCredentialContract,
   listWorkspaceCredentialMembersContract,
   removeWorkspaceCredentialMemberContract,
-  type SecretUsageScope,
   updateWorkspaceCredentialContract,
   upsertWorkspaceCredentialMemberContract,
   type WorkspaceCredential,
   type WorkspaceCredentialMember,
   type WorkspaceCredentialRole,
   type WorkspaceCredentialType,
-} from '@/lib/api/contracts'
+} from '@/lib/api/contracts/credentials'
 import {
   type CreateOrganizationCredentialDraftBody,
   createOrganizationCredentialDraftContract,
 } from '@/lib/api/contracts/organization-credentials'
+import {
+  getSecretReferencesContract,
+  getSecretUsageContract,
+  type SecretUsageScope,
+} from '@/lib/api/contracts/secrets'
 import { environmentKeys } from '@/hooks/queries/environment'
 import { oauthConnectionsKeys } from '@/hooks/queries/oauth/connections'
 import { personalCredentialKeys } from '@/hooks/queries/personal-credentials'

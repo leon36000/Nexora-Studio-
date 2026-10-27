@@ -3,7 +3,7 @@ import { getErrorMessage } from '@sim/utils/errors'
 import { isValidUuid } from '@sim/utils/id'
 import { keepPreviousData, useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { requestJson } from '@/lib/api/client/request'
-import { forgetPasswordContract } from '@/lib/api/contracts'
+import { forgetPasswordContract } from '@/lib/api/contracts/user'
 import { client } from '@/lib/auth/client'
 import { getBaseUrl } from '@/lib/core/utils/urls'
 

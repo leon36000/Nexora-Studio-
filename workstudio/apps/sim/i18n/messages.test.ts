@@ -3,6 +3,8 @@ import path from 'node:path'
 import { describe, expect, it } from 'vitest'
 import {
   getLocaleMessages,
+  LITE_MESSAGE_PATHS,
+  liteMessages,
   MESSAGE_NAMESPACES,
   MESSAGES,
   pageMessages,
@@ -90,8 +92,9 @@ function importGraph() {
   for (const file of files) {
     const source = readFileSync(file, 'utf8').replace(/\/\*[\s\S]*?\*\/|^\s*\/\/.*$/gm, '')
     sources.set(file, source)
+    const runtimeSource = source.replace(/\bimport\s+type\s+[^;'"]*?from\s*['"][^'"]+['"]/g, '')
     const specifiers = [
-      ...source.matchAll(/\bfrom\s*['"]([^'"]+)['"]|\bimport\(\s*['"]([^'"]+)['"]\s*\)/g),
+      ...runtimeSource.matchAll(/\bfrom\s*['"]([^'"]+)['"]|\bimport\(\s*['"]([^'"]+)['"]\s*\)/g),
     ].map((match) => match[1] ?? match[2])
     imports.set(
       file,
@@ -147,5 +150,62 @@ describe('messages sent to the browser', () => {
       })
       .map((entry) => path.relative(APP_ROOT, entry))
     expect(unprovided).toEqual([])
+  })
+})
+
+/** Pages that need little copy: they receive `liteMessages` (the proxy flags them), not every namespace. */
+const LITE_ENTRIES = [
+  'app/layout.tsx',
+  'app/(auth)/layout.tsx',
+  'app/(auth)/login/page.tsx',
+  'app/(auth)/signup/page.tsx',
+  'app/(auth)/reset-password/page.tsx',
+  'app/(auth)/verify/page.tsx',
+  'app/(auth)/sso/page.tsx',
+  'app/(interfaces)/chat/[identifier]/page.tsx',
+]
+
+describe('lightweight messages for sign-in and public chat pages', () => {
+  it('send only the paths those pages read, in the same shape as the full messages', () => {
+    const full = getLocaleMessages('fr')
+    const lite = liteMessages(full)
+    expect(Object.keys(lite).sort()).toEqual(
+      [...new Set(LITE_MESSAGE_PATHS.map((entry) => entry.split('.')[0]))].sort()
+    )
+    expect(JSON.stringify(lite).length).toBeLessThan(JSON.stringify(full).length / 8)
+    expect(lite.auth).toEqual(full.auth)
+    expect((lite.settings as Tree).unsavedGuard).toEqual((full.settings as Tree).unsavedGuard)
+    expect(Object.keys(lite.settings as Tree)).toEqual(['unsavedGuard'])
+  })
+
+  it('cover every namespace read by the modules those pages load', () => {
+    const { sources, imports } = importGraph()
+    const reachable = new Set<string>()
+    const stack = LITE_ENTRIES.map((entry) => path.join(APP_ROOT, entry)).filter((entry) =>
+      sources.has(entry)
+    )
+    expect(stack.length).toBe(LITE_ENTRIES.length)
+    while (stack.length > 0) {
+      const file = stack.pop() as string
+      if (reachable.has(file)) continue
+      reachable.add(file)
+      stack.push(...(imports.get(file) ?? []))
+    }
+    const uncovered = new Set<string>()
+    for (const file of reachable) {
+      const source = sources.get(file) ?? ''
+      const reads = [
+        ...source.matchAll(
+          /(?:useTranslations|getTranslations)\(\s*(?:\{[^}]*namespace:\s*)?['"`]([A-Za-z.]+)/g
+        ),
+      ].map((match) => match[1])
+      for (const read of reads) {
+        const covered = LITE_MESSAGE_PATHS.some(
+          (entry) => read === entry || read.startsWith(`${entry}.`)
+        )
+        if (!covered) uncovered.add(`${path.relative(APP_ROOT, file)} → ${read}`)
+      }
+    }
+    expect([...uncovered].sort()).toEqual([])
   })
 })

@@ -38,3 +38,13 @@ export function resolveLocale(input: { cookie?: string; acceptLanguage?: string 
   if (isLocale(input.cookie)) return input.cookie
   return fromAcceptLanguage(input.acceptLanguage) ?? DEFAULT_LOCALE
 }
+
+/** Request header the proxy sets so the root layout sends `liteMessages` instead of every namespace. */
+export const LITE_MESSAGES_HEADER = 'x-nexora-lite-messages'
+
+const LITE_MESSAGE_PAGES = new Set(['/login', '/signup', '/reset-password', '/verify', '/sso'])
+
+/** The sign-in pages and the public chat read a tenth of the copy; the proxy flags them. */
+export function usesLiteMessages(pathname: string): boolean {
+  return LITE_MESSAGE_PAGES.has(pathname) || pathname.startsWith('/chat/')
+}
