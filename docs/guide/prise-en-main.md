@@ -68,3 +68,7 @@ Nexora Connect est déjà branché (Réglages › Outils MCP). Dans un bloc Agen
 ## Changer de langue
 
 **Réglages › Général › Langue** : Français ou English.
+
+## Navigateurs
+
+Nexora WorkStudio est vérifié, à chaque version, dans les versions récentes de **Chrome et Edge** (Chromium), **Firefox** et **Safari** (WebKit), sur ordinateur et sur téléphone (écran de 390 px) : connexion, écrans de l'application, éditeur (glisser-déposer, annuler et rétablir, raccourcis `Cmd` sur Mac et `Ctrl` ailleurs), chat public et bulle à intégrer sur un site. Les raccourcis s'adaptent à la machine : `Cmd+K` sur Mac, `Ctrl+K` sous Windows et Linux ouvrent la recherche. Si un écran se comporte mal dans l'un d'eux, signalez le navigateur et sa version à votre administrateur.

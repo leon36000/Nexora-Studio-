@@ -1,0 +1,1108 @@
+{
+  "url": "http://localhost:3480",
+  "date": "2026-10-27T22:55:51.370Z",
+  "runs": [
+    {
+      "navigateur": "chromium",
+      "profil": "bureau",
+      "mac": false,
+      "label": "chromium · bureau",
+      "etapes": [
+        {
+          "nom": "page publique « connexion »",
+          "ok": true,
+          "ms": 782,
+          "details": "polices : season"
+        },
+        {
+          "nom": "page publique « inscription »",
+          "ok": true,
+          "ms": 653,
+          "details": "polices : season"
+        },
+        {
+          "nom": "page publique « mot de passe oublié »",
+          "ok": true,
+          "ms": 653,
+          "details": "polices : season"
+        },
+        {
+          "nom": "connexion par le formulaire",
+          "ok": true,
+          "ms": 2692,
+          "details": "espace 68aa8a00"
+        },
+        {
+          "nom": "écran « accueil »",
+          "ok": true,
+          "ms": 2013,
+          "details": ""
+        },
+        {
+          "nom": "écran « assistant »",
+          "ok": true,
+          "ms": 1826,
+          "details": ""
+        },
+        {
+          "nom": "écran « playground »",
+          "ok": true,
+          "ms": 1710,
+          "details": ""
+        },
+        {
+          "nom": "écran « agents »",
+          "ok": true,
+          "ms": 1743,
+          "details": ""
+        },
+        {
+          "nom": "écran « prompts »",
+          "ok": true,
+          "ms": 1573,
+          "details": ""
+        },
+        {
+          "nom": "écran « connecteurs »",
+          "ok": false,
+          "ms": 1890,
+          "details": " | console : error: Failed to load resource: the server responded with a status of 503 (Service Unavailable) ; error: Failed to load resource: the server responded with a status of 503 (Service Unavailable)"
+        },
+        {
+          "nom": "écran « développeurs »",
+          "ok": true,
+          "ms": 1761,
+          "details": ""
+        },
+        {
+          "nom": "écran « traces »",
+          "ok": false,
+          "ms": 1641,
+          "details": " | console : error: Failed to load resource: the server responded with a status of 403 (Forbidden)"
+        },
+        {
+          "nom": "écran « évaluations »",
+          "ok": true,
+          "ms": 1681,
+          "details": ""
+        },
+        {
+          "nom": "écran « lots »",
+          "ok": true,
+          "ms": 1592,
+          "details": ""
+        },
+        {
+          "nom": "écran « intégrations »",
+          "ok": true,
+          "ms": 1830,
+          "details": ""
+        },
+        {
+          "nom": "écran « tables »",
+          "ok": true,
+          "ms": 1621,
+          "details": ""
+        },
+        {
+          "nom": "écran « fichiers »",
+          "ok": true,
+          "ms": 1653,
+          "details": ""
+        },
+        {
+          "nom": "écran « connaissances »",
+          "ok": true,
+          "ms": 1783,
+          "details": ""
+        },
+        {
+          "nom": "écran « journaux »",
+          "ok": true,
+          "ms": 1576,
+          "details": ""
+        },
+        {
+          "nom": "écran « compétences »",
+          "ok": true,
+          "ms": 1762,
+          "details": ""
+        },
+        {
+          "nom": "écran « réglages »",
+          "ok": true,
+          "ms": 1574,
+          "details": ""
+        },
+        {
+          "nom": "écran « réglages : modèles »",
+          "ok": true,
+          "ms": 1574,
+          "details": ""
+        },
+        {
+          "nom": "écran « réglages : clés »",
+          "ok": false,
+          "ms": 1543,
+          "details": " | console : error: Failed to load resource: the server responded with a status of 403 (Forbidden)"
+        },
+        {
+          "nom": "écran « réglages : équipe »",
+          "ok": true,
+          "ms": 1522,
+          "details": ""
+        },
+        {
+          "nom": "éditeur : ouverture du canevas",
+          "ok": true,
+          "ms": 1787,
+          "details": "1 blocs"
+        },
+        {
+          "nom": "éditeur : glisser-déposer d’un bloc depuis la barre d’outils",
+          "ok": true,
+          "ms": 1364,
+          "details": "1 → 2"
+        },
+        {
+          "nom": "éditeur : annuler (Control+Z) puis rétablir (Control+Maj+Z)",
+          "ok": true,
+          "ms": 1998,
+          "details": "2 → 1 → 2"
+        },
+        {
+          "nom": "raccourci de recherche (Control+K)",
+          "ok": true,
+          "ms": 2184,
+          "details": "Control+K ouvre la recherche, Meta+K non"
+        },
+        {
+          "nom": "chat public : création, page, bulle /embed.js sur un site tiers",
+          "ok": true,
+          "ms": 1854,
+          "details": "chat /chat/nav-859e42 et bulle intégrée affichés"
+        },
+        {
+          "nom": "indices de performance de l’accueil",
+          "ok": true,
+          "ms": 2167,
+          "details": "CLS 0, LCP 544 ms"
+        }
+      ]
+    },
+    {
+      "navigateur": "chromium",
+      "profil": "bureau",
+      "mac": true,
+      "label": "chromium · bureau · plateforme Mac",
+      "etapes": [
+        {
+          "nom": "page publique « connexion »",
+          "ok": true,
+          "ms": 738,
+          "details": "polices : season"
+        },
+        {
+          "nom": "page publique « inscription »",
+          "ok": true,
+          "ms": 652,
+          "details": "polices : season"
+        },
+        {
+          "nom": "page publique « mot de passe oublié »",
+          "ok": true,
+          "ms": 674,
+          "details": "polices : season"
+        },
+        {
+          "nom": "connexion par le formulaire",
+          "ok": true,
+          "ms": 2861,
+          "details": "espace 68aa8a00"
+        },
+        {
+          "nom": "écran « accueil »",
+          "ok": true,
+          "ms": 1831,
+          "details": ""
+        },
+        {
+          "nom": "écran « assistant »",
+          "ok": true,
+          "ms": 1803,
+          "details": ""
+        },
+        {
+          "nom": "écran « playground »",
+          "ok": true,
+          "ms": 1712,
+          "details": ""
+        },
+        {
+          "nom": "écran « agents »",
+          "ok": true,
+          "ms": 1754,
+          "details": ""
+        },
+        {
+          "nom": "écran « prompts »",
+          "ok": true,
+          "ms": 1622,
+          "details": ""
+        },
+        {
+          "nom": "écran « connecteurs »",
+          "ok": false,
+          "ms": 1565,
+          "details": " | console : error: Failed to load resource: the server responded with a status of 503 (Service Unavailable) ; error: Failed to load resource: the server responded with a status of 503 (Service Unavailable)"
+        },
+        {
+          "nom": "écran « développeurs »",
+          "ok": true,
+          "ms": 1632,
+          "details": ""
+        },
+        {
+          "nom": "écran « traces »",
+          "ok": false,
+          "ms": 1569,
+          "details": " | console : error: Failed to load resource: the server responded with a status of 403 (Forbidden)"
+        },
+        {
+          "nom": "écran « évaluations »",
+          "ok": true,
+          "ms": 1616,
+          "details": ""
+        },
+        {
+          "nom": "écran « lots »",
+          "ok": true,
+          "ms": 1562,
+          "details": ""
+        },
+        {
+          "nom": "écran « intégrations »",
+          "ok": true,
+          "ms": 1860,
+          "details": ""
+        },
+        {
+          "nom": "écran « tables »",
+          "ok": true,
+          "ms": 1635,
+          "details": ""
+        },
+        {
+          "nom": "écran « fichiers »",
+          "ok": true,
+          "ms": 1644,
+          "details": ""
+        },
+        {
+          "nom": "écran « connaissances »",
+          "ok": true,
+          "ms": 1611,
+          "details": ""
+        },
+        {
+          "nom": "écran « journaux »",
+          "ok": true,
+          "ms": 1802,
+          "details": ""
+        },
+        {
+          "nom": "écran « compétences »",
+          "ok": true,
+          "ms": 1784,
+          "details": ""
+        },
+        {
+          "nom": "écran « réglages »",
+          "ok": true,
+          "ms": 1633,
+          "details": ""
+        },
+        {
+          "nom": "écran « réglages : modèles »",
+          "ok": true,
+          "ms": 1465,
+          "details": ""
+        },
+        {
+          "nom": "écran « réglages : clés »",
+          "ok": false,
+          "ms": 1500,
+          "details": " | console : error: Failed to load resource: the server responded with a status of 403 (Forbidden)"
+        },
+        {
+          "nom": "écran « réglages : équipe »",
+          "ok": true,
+          "ms": 1432,
+          "details": ""
+        },
+        {
+          "nom": "éditeur : ouverture du canevas",
+          "ok": true,
+          "ms": 1802,
+          "details": "1 blocs"
+        },
+        {
+          "nom": "éditeur : glisser-déposer d’un bloc depuis la barre d’outils",
+          "ok": true,
+          "ms": 1370,
+          "details": "1 → 2"
+        },
+        {
+          "nom": "éditeur : annuler (Meta+Z) puis rétablir (Meta+Maj+Z)",
+          "ok": true,
+          "ms": 1981,
+          "details": "2 → 1 → 2"
+        },
+        {
+          "nom": "raccourci de recherche (Meta+K)",
+          "ok": true,
+          "ms": 2577,
+          "details": "Meta+K ouvre la recherche, Control+K non"
+        },
+        {
+          "nom": "chat public : création, page, bulle /embed.js sur un site tiers",
+          "ok": true,
+          "ms": 1424,
+          "details": "chat /chat/nav-b71bd3 et bulle intégrée affichés"
+        },
+        {
+          "nom": "indices de performance de l’accueil",
+          "ok": true,
+          "ms": 2433,
+          "details": "CLS 0, LCP 692 ms"
+        }
+      ]
+    },
+    {
+      "navigateur": "chromium",
+      "profil": "mobile",
+      "mac": false,
+      "label": "chromium · mobile",
+      "etapes": [
+        {
+          "nom": "page publique « connexion »",
+          "ok": true,
+          "ms": 809,
+          "details": "polices : season"
+        },
+        {
+          "nom": "page publique « inscription »",
+          "ok": true,
+          "ms": 633,
+          "details": "polices : season"
+        },
+        {
+          "nom": "page publique « mot de passe oublié »",
+          "ok": true,
+          "ms": 647,
+          "details": "polices : season"
+        },
+        {
+          "nom": "connexion par le formulaire",
+          "ok": true,
+          "ms": 2269,
+          "details": "espace 68aa8a00"
+        },
+        {
+          "nom": "écran « accueil »",
+          "ok": true,
+          "ms": 1670,
+          "details": ""
+        },
+        {
+          "nom": "écran « assistant »",
+          "ok": true,
+          "ms": 1520,
+          "details": ""
+        },
+        {
+          "nom": "écran « playground »",
+          "ok": true,
+          "ms": 1507,
+          "details": ""
+        },
+        {
+          "nom": "écran « agents »",
+          "ok": true,
+          "ms": 1500,
+          "details": ""
+        },
+        {
+          "nom": "écran « prompts »",
+          "ok": true,
+          "ms": 1450,
+          "details": ""
+        },
+        {
+          "nom": "écran « connecteurs »",
+          "ok": false,
+          "ms": 1411,
+          "details": " | console : error: Failed to load resource: the server responded with a status of 503 (Service Unavailable)"
+        },
+        {
+          "nom": "écran « développeurs »",
+          "ok": true,
+          "ms": 1509,
+          "details": ""
+        },
+        {
+          "nom": "écran « traces »",
+          "ok": false,
+          "ms": 1461,
+          "details": " | console : error: Failed to load resource: the server responded with a status of 403 (Forbidden)"
+        },
+        {
+          "nom": "écran « évaluations »",
+          "ok": true,
+          "ms": 1529,
+          "details": ""
+        },
+        {
+          "nom": "écran « lots »",
+          "ok": true,
+          "ms": 1550,
+          "details": ""
+        },
+        {
+          "nom": "écran « intégrations »",
+          "ok": true,
+          "ms": 1824,
+          "details": ""
+        },
+        {
+          "nom": "écran « tables »",
+          "ok": true,
+          "ms": 1687,
+          "details": ""
+        },
+        {
+          "nom": "écran « fichiers »",
+          "ok": true,
+          "ms": 1594,
+          "details": ""
+        },
+        {
+          "nom": "écran « connaissances »",
+          "ok": true,
+          "ms": 1602,
+          "details": ""
+        },
+        {
+          "nom": "écran « journaux »",
+          "ok": true,
+          "ms": 1488,
+          "details": ""
+        },
+        {
+          "nom": "écran « compétences »",
+          "ok": false,
+          "ms": 1689,
+          "details": " | console : error: Failed to load resource: the server responded with a status of 429 (Too Many Requests)"
+        },
+        {
+          "nom": "écran « réglages »",
+          "ok": false,
+          "ms": 1673,
+          "details": " | console : error: Failed to load resource: the server responded with a status of 429 (Too Many Requests)"
+        },
+        {
+          "nom": "écran « réglages : modèles »",
+          "ok": true,
+          "ms": 1593,
+          "details": ""
+        },
+        {
+          "nom": "écran « réglages : clés »",
+          "ok": false,
+          "ms": 1604,
+          "details": " | console : error: Failed to load resource: the server responded with a status of 403 (Forbidden)"
+        },
+        {
+          "nom": "écran « réglages : équipe »",
+          "ok": true,
+          "ms": 1599,
+          "details": ""
+        },
+        {
+          "nom": "mobile : ouverture d’un workflow (lecture seule)",
+          "ok": true,
+          "ms": 16903,
+          "details": "2 blocs visibles"
+        },
+        {
+          "nom": "chat public : création, page, bulle /embed.js sur un site tiers",
+          "ok": true,
+          "ms": 1426,
+          "details": "chat /chat/nav-0d7ed6 et bulle intégrée affichés"
+        },
+        {
+          "nom": "indices de performance de l’accueil",
+          "ok": true,
+          "ms": 2241,
+          "details": "CLS 0, LCP 728 ms"
+        }
+      ]
+    },
+    {
+      "navigateur": "firefox",
+      "profil": "bureau",
+      "mac": false,
+      "label": "firefox · bureau",
+      "etapes": [
+        {
+          "nom": "page publique « connexion »",
+          "ok": true,
+          "ms": 968,
+          "details": "polices : season"
+        },
+        {
+          "nom": "page publique « inscription »",
+          "ok": true,
+          "ms": 721,
+          "details": "polices : season"
+        },
+        {
+          "nom": "page publique « mot de passe oublié »",
+          "ok": true,
+          "ms": 767,
+          "details": "polices : season"
+        },
+        {
+          "nom": "connexion par le formulaire",
+          "ok": true,
+          "ms": 2401,
+          "details": "espace 68aa8a00"
+        },
+        {
+          "nom": "écran « accueil »",
+          "ok": true,
+          "ms": 1528,
+          "details": ""
+        },
+        {
+          "nom": "écran « assistant »",
+          "ok": true,
+          "ms": 1265,
+          "details": ""
+        },
+        {
+          "nom": "écran « playground »",
+          "ok": true,
+          "ms": 1402,
+          "details": ""
+        },
+        {
+          "nom": "écran « agents »",
+          "ok": true,
+          "ms": 1294,
+          "details": ""
+        },
+        {
+          "nom": "écran « prompts »",
+          "ok": true,
+          "ms": 1266,
+          "details": ""
+        },
+        {
+          "nom": "écran « connecteurs »",
+          "ok": true,
+          "ms": 1410,
+          "details": ""
+        },
+        {
+          "nom": "écran « développeurs »",
+          "ok": true,
+          "ms": 1373,
+          "details": ""
+        },
+        {
+          "nom": "écran « traces »",
+          "ok": true,
+          "ms": 1453,
+          "details": ""
+        },
+        {
+          "nom": "écran « évaluations »",
+          "ok": true,
+          "ms": 1307,
+          "details": ""
+        },
+        {
+          "nom": "écran « lots »",
+          "ok": true,
+          "ms": 2569,
+          "details": ""
+        },
+        {
+          "nom": "écran « intégrations »",
+          "ok": true,
+          "ms": 7071,
+          "details": ""
+        },
+        {
+          "nom": "écran « tables »",
+          "ok": true,
+          "ms": 1387,
+          "details": ""
+        },
+        {
+          "nom": "écran « fichiers »",
+          "ok": true,
+          "ms": 1653,
+          "details": ""
+        },
+        {
+          "nom": "écran « connaissances »",
+          "ok": true,
+          "ms": 1153,
+          "details": ""
+        },
+        {
+          "nom": "écran « journaux »",
+          "ok": true,
+          "ms": 2257,
+          "details": ""
+        },
+        {
+          "nom": "écran « compétences »",
+          "ok": true,
+          "ms": 2386,
+          "details": ""
+        },
+        {
+          "nom": "écran « réglages »",
+          "ok": true,
+          "ms": 1389,
+          "details": ""
+        },
+        {
+          "nom": "écran « réglages : modèles »",
+          "ok": true,
+          "ms": 1396,
+          "details": ""
+        },
+        {
+          "nom": "écran « réglages : clés »",
+          "ok": true,
+          "ms": 2198,
+          "details": ""
+        },
+        {
+          "nom": "écran « réglages : équipe »",
+          "ok": true,
+          "ms": 1227,
+          "details": ""
+        },
+        {
+          "nom": "éditeur : ouverture du canevas",
+          "ok": true,
+          "ms": 3641,
+          "details": "1 blocs"
+        },
+        {
+          "nom": "éditeur : glisser-déposer d’un bloc depuis la barre d’outils",
+          "ok": true,
+          "ms": 1453,
+          "details": "1 → 2"
+        },
+        {
+          "nom": "éditeur : annuler (Control+Z) puis rétablir (Control+Maj+Z)",
+          "ok": true,
+          "ms": 2097,
+          "details": "2 → 1 → 2"
+        },
+        {
+          "nom": "raccourci de recherche (Control+K)",
+          "ok": true,
+          "ms": 1919,
+          "details": "Control+K ouvre la recherche, Meta+K non"
+        },
+        {
+          "nom": "chat public : création, page, bulle /embed.js sur un site tiers",
+          "ok": true,
+          "ms": 1484,
+          "details": "chat /chat/nav-d4a092 et bulle intégrée affichés"
+        },
+        {
+          "nom": "indices de performance de l’accueil",
+          "ok": true,
+          "ms": 2846,
+          "details": "CLS 0, LCP 634 ms",
+          "avertissements": [
+            "warning: [JavaScript Warning: \"Ignoring unsupported entryTypes: layout-shift.\" {file: \"debugger eval code line 303 > eval\" line: 8}]"
+          ]
+        }
+      ]
+    },
+    {
+      "navigateur": "firefox",
+      "profil": "bureau",
+      "mac": true,
+      "label": "firefox · bureau · plateforme Mac",
+      "etapes": [
+        {
+          "nom": "page publique « connexion »",
+          "ok": true,
+          "ms": 888,
+          "details": "polices : season"
+        },
+        {
+          "nom": "page publique « inscription »",
+          "ok": true,
+          "ms": 696,
+          "details": "polices : season"
+        },
+        {
+          "nom": "page publique « mot de passe oublié »",
+          "ok": true,
+          "ms": 701,
+          "details": "polices : season"
+        },
+        {
+          "nom": "connexion par le formulaire",
+          "ok": true,
+          "ms": 2303,
+          "details": "espace 68aa8a00"
+        },
+        {
+          "nom": "écran « accueil »",
+          "ok": true,
+          "ms": 2473,
+          "details": ""
+        },
+        {
+          "nom": "écran « assistant »",
+          "ok": true,
+          "ms": 1115,
+          "details": ""
+        },
+        {
+          "nom": "écran « playground »",
+          "ok": true,
+          "ms": 2127,
+          "details": ""
+        },
+        {
+          "nom": "écran « agents »",
+          "ok": true,
+          "ms": 1122,
+          "details": ""
+        },
+        {
+          "nom": "écran « prompts »",
+          "ok": true,
+          "ms": 2192,
+          "details": ""
+        },
+        {
+          "nom": "écran « connecteurs »",
+          "ok": true,
+          "ms": 1148,
+          "details": ""
+        },
+        {
+          "nom": "écran « développeurs »",
+          "ok": true,
+          "ms": 1251,
+          "details": ""
+        },
+        {
+          "nom": "écran « traces »",
+          "ok": true,
+          "ms": 1303,
+          "details": ""
+        },
+        {
+          "nom": "écran « évaluations »",
+          "ok": true,
+          "ms": 1245,
+          "details": ""
+        },
+        {
+          "nom": "écran « lots »",
+          "ok": true,
+          "ms": 1240,
+          "details": ""
+        },
+        {
+          "nom": "écran « intégrations »",
+          "ok": true,
+          "ms": 1348,
+          "details": ""
+        },
+        {
+          "nom": "écran « tables »",
+          "ok": true,
+          "ms": 1398,
+          "details": ""
+        },
+        {
+          "nom": "écran « fichiers »",
+          "ok": true,
+          "ms": 1261,
+          "details": ""
+        },
+        {
+          "nom": "écran « connaissances »",
+          "ok": true,
+          "ms": 1251,
+          "details": ""
+        },
+        {
+          "nom": "écran « journaux »",
+          "ok": true,
+          "ms": 1140,
+          "details": ""
+        },
+        {
+          "nom": "écran « compétences »",
+          "ok": true,
+          "ms": 1081,
+          "details": ""
+        },
+        {
+          "nom": "écran « réglages »",
+          "ok": true,
+          "ms": 2557,
+          "details": ""
+        },
+        {
+          "nom": "écran « réglages : modèles »",
+          "ok": true,
+          "ms": 11710,
+          "details": "",
+          "avertissements": [
+            "warning: [JavaScript Warning: \"The resource at “http://localhost:3480/_next/static/media/83afe278b6a6bb3c.p.2bn3s6zvc0dyp.woff2” preloaded with link preload was not used within a few seconds. Make sure all attributes of the prelo",
+            "warning: [JavaScript Warning: \"The resource at “http://localhost:3480/_next/static/media/InterVariable_latin-s.p.0gsaq8ukbf34m.woff2” preloaded with link preload was not used within a few seconds. Make sure all attributes of the "
+          ]
+        },
+        {
+          "nom": "écran « réglages : clés »",
+          "ok": true,
+          "ms": 2724,
+          "details": ""
+        },
+        {
+          "nom": "écran « réglages : équipe »",
+          "ok": true,
+          "ms": 2048,
+          "details": ""
+        },
+        {
+          "nom": "éditeur : ouverture du canevas",
+          "ok": true,
+          "ms": 2424,
+          "details": "1 blocs"
+        },
+        {
+          "nom": "éditeur : glisser-déposer d’un bloc depuis la barre d’outils",
+          "ok": true,
+          "ms": 1407,
+          "details": "1 → 2"
+        },
+        {
+          "nom": "éditeur : annuler (Meta+Z) puis rétablir (Meta+Maj+Z)",
+          "ok": true,
+          "ms": 2055,
+          "details": "2 → 1 → 2"
+        },
+        {
+          "nom": "raccourci de recherche (Meta+K)",
+          "ok": true,
+          "ms": 2139,
+          "details": "Meta+K ouvre la recherche, Control+K non"
+        },
+        {
+          "nom": "chat public : création, page, bulle /embed.js sur un site tiers",
+          "ok": true,
+          "ms": 1591,
+          "details": "chat /chat/nav-11fc1e et bulle intégrée affichés"
+        },
+        {
+          "nom": "indices de performance de l’accueil",
+          "ok": true,
+          "ms": 1681,
+          "details": "CLS 0, LCP 869 ms",
+          "avertissements": [
+            "warning: [JavaScript Warning: \"Ignoring unsupported entryTypes: layout-shift.\" {file: \"debugger eval code line 303 > eval\" line: 8}]"
+          ]
+        }
+      ]
+    },
+    {
+      "navigateur": "firefox",
+      "profil": "mobile",
+      "mac": false,
+      "label": "firefox · mobile",
+      "etapes": [
+        {
+          "nom": "page publique « connexion »",
+          "ok": true,
+          "ms": 951,
+          "details": "polices : season"
+        },
+        {
+          "nom": "page publique « inscription »",
+          "ok": true,
+          "ms": 739,
+          "details": "polices : season"
+        },
+        {
+          "nom": "page publique « mot de passe oublié »",
+          "ok": true,
+          "ms": 776,
+          "details": "polices : season"
+        },
+        {
+          "nom": "connexion par le formulaire",
+          "ok": true,
+          "ms": 2407,
+          "details": "espace 68aa8a00"
+        },
+        {
+          "nom": "écran « accueil »",
+          "ok": true,
+          "ms": 1392,
+          "details": ""
+        },
+        {
+          "nom": "écran « assistant »",
+          "ok": true,
+          "ms": 1250,
+          "details": ""
+        },
+        {
+          "nom": "écran « playground »",
+          "ok": true,
+          "ms": 1984,
+          "details": ""
+        },
+        {
+          "nom": "écran « agents »",
+          "ok": true,
+          "ms": 1977,
+          "details": ""
+        },
+        {
+          "nom": "écran « prompts »",
+          "ok": true,
+          "ms": 1099,
+          "details": ""
+        },
+        {
+          "nom": "écran « connecteurs »",
+          "ok": true,
+          "ms": 2034,
+          "details": ""
+        },
+        {
+          "nom": "écran « développeurs »",
+          "ok": true,
+          "ms": 1040,
+          "details": ""
+        },
+        {
+          "nom": "écran « traces »",
+          "ok": true,
+          "ms": 1960,
+          "details": ""
+        },
+        {
+          "nom": "écran « évaluations »",
+          "ok": true,
+          "ms": 1194,
+          "details": ""
+        },
+        {
+          "nom": "écran « lots »",
+          "ok": true,
+          "ms": 1291,
+          "details": ""
+        },
+        {
+          "nom": "écran « intégrations »",
+          "ok": true,
+          "ms": 1539,
+          "details": ""
+        },
+        {
+          "nom": "écran « tables »",
+          "ok": true,
+          "ms": 1353,
+          "details": ""
+        },
+        {
+          "nom": "écran « fichiers »",
+          "ok": true,
+          "ms": 1357,
+          "details": ""
+        },
+        {
+          "nom": "écran « connaissances »",
+          "ok": true,
+          "ms": 1246,
+          "details": ""
+        },
+        {
+          "nom": "écran « journaux »",
+          "ok": true,
+          "ms": 1320,
+          "details": ""
+        },
+        {
+          "nom": "écran « compétences »",
+          "ok": true,
+          "ms": 1187,
+          "details": ""
+        },
+        {
+          "nom": "écran « réglages »",
+          "ok": true,
+          "ms": 1221,
+          "details": ""
+        },
+        {
+          "nom": "écran « réglages : modèles »",
+          "ok": true,
+          "ms": 2024,
+          "details": ""
+        },
+        {
+          "nom": "écran « réglages : clés »",
+          "ok": true,
+          "ms": 1100,
+          "details": ""
+        },
+        {
+          "nom": "écran « réglages : équipe »",
+          "ok": true,
+          "ms": 1112,
+          "details": ""
+        },
+        {
+          "nom": "mobile : ouverture d’un workflow (lecture seule)",
+          "ok": true,
+          "ms": 2806,
+          "details": "2 blocs visibles"
+        },
+        {
+          "nom": "indices de performance de l’accueil",
+          "ok": false,
+          "ms": 16249,
+          "details": "CLS 0, LCP 620 ms | console : error: [JavaScript Error: \"The connection to http://localhost:3480/api/mcp/events?workspaceId=68aa8a00-b32e-444c-a391-955d36fb084b was interrupted while the page was loading.\" {file: \"http://localhost:3480/_next/static/chunks/4"
+        }
+      ]
+    }
+  ],
+  "resume": {
+    "etapes": 173,
+    "ok": 161,
+    "echecs": 12,
+    "nonVerifies": []
+  }
+}

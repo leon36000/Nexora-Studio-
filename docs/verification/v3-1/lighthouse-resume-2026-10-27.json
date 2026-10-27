@@ -1,0 +1,100 @@
+{
+  "home-apres-desktop": {
+    "page": "accueil",
+    "scores": {
+      "performance": 51,
+      "accessibility": 80,
+      "best-practices": 100,
+      "seo": 63
+    },
+    "fcp_ms": 578,
+    "lcp_ms": 5518,
+    "tbt_ms": 640,
+    "cls": 0.026,
+    "poids_octets": 5909818
+  },
+  "home-avant-desktop": {
+    "page": "accueil",
+    "scores": {
+      "performance": 45,
+      "accessibility": 77,
+      "best-practices": 96,
+      "seo": 63
+    },
+    "fcp_ms": 574,
+    "lcp_ms": 5597,
+    "tbt_ms": 648,
+    "cls": 0.104,
+    "poids_octets": 5949416
+  },
+  "login-apres-desktop": {
+    "page": "connexion",
+    "scores": {
+      "performance": 99,
+      "accessibility": 100,
+      "best-practices": 100,
+      "seo": 63
+    },
+    "fcp_ms": 365,
+    "lcp_ms": 892,
+    "tbt_ms": 3,
+    "cls": 0,
+    "poids_octets": 937849
+  },
+  "login-apres-mobile": {
+    "page": "connexion",
+    "scores": {
+      "performance": 80,
+      "accessibility": 100,
+      "best-practices": 100,
+      "seo": 63
+    },
+    "fcp_ms": 1396,
+    "lcp_ms": 4578,
+    "tbt_ms": 206,
+    "cls": 0,
+    "poids_octets": 938343
+  },
+  "login-avant-desktop": {
+    "page": "connexion",
+    "scores": {
+      "performance": 98,
+      "accessibility": 94,
+      "best-practices": 96,
+      "seo": 63
+    },
+    "fcp_ms": 456,
+    "lcp_ms": 1065,
+    "tbt_ms": 55,
+    "cls": 0,
+    "poids_octets": 1415675
+  },
+  "login-avant-mobile": {
+    "page": "connexion",
+    "scores": {
+      "performance": 58,
+      "accessibility": 94,
+      "best-practices": 96,
+      "seo": 63
+    },
+    "fcp_ms": 1953,
+    "lcp_ms": 9165,
+    "tbt_ms": 637,
+    "cls": 0,
+    "poids_octets": 1415346
+  },
+  "login-pc6-avant-mobile": {
+    "page": "connexion",
+    "scores": {
+      "performance": 57,
+      "accessibility": 94,
+      "best-practices": 96,
+      "seo": 63
+    },
+    "fcp_ms": 1954,
+    "lcp_ms": 3907,
+    "tbt_ms": 4082,
+    "cls": 0,
+    "poids_octets": 1416358
+  }
+}

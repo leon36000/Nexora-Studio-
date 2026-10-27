@@ -232,7 +232,10 @@ for (const browserName of wanted) {
       }
 
       if (profile === 'bureau') {
-        const mod = mac ? 'Meta' : 'Control'
+        // Le raccourci suit l'agent utilisateur de la page (comme l'application) : WebKit de Playwright se présente
+        // comme Safari sur Mac même sous Linux, il faut donc Cmd et non Ctrl.
+        const pageIsMac = await page.evaluate(() => /Mac|iPhone|iPod|iPad/i.test(navigator.userAgent))
+        const mod = pageIsMac ? 'Meta' : 'Control'
         // Un workflow jetable : l'éditeur enregistre tout seul, il ne faut jamais déposer un bloc dans un workflow existant.
         const scratch = await page.request.post(`${base}/api/workflows`, {
           headers: { Origin: base, 'Content-Type': 'application/json' },
@@ -287,7 +290,7 @@ for (const browserName of wanted) {
           await dialog.waitFor({ state: 'visible', timeout: 8000 })
           await shot('recherche')
           await page.keyboard.press('Escape')
-          const other = mac ? 'Control' : 'Meta'
+          const other = pageIsMac ? 'Control' : 'Meta'
           await page.keyboard.press(`${other}+k`)
           await page.waitForTimeout(500)
           const wrongOpens = await page.locator('[role=dialog], [cmdk-root], [data-search-modal]').first().isVisible().catch(() => false)

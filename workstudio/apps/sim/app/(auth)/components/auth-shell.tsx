@@ -45,9 +45,9 @@ export function AuthShell({ children, footer }: AuthShellProps) {
           </a>
         </nav>
       </header>
-      <div className='flex flex-1 items-center justify-center px-4 pb-16'>
+      <main className='flex flex-1 items-center justify-center px-4 pb-16'>
         <div className='w-full max-w-[400px]'>{children}</div>
-      </div>
+      </main>
       {footer}
     </div>
   )

@@ -1,0 +1,388 @@
+{
+  "url": "http://localhost:3200",
+  "date": "2026-10-27T21:58:35.050Z",
+  "runs": [
+    {
+      "navigateur": "firefox",
+      "profil": "bureau",
+      "mac": false,
+      "label": "firefox · bureau",
+      "etapes": [
+        {
+          "nom": "page publique « connexion »",
+          "ok": false,
+          "ms": 1396,
+          "details": "polices : season | console : error: [JavaScript Error: \"Content-Security-Policy: The page’s settings blocked a JavaScript eval (script-src) from being executed because it violates the following directive: “script-src 'self' 'unsafe-inline' https://*.google"
+        },
+        {
+          "nom": "page publique « inscription »",
+          "ok": false,
+          "ms": 821,
+          "details": "polices : season | console : error: [JavaScript Error: \"Content-Security-Policy: The page’s settings blocked a JavaScript eval (script-src) from being executed because it violates the following directive: “script-src 'self' 'unsafe-inline' https://*.google"
+        },
+        {
+          "nom": "page publique « mot de passe oublié »",
+          "ok": false,
+          "ms": 886,
+          "details": "polices : season | console : error: [JavaScript Error: \"Content-Security-Policy: The page’s settings blocked a JavaScript eval (script-src) from being executed because it violates the following directive: “script-src 'self' 'unsafe-inline' https://*.google"
+        },
+        {
+          "nom": "connexion par le formulaire",
+          "ok": false,
+          "ms": 2488,
+          "details": "espace b080d514 | console : error: [JavaScript Error: \"Content-Security-Policy: The page’s settings blocked a JavaScript eval (script-src) from being executed because it violates the following directive: “script-src 'self' 'unsafe-inline' https://*.google ; error: [JavaScript Error: \"Content-Security-Policy: The page’s settings blocked a JavaScript eval (script-src) from being executed because it violates the following directive: “script-src 'self' 'unsafe-inline' https://*.google ; error: [JavaScript Error: \"Content-Security-Policy: The page’s settings blocked a JavaScript eval (script-src) from being executed because it violates the following directive: “script-src 'self' 'unsafe-inline' https://*.google"
+        },
+        {
+          "nom": "écran « accueil »",
+          "ok": false,
+          "ms": 1463,
+          "details": " | console : error: [JavaScript Error: \"Content-Security-Policy: The page’s settings blocked a JavaScript eval (script-src) from being executed because it violates the following directive: “script-src 'self' 'unsafe-inline' https://*.google"
+        },
+        {
+          "nom": "écran « assistant »",
+          "ok": false,
+          "ms": 2389,
+          "details": " | console : error: [JavaScript Error: \"Content-Security-Policy: The page’s settings blocked a JavaScript eval (script-src) from being executed because it violates the following directive: “script-src 'self' 'unsafe-inline' https://*.google"
+        },
+        {
+          "nom": "écran « playground »",
+          "ok": false,
+          "ms": 1322,
+          "details": " | console : error: [JavaScript Error: \"Content-Security-Policy: The page’s settings blocked a JavaScript eval (script-src) from being executed because it violates the following directive: “script-src 'self' 'unsafe-inline' https://*.google"
+        },
+        {
+          "nom": "écran « agents »",
+          "ok": false,
+          "ms": 2380,
+          "details": " | console : error: [JavaScript Error: \"Content-Security-Policy: The page’s settings blocked a JavaScript eval (script-src) from being executed because it violates the following directive: “script-src 'self' 'unsafe-inline' https://*.google"
+        },
+        {
+          "nom": "écran « prompts »",
+          "ok": false,
+          "ms": 1242,
+          "details": " | console : error: [JavaScript Error: \"Content-Security-Policy: The page’s settings blocked a JavaScript eval (script-src) from being executed because it violates the following directive: “script-src 'self' 'unsafe-inline' https://*.google"
+        },
+        {
+          "nom": "écran « connecteurs »",
+          "ok": false,
+          "ms": 2914,
+          "details": " | console : error: [JavaScript Error: \"Content-Security-Policy: The page’s settings blocked a JavaScript eval (script-src) from being executed because it violates the following directive: “script-src 'self' 'unsafe-inline' https://*.google"
+        },
+        {
+          "nom": "écran « développeurs »",
+          "ok": false,
+          "ms": 1280,
+          "details": " | console : error: [JavaScript Error: \"Content-Security-Policy: The page’s settings blocked a JavaScript eval (script-src) from being executed because it violates the following directive: “script-src 'self' 'unsafe-inline' https://*.google"
+        },
+        {
+          "nom": "écran « traces »",
+          "ok": false,
+          "ms": 2333,
+          "details": " | console : error: [JavaScript Error: \"Content-Security-Policy: The page’s settings blocked a JavaScript eval (script-src) from being executed because it violates the following directive: “script-src 'self' 'unsafe-inline' https://*.google"
+        },
+        {
+          "nom": "écran « évaluations »",
+          "ok": false,
+          "ms": 2338,
+          "details": " | console : error: [JavaScript Error: \"Content-Security-Policy: The page’s settings blocked a JavaScript eval (script-src) from being executed because it violates the following directive: “script-src 'self' 'unsafe-inline' https://*.google"
+        },
+        {
+          "nom": "écran « lots »",
+          "ok": false,
+          "ms": 1212,
+          "details": " | console : error: [JavaScript Error: \"Content-Security-Policy: The page’s settings blocked a JavaScript eval (script-src) from being executed because it violates the following directive: “script-src 'self' 'unsafe-inline' https://*.google"
+        },
+        {
+          "nom": "écran « intégrations »",
+          "ok": false,
+          "ms": 1467,
+          "details": " | console : error: [JavaScript Error: \"Content-Security-Policy: The page’s settings blocked a JavaScript eval (script-src) from being executed because it violates the following directive: “script-src 'self' 'unsafe-inline' https://*.google"
+        },
+        {
+          "nom": "écran « tables »",
+          "ok": false,
+          "ms": 9247,
+          "details": " | console : error: [JavaScript Error: \"Content-Security-Policy: The page’s settings blocked a JavaScript eval (script-src) from being executed because it violates the following directive: “script-src 'self' 'unsafe-inline' https://*.google"
+        },
+        {
+          "nom": "écran « fichiers »",
+          "ok": false,
+          "ms": 2631,
+          "details": " | console : error: [JavaScript Error: \"Content-Security-Policy: The page’s settings blocked a JavaScript eval (script-src) from being executed because it violates the following directive: “script-src 'self' 'unsafe-inline' https://*.google"
+        },
+        {
+          "nom": "écran « connaissances »",
+          "ok": false,
+          "ms": 1164,
+          "details": " | console : error: [JavaScript Error: \"Content-Security-Policy: The page’s settings blocked a JavaScript eval (script-src) from being executed because it violates the following directive: “script-src 'self' 'unsafe-inline' https://*.google"
+        },
+        {
+          "nom": "écran « journaux »",
+          "ok": false,
+          "ms": 2207,
+          "details": " | console : error: [JavaScript Error: \"Content-Security-Policy: The page’s settings blocked a JavaScript eval (script-src) from being executed because it violates the following directive: “script-src 'self' 'unsafe-inline' https://*.google"
+        },
+        {
+          "nom": "écran « compétences »",
+          "ok": false,
+          "ms": 1342,
+          "details": " | console : error: [JavaScript Error: \"Content-Security-Policy: The page’s settings blocked a JavaScript eval (script-src) from being executed because it violates the following directive: “script-src 'self' 'unsafe-inline' https://*.google"
+        },
+        {
+          "nom": "écran « réglages »",
+          "ok": false,
+          "ms": 1881,
+          "details": " | console : error: [JavaScript Error: \"Content-Security-Policy: The page’s settings blocked a JavaScript eval (script-src) from being executed because it violates the following directive: “script-src 'self' 'unsafe-inline' https://*.google"
+        },
+        {
+          "nom": "écran « réglages : modèles »",
+          "ok": false,
+          "ms": 1725,
+          "details": " | console : error: [JavaScript Error: \"Content-Security-Policy: The page’s settings blocked a JavaScript eval (script-src) from being executed because it violates the following directive: “script-src 'self' 'unsafe-inline' https://*.google"
+        },
+        {
+          "nom": "écran « réglages : clés »",
+          "ok": false,
+          "ms": 2289,
+          "details": " | console : error: [JavaScript Error: \"Content-Security-Policy: The page’s settings blocked a JavaScript eval (script-src) from being executed because it violates the following directive: “script-src 'self' 'unsafe-inline' https://*.google"
+        },
+        {
+          "nom": "écran « réglages : équipe »",
+          "ok": false,
+          "ms": 1342,
+          "details": " | console : error: [JavaScript Error: \"Content-Security-Policy: The page’s settings blocked a JavaScript eval (script-src) from being executed because it violates the following directive: “script-src 'self' 'unsafe-inline' https://*.google"
+        },
+        {
+          "nom": "éditeur : ouverture du canevas",
+          "ok": false,
+          "ms": 2667,
+          "details": "1 blocs | console : error: [JavaScript Error: \"Content-Security-Policy: The page’s settings blocked a JavaScript eval (script-src) from being executed because it violates the following directive: “script-src 'self' 'unsafe-inline' https://*.google"
+        },
+        {
+          "nom": "éditeur : glisser-déposer d’un bloc depuis la barre d’outils",
+          "ok": true,
+          "ms": 1661,
+          "details": "1 → 2"
+        },
+        {
+          "nom": "éditeur : annuler (Control+Z) puis rétablir (Control+Maj+Z)",
+          "ok": true,
+          "ms": 2198,
+          "details": "2 → 1 → 2"
+        },
+        {
+          "nom": "raccourci de recherche (Control+K)",
+          "ok": false,
+          "ms": 2211,
+          "details": "Control+K ouvre la recherche, Meta+K non | console : error: [JavaScript Error: \"Content-Security-Policy: The page’s settings blocked a JavaScript eval (script-src) from being executed because it violates the following directive: “script-src 'self' 'unsafe-inline' https://*.google"
+        },
+        {
+          "nom": "chat public : création, page, bulle /embed.js sur un site tiers",
+          "ok": false,
+          "ms": 1879,
+          "details": "console du site tiers : [JavaScript Error: \"Failed to execute ‘postMessage’ on ‘DOMWindow’: The target origin provided (‘http://localhost:3200’) does not match the recipient window’s origin (‘http://127.0.0.1:33201’).\" {file ; [JavaScript Error: \"Content-Security-Policy: The page’s settings blocked "
+        },
+        {
+          "nom": "indices de performance de l’accueil",
+          "ok": false,
+          "ms": 3025,
+          "details": "CLS 0, LCP 547 ms | console : error: [JavaScript Error: \"Content-Security-Policy: The page’s settings blocked a JavaScript eval (script-src) from being executed because it violates the following directive: “script-src 'self' 'unsafe-inline' https://*.google"
+        }
+      ]
+    },
+    {
+      "navigateur": "firefox",
+      "profil": "bureau",
+      "mac": true,
+      "label": "firefox · bureau · plateforme Mac",
+      "etapes": [
+        {
+          "nom": "page publique « connexion »",
+          "ok": false,
+          "ms": 1277,
+          "details": "polices : season | console : error: [JavaScript Error: \"Content-Security-Policy: The page’s settings blocked a JavaScript eval (script-src) from being executed because it violates the following directive: “script-src 'self' 'unsafe-inline' https://*.google"
+        },
+        {
+          "nom": "page publique « inscription »",
+          "ok": false,
+          "ms": 868,
+          "details": "polices : season | console : error: [JavaScript Error: \"Content-Security-Policy: The page’s settings blocked a JavaScript eval (script-src) from being executed because it violates the following directive: “script-src 'self' 'unsafe-inline' https://*.google"
+        },
+        {
+          "nom": "page publique « mot de passe oublié »",
+          "ok": false,
+          "ms": 980,
+          "details": "polices : season | console : error: [JavaScript Error: \"Content-Security-Policy: The page’s settings blocked a JavaScript eval (script-src) from being executed because it violates the following directive: “script-src 'self' 'unsafe-inline' https://*.google"
+        },
+        {
+          "nom": "connexion par le formulaire",
+          "ok": false,
+          "ms": 2845,
+          "details": "espace b080d514 | console : error: [JavaScript Error: \"Content-Security-Policy: The page’s settings blocked a JavaScript eval (script-src) from being executed because it violates the following directive: “script-src 'self' 'unsafe-inline' https://*.google ; error: [JavaScript Error: \"Content-Security-Policy: The page’s settings blocked a JavaScript eval (script-src) from being executed because it violates the following directive: “script-src 'self' 'unsafe-inline' https://*.google ; error: [JavaScript Error: \"Content-Security-Policy: The page’s settings blocked a JavaScript eval (script-src) from being executed because it violates the following directive: “script-src 'self' 'unsafe-inline' https://*.google"
+        },
+        {
+          "nom": "écran « accueil »",
+          "ok": false,
+          "ms": 1663,
+          "details": " | console : error: [JavaScript Error: \"Content-Security-Policy: The page’s settings blocked a JavaScript eval (script-src) from being executed because it violates the following directive: “script-src 'self' 'unsafe-inline' https://*.google"
+        },
+        {
+          "nom": "écran « assistant »",
+          "ok": false,
+          "ms": 1427,
+          "details": " | console : error: [JavaScript Error: \"Content-Security-Policy: The page’s settings blocked a JavaScript eval (script-src) from being executed because it violates the following directive: “script-src 'self' 'unsafe-inline' https://*.google"
+        },
+        {
+          "nom": "écran « playground »",
+          "ok": false,
+          "ms": 1366,
+          "details": " | console : error: [JavaScript Error: \"Content-Security-Policy: The page’s settings blocked a JavaScript eval (script-src) from being executed because it violates the following directive: “script-src 'self' 'unsafe-inline' https://*.google"
+        },
+        {
+          "nom": "écran « agents »",
+          "ok": false,
+          "ms": 3504,
+          "details": " | console : error: [JavaScript Error: \"Content-Security-Policy: The page’s settings blocked a JavaScript eval (script-src) from being executed because it violates the following directive: “script-src 'self' 'unsafe-inline' https://*.google"
+        },
+        {
+          "nom": "écran « prompts »",
+          "ok": false,
+          "ms": 1236,
+          "details": " | console : error: [JavaScript Error: \"Content-Security-Policy: The page’s settings blocked a JavaScript eval (script-src) from being executed because it violates the following directive: “script-src 'self' 'unsafe-inline' https://*.google"
+        },
+        {
+          "nom": "écran « connecteurs »",
+          "ok": false,
+          "ms": 1559,
+          "details": " | console : error: [JavaScript Error: \"Content-Security-Policy: The page’s settings blocked a JavaScript eval (script-src) from being executed because it violates the following directive: “script-src 'self' 'unsafe-inline' https://*.google"
+        },
+        {
+          "nom": "écran « développeurs »",
+          "ok": false,
+          "ms": 1799,
+          "details": " | console : error: [JavaScript Error: \"Content-Security-Policy: The page’s settings blocked a JavaScript eval (script-src) from being executed because it violates the following directive: “script-src 'self' 'unsafe-inline' https://*.google"
+        },
+        {
+          "nom": "écran « traces »",
+          "ok": false,
+          "ms": 2564,
+          "details": " | console : error: [JavaScript Error: \"Content-Security-Policy: The page’s settings blocked a JavaScript eval (script-src) from being executed because it violates the following directive: “script-src 'self' 'unsafe-inline' https://*.google"
+        },
+        {
+          "nom": "écran « évaluations »",
+          "ok": false,
+          "ms": 1573,
+          "details": " | console : error: [JavaScript Error: \"Content-Security-Policy: The page’s settings blocked a JavaScript eval (script-src) from being executed because it violates the following directive: “script-src 'self' 'unsafe-inline' https://*.google"
+        },
+        {
+          "nom": "écran « lots »",
+          "ok": false,
+          "ms": 1448,
+          "details": " | console : error: [JavaScript Error: \"Content-Security-Policy: The page’s settings blocked a JavaScript eval (script-src) from being executed because it violates the following directive: “script-src 'self' 'unsafe-inline' https://*.google"
+        },
+        {
+          "nom": "écran « intégrations »",
+          "ok": false,
+          "ms": 1848,
+          "details": " | console : error: [JavaScript Error: \"Content-Security-Policy: The page’s settings blocked a JavaScript eval (script-src) from being executed because it violates the following directive: “script-src 'self' 'unsafe-inline' https://*.google"
+        },
+        {
+          "nom": "écran « tables »",
+          "ok": false,
+          "ms": 2088,
+          "details": " | console : error: [JavaScript Error: \"Content-Security-Policy: The page’s settings blocked a JavaScript eval (script-src) from being executed because it violates the following directive: “script-src 'self' 'unsafe-inline' https://*.google"
+        },
+        {
+          "nom": "écran « fichiers »",
+          "ok": false,
+          "ms": 4553,
+          "details": " | console : error: [JavaScript Error: \"Content-Security-Policy: The page’s settings blocked a JavaScript eval (script-src) from being executed because it violates the following directive: “script-src 'self' 'unsafe-inline' https://*.google"
+        },
+        {
+          "nom": "écran « connaissances »",
+          "ok": false,
+          "ms": 2054,
+          "details": " | console : error: [JavaScript Error: \"Content-Security-Policy: The page’s settings blocked a JavaScript eval (script-src) from being executed because it violates the following directive: “script-src 'self' 'unsafe-inline' https://*.google"
+        },
+        {
+          "nom": "écran « journaux »",
+          "ok": false,
+          "ms": 2310,
+          "details": " | console : error: [JavaScript Error: \"Content-Security-Policy: The page’s settings blocked a JavaScript eval (script-src) from being executed because it violates the following directive: “script-src 'self' 'unsafe-inline' https://*.google"
+        },
+        {
+          "nom": "écran « compétences »",
+          "ok": false,
+          "ms": 2929,
+          "details": " | console : error: [JavaScript Error: \"Content-Security-Policy: The page’s settings blocked a JavaScript eval (script-src) from being executed because it violates the following directive: “script-src 'self' 'unsafe-inline' https://*.google"
+        },
+        {
+          "nom": "écran « réglages »",
+          "ok": false,
+          "ms": 1925,
+          "details": " | console : error: [JavaScript Error: \"Content-Security-Policy: The page’s settings blocked a JavaScript eval (script-src) from being executed because it violates the following directive: “script-src 'self' 'unsafe-inline' https://*.google"
+        },
+        {
+          "nom": "écran « réglages : modèles »",
+          "ok": false,
+          "ms": 1590,
+          "details": " | console : error: [JavaScript Error: \"Content-Security-Policy: The page’s settings blocked a JavaScript eval (script-src) from being executed because it violates the following directive: “script-src 'self' 'unsafe-inline' https://*.google"
+        },
+        {
+          "nom": "écran « réglages : clés »",
+          "ok": false,
+          "ms": 1637,
+          "details": " | console : error: [JavaScript Error: \"Content-Security-Policy: The page’s settings blocked a JavaScript eval (script-src) from being executed because it violates the following directive: “script-src 'self' 'unsafe-inline' https://*.google"
+        },
+        {
+          "nom": "écran « réglages : équipe »",
+          "ok": false,
+          "ms": 2205,
+          "details": " | console : error: [JavaScript Error: \"Content-Security-Policy: The page’s settings blocked a JavaScript eval (script-src) from being executed because it violates the following directive: “script-src 'self' 'unsafe-inline' https://*.google"
+        },
+        {
+          "nom": "éditeur : ouverture du canevas",
+          "ok": false,
+          "ms": 2920,
+          "details": "1 blocs | console : error: [JavaScript Error: \"Content-Security-Policy: The page’s settings blocked a JavaScript eval (script-src) from being executed because it violates the following directive: “script-src 'self' 'unsafe-inline' https://*.google"
+        },
+        {
+          "nom": "éditeur : glisser-déposer d’un bloc depuis la barre d’outils",
+          "ok": true,
+          "ms": 1424,
+          "details": "1 → 2"
+        },
+        {
+          "nom": "éditeur : annuler (Meta+Z) puis rétablir (Meta+Maj+Z)",
+          "ok": true,
+          "ms": 2096,
+          "details": "2 → 1 → 2"
+        },
+        {
+          "nom": "raccourci de recherche (Meta+K)",
+          "ok": false,
+          "ms": 2059,
+          "details": "Meta+K ouvre la recherche, Control+K non | console : error: [JavaScript Error: \"Content-Security-Policy: The page’s settings blocked a JavaScript eval (script-src) from being executed because it violates the following directive: “script-src 'self' 'unsafe-inline' https://*.google"
+        },
+        {
+          "nom": "chat public : création, page, bulle /embed.js sur un site tiers",
+          "ok": false,
+          "ms": 1600,
+          "details": "console du site tiers : [JavaScript Error: \"Failed to execute ‘postMessage’ on ‘DOMWindow’: The target origin provided (‘http://localhost:3200’) does not match the recipient window’s origin (‘http://127.0.0.1:36817’).\" {file ; [JavaScript Error: \"Content-Security-Policy: The page’s settings blocked "
+        },
+        {
+          "nom": "indices de performance de l’accueil",
+          "ok": false,
+          "ms": 2866,
+          "details": "CLS 0, LCP 493 ms | console : error: [JavaScript Error: \"Content-Security-Policy: The page’s settings blocked a JavaScript eval (script-src) from being executed because it violates the following directive: “script-src 'self' 'unsafe-inline' https://*.google"
+        }
+      ]
+    }
+  ],
+  "resume": {
+    "etapes": 60,
+    "ok": 4,
+    "echecs": 56,
+    "nonVerifies": []
+  }
+}
