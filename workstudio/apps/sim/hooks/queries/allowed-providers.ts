@@ -2,7 +2,7 @@
 
 import { useQuery } from '@tanstack/react-query'
 import { requestJson } from '@/lib/api/client/request'
-import { getAllowedProvidersContract } from '@/lib/api/contracts'
+import { getAllowedProvidersContract } from '@/lib/api/contracts/common'
 
 /**
  * Query key factory for allowed providers queries

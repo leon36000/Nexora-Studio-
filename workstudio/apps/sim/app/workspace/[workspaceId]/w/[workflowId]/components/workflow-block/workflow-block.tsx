@@ -37,6 +37,7 @@ import { useDeploymentShape } from '@/lib/core/config/deployment-shape'
 import { getBaseUrl } from '@/lib/core/utils/urls'
 import { createMcpToolId } from '@/lib/mcp/shared'
 import { sendMothershipMessage } from '@/lib/mothership/events'
+import { isDefaultModelValue, plainModelName } from '@/lib/nexora/model-label'
 import { getProviderIdFromServiceId } from '@/lib/oauth'
 import { captureEvent } from '@/lib/posthog/client'
 import { getCardSubBlocks } from '@/lib/workflows/blocks/canvas-card-fields'
@@ -348,6 +349,7 @@ const SubBlockRow = memo(function SubBlockRow({
   variant,
   icon,
 }: SubBlockRowProps) {
+  const tBlock = useTranslations('editor.workflowBlock')
   const rawValues = useMemo(() => {
     if (!allSubBlockValues) return {}
     return Object.entries(allSubBlockValues).reduce<Record<string, unknown>>(
@@ -603,6 +605,13 @@ const SubBlockRow = memo(function SubBlockRow({
     [subBlock, rawValue, sandboxData]
   )
 
+  const modelDisplayValue =
+    subBlock?.id === 'model' && typeof rawValue === 'string' && rawValue
+      ? isDefaultModelValue(rawValue)
+        ? tBlock('defaultModel')
+        : plainModelName(rawValue)
+      : null
+
   const folderPathDisplayValue = useMemo(
     () => resolveFolderPathLabel(subBlock, rawValue),
     [subBlock, rawValue]
@@ -630,6 +639,7 @@ const SubBlockRow = memo(function SubBlockRow({
     tableDisplayName ||
     folderPathDisplayValue ||
     webhookUrlDisplayValue ||
+    modelDisplayValue ||
     selectorDisplayName
   const displayValue = maskedValue || hydratedName || (isSelectorType && value ? '-' : value)
   const codePreview =

@@ -15,7 +15,7 @@ import { normalizeEmail } from '@sim/utils/string'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { useTranslations } from 'next-intl'
 import { requestJson } from '@/lib/api/client/request'
-import { forgetPasswordContract } from '@/lib/api/contracts'
+import { forgetPasswordContract } from '@/lib/api/contracts/user'
 import { client } from '@/lib/auth/client'
 import { getEnv, isFalsy } from '@/lib/core/config/env'
 import { isSsoEnabled } from '@/lib/core/config/env-flags'
@@ -41,6 +41,7 @@ import {
   SSOLoginButton,
 } from '@/app/(auth)/components'
 import { useEmailFieldValidation } from '@/app/(auth)/components/use-email-field-validation'
+import { usePrehydrationValues } from '@/app/(auth)/components/use-prehydration-values'
 import { useCaptureWhenReady } from '@/hooks/use-capture-when-ready'
 
 const logger = createLogger('LoginForm')
@@ -102,6 +103,7 @@ export default function LoginPage({
   }>({ type: null, message: '' })
 
   const [email, setEmail] = useState('')
+  usePrehydrationValues({ email: setEmail, password: setPassword })
   const [emailErrors, setEmailErrors] = useState<string[]>([])
   const [showEmailValidationError, setShowEmailValidationError] = useState(false)
   const [resetSuccessMessage, setResetSuccessMessage] = useState<string | null>(() =>

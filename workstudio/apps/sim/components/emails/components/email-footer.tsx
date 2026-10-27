@@ -148,25 +148,27 @@ export function EmailFooter({
               </>
             )}
 
-            <tr>
-              <td style={baseStyles.gutter} width={spacing.gutter}>
-                &nbsp;
-              </td>
-              <td style={baseStyles.footerText}>
-                {t('footer.questions')}{' '}
-                {/*
-                  A raw anchor, not `<Link>`: react-email's Link hardcodes
-                  target="_blank", which on a mailto: opens a blank tab beside
-                  the compose window in most webmail clients.
-                */}
-                <a href={`mailto:${brand.supportEmail}`} style={baseStyles.footerLink}>
-                  {brand.supportEmail}
-                </a>
-              </td>
-              <td style={baseStyles.gutter} width={spacing.gutter}>
-                &nbsp;
-              </td>
-            </tr>
+            {brand.supportEmail && (
+              <tr>
+                <td style={baseStyles.gutter} width={spacing.gutter}>
+                  &nbsp;
+                </td>
+                <td style={baseStyles.footerText}>
+                  {t('footer.questions')}{' '}
+                  {/*
+                    A raw anchor, not `<Link>`: react-email's Link hardcodes
+                    target="_blank", which on a mailto: opens a blank tab beside
+                    the compose window in most webmail clients.
+                  */}
+                  <a href={`mailto:${brand.supportEmail}`} style={baseStyles.footerLink}>
+                    {brand.supportEmail}
+                  </a>
+                </td>
+                <td style={baseStyles.gutter} width={spacing.gutter}>
+                  &nbsp;
+                </td>
+              </tr>
+            )}
 
             <tr>
               <td style={baseStyles.spacer} height={8}>

@@ -229,6 +229,7 @@
     "hideControls": "Masquer les commandes du canevas"
   },
   "workflowBlock": {
+    "defaultModel": "Modèle par défaut",
     "sunset": {
       "legacyBlock": "Ceci est un ancien bloc. Cliquez pour le mettre à niveau",
       "deprecatedBlock": "Ce bloc n'est plus pris en charge. Cliquez pour le remplacer",

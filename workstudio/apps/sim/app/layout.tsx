@@ -8,7 +8,7 @@ import { BrandedLayout } from '@/components/branded-layout'
 import { SettingsNavigationGuard } from '@/components/settings/settings-navigation-guard'
 import { PasteAdmissionGuard } from '@/app/_shell/paste-admission-guard'
 import { BrowserTelemetry } from '@/app/_shell/providers/browser-telemetry'
-import { PostHogProvider } from '@/app/_shell/providers/posthog-provider'
+import { PostHogGate } from '@/app/_shell/providers/posthog-gate'
 import { SharedLabelsProvider } from '@/app/_shell/providers/shared-labels-provider'
 import { generateBrandedMetadata, generateThemeCSS } from '@/ee/whitelabeling'
 import { pageMessages } from '@/i18n/messages'
@@ -55,7 +55,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
       <SettingsNavigationGuard />
       <DesktopUpdateNotification />
       <PasteAdmissionGuard />
-      <PostHogProvider consentRequired={isHosted}>
+      <PostHogGate consentRequired={isHosted}>
         <ThemeProvider>
           <QueryProvider>
             <SessionProvider>
@@ -69,7 +69,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
             </SessionProvider>
           </QueryProvider>
         </ThemeProvider>
-      </PostHogProvider>
+      </PostHogGate>
     </ToastProvider>
   )
 

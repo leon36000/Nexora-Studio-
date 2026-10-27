@@ -14,7 +14,7 @@ import {
   listPinnedItemsContract,
   type PinnedItemApi,
   type PinnedResourceType,
-} from '@/lib/api/contracts'
+} from '@/lib/api/contracts/pinned-items'
 import { PINNED_ITEMS_STALE_TIME, pinnedItemKeys } from '@/hooks/queries/utils/pinned-item-keys'
 
 async function fetchPinnedItems(

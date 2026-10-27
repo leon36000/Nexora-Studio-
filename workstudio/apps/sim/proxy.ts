@@ -7,6 +7,7 @@ import { getSessionCookie } from 'better-auth/cookies'
 import { type NextRequest, NextResponse } from 'next/server'
 import { resolveSimMcpHostPath } from '@/lib/api/mcp/host-routing'
 import { SIM_MCP_ROUTE_PATH } from '@/lib/api/mcp/urls'
+import { LITE_MESSAGES_HEADER, usesLiteMessages } from '@/lib/i18n/config'
 import { isMarketingPath } from '@/lib/landing/routes'
 import { APP_ENTRY_PATH, isAppSurfacePath, isNoindexPath } from '@/lib/navigation/paths'
 import { resolveMarketingRedirect } from '@/lib/nexora/marketing'
@@ -287,6 +288,17 @@ function handleInvitationRedirects(
 }
 
 /**
+ * Continues the request, flagging the pages that read little copy (sign-in, public chat) so the root
+ * layout sends them `liteMessages` instead of every namespace (about 400 KB less HTML on the sign-in page).
+ */
+function nextWithMessageHint(request: NextRequest): NextResponse {
+  const headers = new Headers(request.headers)
+  headers.delete(LITE_MESSAGES_HEADER)
+  if (usesLiteMessages(request.nextUrl.pathname)) headers.set(LITE_MESSAGES_HEADER, '1')
+  return NextResponse.next({ request: { headers } })
+}
+
+/**
  * Handles security filtering for suspicious user agents
  */
 function handleSecurityFiltering(request: NextRequest): NextResponse | null {
@@ -408,7 +420,7 @@ export function proxy(request: NextRequest) {
         NextResponse.redirect(new URL(APP_ENTRY_PATH, request.url))
       )
     }
-    const response = NextResponse.next()
+    const response = nextWithMessageHint(request)
     response.headers.set('Content-Security-Policy', generateRuntimeCSP())
     response.headers.set('X-Content-Type-Options', 'nosniff')
     response.headers.set('X-Frame-Options', 'SAMEORIGIN')
@@ -418,7 +430,7 @@ export function proxy(request: NextRequest) {
   // Chat pages are publicly accessible embeds. Their CSP carries the origins allowed to frame them
   // (NEXORA_EMBED_ORIGINS), a runtime variable: next.config.ts headers would freeze it at build time.
   if (url.pathname.startsWith('/chat/')) {
-    const response = NextResponse.next()
+    const response = nextWithMessageHint(request)
     response.headers.set('Content-Security-Policy', getChatEmbedCSPPolicy())
     return applyIndexingPolicy(request, response)
   }
@@ -427,7 +439,7 @@ export function proxy(request: NextRequest) {
     if (!hasActiveSession) {
       return applyIndexingPolicy(request, NextResponse.redirect(new URL('/login', request.url)))
     }
-    const response = NextResponse.next()
+    const response = nextWithMessageHint(request)
     response.headers.set('Content-Security-Policy', generateRuntimeCSP())
     response.headers.set('X-Content-Type-Options', 'nosniff')
     response.headers.set('X-Frame-Options', 'SAMEORIGIN')

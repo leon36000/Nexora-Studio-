@@ -5,7 +5,7 @@ import {
   type SubmitCopilotFeedbackBody,
   type SubmitCopilotFeedbackResult,
   submitCopilotFeedbackContract,
-} from '@/lib/api/contracts'
+} from '@/lib/api/contracts/copilot'
 
 const logger = createLogger('CopilotFeedbackMutation')
 

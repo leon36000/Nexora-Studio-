@@ -7,7 +7,7 @@ import { useQueryClient } from '@tanstack/react-query'
 import { useParams } from 'next/navigation'
 import { usePostHog } from 'posthog-js/react'
 import { requestJson } from '@/lib/api/client/request'
-import { createWorkflowContract } from '@/lib/api/contracts'
+import { createWorkflowContract } from '@/lib/api/contracts/workflows'
 import {
   LandingPromptStorage,
   type LandingWorkflowSeed,

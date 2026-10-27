@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { DEFAULT_LOCALE, LOCALES, resolveLocale } from '@/lib/i18n/config'
+import { DEFAULT_LOCALE, LOCALES, resolveLocale, usesLiteMessages } from '@/lib/i18n/config'
 
 describe('resolveLocale', () => {
   it('defaults to French when nothing is known', () => {
@@ -30,5 +30,32 @@ describe('resolveLocale', () => {
 
   it('lists exactly the shipped locales', () => {
     expect([...LOCALES]).toEqual(['fr', 'en'])
+  })
+})
+
+describe('usesLiteMessages', () => {
+  it('flags the sign-in pages and the public chat, nothing else', () => {
+    for (const pathname of [
+      '/login',
+      '/signup',
+      '/reset-password',
+      '/verify',
+      '/sso',
+      '/chat/support',
+    ]) {
+      expect(usesLiteMessages(pathname), pathname).toBe(true)
+    }
+    for (const pathname of [
+      '/',
+      '/workspace',
+      '/workspace/abc/home',
+      '/invite/abc',
+      '/login/extra',
+      '/chat',
+      '/o/x/home',
+      '/api/chat/support',
+    ]) {
+      expect(usesLiteMessages(pathname), pathname).toBe(false)
+    }
   })
 })

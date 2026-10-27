@@ -402,7 +402,7 @@ export function WorkspaceChrome({
            inherits the traffic-light lane the same way a collapsed sidebar does. */
         data-content-fullscreen={isFullscreen || undefined}
       >
-        <div
+        <main
           className={cn(
             'min-h-0 flex-1 overflow-hidden bg-[var(--bg)] max-md:border-l-0',
             CONTENT_PANE_DIVIDER,
@@ -410,7 +410,7 @@ export function WorkspaceChrome({
           )}
         >
           {children}
-        </div>
+        </main>
       </div>
       {!isFullscreen && (
         /**

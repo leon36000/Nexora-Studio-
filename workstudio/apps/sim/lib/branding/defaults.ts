@@ -9,7 +9,7 @@ export const defaultBrandConfig: BrandConfig = {
   wordmarkUrl: undefined,
   faviconUrl: undefined,
   customCssUrl: undefined,
-  supportEmail: 'support@example.com',
+  supportEmail: undefined,
   documentationUrl: undefined,
   termsUrl: undefined,
   privacyUrl: undefined,

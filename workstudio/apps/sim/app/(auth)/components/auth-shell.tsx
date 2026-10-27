@@ -2,7 +2,7 @@ import type { ReactNode } from 'react'
 import { SimWordmark } from '@sim/emcn'
 import { useTranslations } from 'next-intl'
 import { DesktopTitleBarLane } from '@/app/_shell/desktop-title-bar'
-import { LogoMark } from '@/app/(landing)/components/navbar/components'
+import { LogoMark } from '@/app/(landing)/components/navbar/components/logo-mark/logo-mark'
 
 interface AuthShellProps {
   /** Centered content column (the form, status copy, etc.). */
@@ -45,9 +45,9 @@ export function AuthShell({ children, footer }: AuthShellProps) {
           </a>
         </nav>
       </header>
-      <div className='flex flex-1 items-center justify-center px-4 pb-16'>
+      <main className='flex flex-1 items-center justify-center px-4 pb-16'>
         <div className='w-full max-w-[400px]'>{children}</div>
-      </div>
+      </main>
       {footer}
     </div>
   )

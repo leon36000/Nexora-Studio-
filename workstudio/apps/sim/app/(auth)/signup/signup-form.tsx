@@ -39,6 +39,7 @@ import {
   SSOLoginButton,
 } from '@/app/(auth)/components'
 import { useEmailFieldValidation } from '@/app/(auth)/components/use-email-field-validation'
+import { usePrehydrationValues } from '@/app/(auth)/components/use-prehydration-values'
 import { useCaptureWhenReady } from '@/hooks/use-capture-when-ready'
 
 const logger = createLogger('SignupForm')
@@ -106,6 +107,7 @@ function SignupFormContent({
 
   const [name, setName] = useState('')
   const [nameErrors, setNameErrors] = useState<string[]>([])
+  usePrehydrationValues({ name: setName, email: setEmail, password: setPassword })
   const [showNameValidationError, setShowNameValidationError] = useState(false)
 
   const validatePassword = (passwordValue: string): string[] =>

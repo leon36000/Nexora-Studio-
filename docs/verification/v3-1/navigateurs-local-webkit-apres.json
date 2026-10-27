@@ -1,0 +1,558 @@
+{
+  "url": "http://localhost:3480",
+  "date": "2026-10-27T23:01:22.841Z",
+  "runs": [
+    {
+      "navigateur": "webkit",
+      "profil": "bureau",
+      "mac": false,
+      "label": "webkit · bureau",
+      "etapes": [
+        {
+          "nom": "page publique « connexion »",
+          "ok": true,
+          "ms": 1183,
+          "details": "polices : season"
+        },
+        {
+          "nom": "page publique « inscription »",
+          "ok": true,
+          "ms": 657,
+          "details": "polices : season"
+        },
+        {
+          "nom": "page publique « mot de passe oublié »",
+          "ok": true,
+          "ms": 713,
+          "details": "polices : season"
+        },
+        {
+          "nom": "connexion par le formulaire",
+          "ok": true,
+          "ms": 2808,
+          "details": "espace 68aa8a00"
+        },
+        {
+          "nom": "écran « accueil »",
+          "ok": true,
+          "ms": 1855,
+          "details": ""
+        },
+        {
+          "nom": "écran « assistant »",
+          "ok": true,
+          "ms": 1544,
+          "details": ""
+        },
+        {
+          "nom": "écran « playground »",
+          "ok": true,
+          "ms": 1492,
+          "details": ""
+        },
+        {
+          "nom": "écran « agents »",
+          "ok": true,
+          "ms": 1505,
+          "details": ""
+        },
+        {
+          "nom": "écran « prompts »",
+          "ok": true,
+          "ms": 1547,
+          "details": ""
+        },
+        {
+          "nom": "écran « connecteurs »",
+          "ok": false,
+          "ms": 1498,
+          "details": " | console : error: Failed to load resource: the server responded with a status of 503 (Service Unavailable) ; error: Failed to load resource: the server responded with a status of 503 (Service Unavailable)"
+        },
+        {
+          "nom": "écran « développeurs »",
+          "ok": true,
+          "ms": 1593,
+          "details": ""
+        },
+        {
+          "nom": "écran « traces »",
+          "ok": false,
+          "ms": 1750,
+          "details": " | console : error: Failed to load resource: the server responded with a status of 403 (Forbidden)"
+        },
+        {
+          "nom": "écran « évaluations »",
+          "ok": true,
+          "ms": 1793,
+          "details": ""
+        },
+        {
+          "nom": "écran « lots »",
+          "ok": true,
+          "ms": 1732,
+          "details": ""
+        },
+        {
+          "nom": "écran « intégrations »",
+          "ok": true,
+          "ms": 1350,
+          "details": ""
+        },
+        {
+          "nom": "écran « tables »",
+          "ok": false,
+          "ms": 1938,
+          "details": " | console : pageerror: Fetch API cannot load http: /localhost:3480/workspace/68aa8a00-b32e-444c-a391-955d36fb084b/home?_rsc=6pVBxuErxf72p23f due to access control checks. ; pageerror: Fetch API cannot load http: /localhost:3480/workspace/68aa8a00-b32e-444c-a391-955d36fb084b/assistant?_rsc=6pVBxuErxf72p23f due to access control checks. ; pageerror: Fetch API cannot load http: /localhost:3480/workspace/68aa8a00-b32e-444c-a391-955d36fb084b/playground?_rsc=6pVBxuErxf72p23f due to access control checks."
+        },
+        {
+          "nom": "écran « fichiers »",
+          "ok": true,
+          "ms": 1732,
+          "details": ""
+        },
+        {
+          "nom": "écran « connaissances »",
+          "ok": true,
+          "ms": 1700,
+          "details": ""
+        },
+        {
+          "nom": "écran « journaux »",
+          "ok": true,
+          "ms": 1727,
+          "details": ""
+        },
+        {
+          "nom": "écran « compétences »",
+          "ok": true,
+          "ms": 1616,
+          "details": ""
+        },
+        {
+          "nom": "écran « réglages »",
+          "ok": true,
+          "ms": 1505,
+          "details": ""
+        },
+        {
+          "nom": "écran « réglages : modèles »",
+          "ok": true,
+          "ms": 1417,
+          "details": ""
+        },
+        {
+          "nom": "écran « réglages : clés »",
+          "ok": false,
+          "ms": 1415,
+          "details": " | console : error: Failed to load resource: the server responded with a status of 403 (Forbidden)"
+        },
+        {
+          "nom": "écran « réglages : équipe »",
+          "ok": true,
+          "ms": 1410,
+          "details": ""
+        },
+        {
+          "nom": "éditeur : ouverture du canevas",
+          "ok": true,
+          "ms": 1770,
+          "details": "1 blocs"
+        },
+        {
+          "nom": "éditeur : glisser-déposer d’un bloc depuis la barre d’outils",
+          "ok": true,
+          "ms": 1415,
+          "details": "1 → 2"
+        },
+        {
+          "nom": "éditeur : annuler (Meta+Z) puis rétablir (Meta+Maj+Z)",
+          "ok": true,
+          "ms": 2047,
+          "details": "2 → 1 → 2"
+        },
+        {
+          "nom": "raccourci de recherche (Meta+K)",
+          "ok": true,
+          "ms": 2228,
+          "details": "Meta+K ouvre la recherche, Control+K non"
+        },
+        {
+          "nom": "chat public : création, page, bulle /embed.js sur un site tiers",
+          "ok": true,
+          "ms": 2143,
+          "details": "chat /chat/nav-7d1e27 et bulle intégrée affichés"
+        },
+        {
+          "nom": "indices de performance de l’accueil",
+          "ok": true,
+          "ms": 2834,
+          "details": "CLS 0, LCP 425 ms"
+        }
+      ]
+    },
+    {
+      "navigateur": "webkit",
+      "profil": "bureau",
+      "mac": true,
+      "label": "webkit · bureau · plateforme Mac",
+      "etapes": [
+        {
+          "nom": "page publique « connexion »",
+          "ok": true,
+          "ms": 884,
+          "details": "polices : season"
+        },
+        {
+          "nom": "page publique « inscription »",
+          "ok": true,
+          "ms": 661,
+          "details": "polices : season"
+        },
+        {
+          "nom": "page publique « mot de passe oublié »",
+          "ok": true,
+          "ms": 641,
+          "details": "polices : season"
+        },
+        {
+          "nom": "connexion par le formulaire",
+          "ok": true,
+          "ms": 2594,
+          "details": "espace 68aa8a00"
+        },
+        {
+          "nom": "écran « accueil »",
+          "ok": true,
+          "ms": 1758,
+          "details": ""
+        },
+        {
+          "nom": "écran « assistant »",
+          "ok": true,
+          "ms": 1564,
+          "details": ""
+        },
+        {
+          "nom": "écran « playground »",
+          "ok": true,
+          "ms": 1543,
+          "details": ""
+        },
+        {
+          "nom": "écran « agents »",
+          "ok": true,
+          "ms": 1532,
+          "details": ""
+        },
+        {
+          "nom": "écran « prompts »",
+          "ok": true,
+          "ms": 1477,
+          "details": ""
+        },
+        {
+          "nom": "écran « connecteurs »",
+          "ok": false,
+          "ms": 1540,
+          "details": " | console : error: Failed to load resource: the server responded with a status of 503 (Service Unavailable) ; error: Failed to load resource: the server responded with a status of 503 (Service Unavailable)"
+        },
+        {
+          "nom": "écran « développeurs »",
+          "ok": true,
+          "ms": 1548,
+          "details": ""
+        },
+        {
+          "nom": "écran « traces »",
+          "ok": false,
+          "ms": 1589,
+          "details": " | console : error: Failed to load resource: the server responded with a status of 403 (Forbidden)"
+        },
+        {
+          "nom": "écran « évaluations »",
+          "ok": true,
+          "ms": 1619,
+          "details": ""
+        },
+        {
+          "nom": "écran « lots »",
+          "ok": true,
+          "ms": 1577,
+          "details": ""
+        },
+        {
+          "nom": "écran « intégrations »",
+          "ok": true,
+          "ms": 2298,
+          "details": ""
+        },
+        {
+          "nom": "écran « tables »",
+          "ok": true,
+          "ms": 1616,
+          "details": ""
+        },
+        {
+          "nom": "écran « fichiers »",
+          "ok": true,
+          "ms": 1622,
+          "details": ""
+        },
+        {
+          "nom": "écran « connaissances »",
+          "ok": true,
+          "ms": 1589,
+          "details": ""
+        },
+        {
+          "nom": "écran « journaux »",
+          "ok": true,
+          "ms": 1571,
+          "details": ""
+        },
+        {
+          "nom": "écran « compétences »",
+          "ok": true,
+          "ms": 1574,
+          "details": ""
+        },
+        {
+          "nom": "écran « réglages »",
+          "ok": true,
+          "ms": 1488,
+          "details": ""
+        },
+        {
+          "nom": "écran « réglages : modèles »",
+          "ok": true,
+          "ms": 1399,
+          "details": ""
+        },
+        {
+          "nom": "écran « réglages : clés »",
+          "ok": false,
+          "ms": 1514,
+          "details": " | console : error: Failed to load resource: the server responded with a status of 403 (Forbidden)"
+        },
+        {
+          "nom": "écran « réglages : équipe »",
+          "ok": true,
+          "ms": 1482,
+          "details": ""
+        },
+        {
+          "nom": "éditeur : ouverture du canevas",
+          "ok": true,
+          "ms": 1738,
+          "details": "1 blocs"
+        },
+        {
+          "nom": "éditeur : glisser-déposer d’un bloc depuis la barre d’outils",
+          "ok": true,
+          "ms": 1399,
+          "details": "1 → 2"
+        },
+        {
+          "nom": "éditeur : annuler (Meta+Z) puis rétablir (Meta+Maj+Z)",
+          "ok": true,
+          "ms": 2039,
+          "details": "2 → 1 → 2"
+        },
+        {
+          "nom": "raccourci de recherche (Meta+K)",
+          "ok": true,
+          "ms": 2218,
+          "details": "Meta+K ouvre la recherche, Control+K non"
+        },
+        {
+          "nom": "chat public : création, page, bulle /embed.js sur un site tiers",
+          "ok": true,
+          "ms": 1759,
+          "details": "chat /chat/nav-163868 et bulle intégrée affichés"
+        },
+        {
+          "nom": "indices de performance de l’accueil",
+          "ok": true,
+          "ms": 2780,
+          "details": "CLS 0, LCP 397 ms"
+        }
+      ]
+    },
+    {
+      "navigateur": "webkit",
+      "profil": "mobile",
+      "mac": false,
+      "label": "webkit · mobile",
+      "etapes": [
+        {
+          "nom": "page publique « connexion »",
+          "ok": true,
+          "ms": 918,
+          "details": "polices : season"
+        },
+        {
+          "nom": "page publique « inscription »",
+          "ok": true,
+          "ms": 631,
+          "details": "polices : season"
+        },
+        {
+          "nom": "page publique « mot de passe oublié »",
+          "ok": true,
+          "ms": 694,
+          "details": "polices : season"
+        },
+        {
+          "nom": "connexion par le formulaire",
+          "ok": true,
+          "ms": 2576,
+          "details": "espace 68aa8a00"
+        },
+        {
+          "nom": "écran « accueil »",
+          "ok": true,
+          "ms": 1509,
+          "details": ""
+        },
+        {
+          "nom": "écran « assistant »",
+          "ok": true,
+          "ms": 1454,
+          "details": ""
+        },
+        {
+          "nom": "écran « playground »",
+          "ok": true,
+          "ms": 1338,
+          "details": ""
+        },
+        {
+          "nom": "écran « agents »",
+          "ok": true,
+          "ms": 1420,
+          "details": ""
+        },
+        {
+          "nom": "écran « prompts »",
+          "ok": true,
+          "ms": 1432,
+          "details": ""
+        },
+        {
+          "nom": "écran « connecteurs »",
+          "ok": false,
+          "ms": 1368,
+          "details": " | console : error: Failed to load resource: the server responded with a status of 503 (Service Unavailable)"
+        },
+        {
+          "nom": "écran « développeurs »",
+          "ok": false,
+          "ms": 1443,
+          "details": " | console : pageerror: Fetch API cannot load http: /localhost:3480/api/nexora/connectors?workspaceId=68aa8a00-b32e-444c-a391-955d36fb084b&offset=0&limit=30 due to access control checks."
+        },
+        {
+          "nom": "écran « traces »",
+          "ok": false,
+          "ms": 1493,
+          "details": " | console : error: Failed to load resource: the server responded with a status of 403 (Forbidden)"
+        },
+        {
+          "nom": "écran « évaluations »",
+          "ok": true,
+          "ms": 1457,
+          "details": ""
+        },
+        {
+          "nom": "écran « lots »",
+          "ok": true,
+          "ms": 1412,
+          "details": ""
+        },
+        {
+          "nom": "écran « intégrations »",
+          "ok": true,
+          "ms": 2144,
+          "details": ""
+        },
+        {
+          "nom": "écran « tables »",
+          "ok": true,
+          "ms": 1502,
+          "details": ""
+        },
+        {
+          "nom": "écran « fichiers »",
+          "ok": true,
+          "ms": 1427,
+          "details": ""
+        },
+        {
+          "nom": "écran « connaissances »",
+          "ok": true,
+          "ms": 1474,
+          "details": ""
+        },
+        {
+          "nom": "écran « journaux »",
+          "ok": true,
+          "ms": 1495,
+          "details": ""
+        },
+        {
+          "nom": "écran « compétences »",
+          "ok": true,
+          "ms": 1477,
+          "details": ""
+        },
+        {
+          "nom": "écran « réglages »",
+          "ok": true,
+          "ms": 1458,
+          "details": ""
+        },
+        {
+          "nom": "écran « réglages : modèles »",
+          "ok": true,
+          "ms": 1366,
+          "details": ""
+        },
+        {
+          "nom": "écran « réglages : clés »",
+          "ok": false,
+          "ms": 1473,
+          "details": " | console : error: Failed to load resource: the server responded with a status of 403 (Forbidden)"
+        },
+        {
+          "nom": "écran « réglages : équipe »",
+          "ok": true,
+          "ms": 1754,
+          "details": ""
+        },
+        {
+          "nom": "mobile : ouverture d’un workflow (lecture seule)",
+          "ok": true,
+          "ms": 16881,
+          "details": "2 blocs visibles"
+        },
+        {
+          "nom": "chat public : création, page, bulle /embed.js sur un site tiers",
+          "ok": true,
+          "ms": 1916,
+          "details": "chat /chat/nav-0fe05c et bulle intégrée affichés"
+        },
+        {
+          "nom": "indices de performance de l’accueil",
+          "ok": true,
+          "ms": 2501,
+          "details": "CLS 0, LCP 400 ms"
+        }
+      ]
+    }
+  ],
+  "resume": {
+    "etapes": 87,
+    "ok": 76,
+    "echecs": 11,
+    "nonVerifies": []
+  }
+}

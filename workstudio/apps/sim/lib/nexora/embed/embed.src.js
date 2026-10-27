@@ -75,6 +75,9 @@
       allow: 'microphone; clipboard-write',
     })
     f.style.border = '0'
+    f.addEventListener('load', () => {
+      f.setAttribute('data-nexora-loaded', '1')
+    })
     return f
   }
   const emit = (type) => {
@@ -135,7 +138,7 @@
     button.setAttribute('aria-expanded', String(next))
     emit(next ? 'open' : 'close')
     try {
-      if (iframe?.contentWindow) {
+      if (iframe?.hasAttribute('data-nexora-loaded') && iframe.contentWindow) {
         iframe.contentWindow.postMessage(
           { source: 'nexora-embed', type: next ? 'open' : 'close' },
           origin

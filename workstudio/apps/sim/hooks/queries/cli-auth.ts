@@ -5,7 +5,7 @@ import {
   type ApproveCliAuthBody,
   type ApproveCliAuthResult,
   approveCliAuthContract,
-} from '@/lib/api/contracts'
+} from '@/lib/api/contracts/cli-auth'
 
 const logger = createLogger('CliAuthQuery')
 

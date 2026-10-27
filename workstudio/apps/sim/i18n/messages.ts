@@ -170,3 +170,38 @@ export const WORKSPACE_ONLY_NAMESPACES = ['blocks'] as const
 export function pageMessages(messages: AbstractIntlMessages): AbstractIntlMessages {
   return omit(messages, [...WORKSPACE_ONLY_NAMESPACES])
 }
+
+/**
+ * What the sign-in pages and the public chat read, as paths into the messages (a namespace, or one
+ * section of it). Whole namespaces for `common`, `errors`, `auth` and `interfaces`; the root layout's
+ * unsaved-changes dialog and the status-page link read one section each of `settings` and `shell`.
+ * `i18n/messages.test.ts` fails when a module those pages load reads anything else.
+ */
+export const LITE_MESSAGE_PATHS = [
+  'common',
+  'errors',
+  'auth',
+  'interfaces',
+  'settings.unsavedGuard',
+  'shell.statusPage',
+  'shell.generatedPassword',
+] as const
+
+/** The messages for the pages that read little copy: about a tenth of every namespace. */
+export function liteMessages(messages: AbstractIntlMessages): AbstractIntlMessages {
+  const lite: Record<string, AbstractIntlMessages[string]> = {}
+  for (const entry of LITE_MESSAGE_PATHS) {
+    const [namespace, section] = entry.split('.')
+    const source = messages[namespace as string]
+    if (!source) continue
+    if (!section) {
+      lite[namespace as string] = source
+      continue
+    }
+    const picked = (source as AbstractIntlMessages)[section]
+    if (picked === undefined) continue
+    const current = (lite[namespace as string] as AbstractIntlMessages | undefined) ?? {}
+    lite[namespace as string] = { ...current, [section]: picked }
+  }
+  return lite
+}

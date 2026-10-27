@@ -1,6 +1,6 @@
 # Nexora
 
-**Nexora** construit une suite d'IA souveraine pour les PME françaises : construire, lancer et suivre des agents et des automatisations, sans coder, sur des modèles que vous maîtrisez.
+**Nexora AI** construit une suite d'IA souveraine pour les PME françaises : construire, lancer et suivre des agents et des automatisations, sans coder, sur des modèles que vous maîtrisez.
 
 Ce dépôt contient la plateforme complète :
 
@@ -64,7 +64,7 @@ Ce test de fumée crée un compte jetable et vérifie l'interface, les modèles 
 
 ## Licences et provenance
 
-Nexora s'appuie sur des logiciels libres, modifiés et rebaptisés :
+Nexora AI s'appuie sur des logiciels libres, modifiés et rebaptisés :
 
 - **WorkStudio** vient de **Sim** (Apache-2.0). Le dossier propriétaire `apps/sim/ee/` de Sim n'est **pas** inclus : il est remplacé par des modules écrits en salle blanche, vérifiés par `scripts/check-no-ee.sh`.
 - **Nexora API** vient d'**OpenGateLLM** (MIT).

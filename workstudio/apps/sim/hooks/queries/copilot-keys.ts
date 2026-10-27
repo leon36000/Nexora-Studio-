@@ -7,7 +7,7 @@ import {
   type GenerateCopilotApiKeyResult,
   generateCopilotApiKeyContract,
   listCopilotApiKeysContract,
-} from '@/lib/api/contracts'
+} from '@/lib/api/contracts/copilot'
 import { useDeploymentShape } from '@/lib/core/config/deployment-shape'
 
 const logger = createLogger('CopilotKeysQuery')

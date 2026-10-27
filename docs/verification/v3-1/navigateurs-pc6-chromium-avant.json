@@ -1,0 +1,552 @@
+{
+  "url": "http://localhost:3200",
+  "date": "2026-10-27T21:46:22.432Z",
+  "runs": [
+    {
+      "navigateur": "chromium",
+      "profil": "bureau",
+      "mac": false,
+      "label": "chromium · bureau",
+      "etapes": [
+        {
+          "nom": "page publique « connexion »",
+          "ok": true,
+          "ms": 1623,
+          "details": "polices : season"
+        },
+        {
+          "nom": "page publique « inscription »",
+          "ok": true,
+          "ms": 862,
+          "details": "polices : season"
+        },
+        {
+          "nom": "page publique « mot de passe oublié »",
+          "ok": true,
+          "ms": 1104,
+          "details": "polices : season"
+        },
+        {
+          "nom": "connexion par le formulaire",
+          "ok": true,
+          "ms": 3415,
+          "details": "espace b080d514"
+        },
+        {
+          "nom": "écran « accueil »",
+          "ok": true,
+          "ms": 2933,
+          "details": ""
+        },
+        {
+          "nom": "écran « assistant »",
+          "ok": true,
+          "ms": 2516,
+          "details": ""
+        },
+        {
+          "nom": "écran « playground »",
+          "ok": true,
+          "ms": 2385,
+          "details": ""
+        },
+        {
+          "nom": "écran « agents »",
+          "ok": true,
+          "ms": 2642,
+          "details": ""
+        },
+        {
+          "nom": "écran « prompts »",
+          "ok": true,
+          "ms": 2373,
+          "details": ""
+        },
+        {
+          "nom": "écran « connecteurs »",
+          "ok": true,
+          "ms": 2887,
+          "details": ""
+        },
+        {
+          "nom": "écran « développeurs »",
+          "ok": true,
+          "ms": 2621,
+          "details": ""
+        },
+        {
+          "nom": "écran « traces »",
+          "ok": true,
+          "ms": 2131,
+          "details": ""
+        },
+        {
+          "nom": "écran « évaluations »",
+          "ok": true,
+          "ms": 2403,
+          "details": ""
+        },
+        {
+          "nom": "écran « lots »",
+          "ok": true,
+          "ms": 2433,
+          "details": ""
+        },
+        {
+          "nom": "écran « intégrations »",
+          "ok": true,
+          "ms": 2028,
+          "details": ""
+        },
+        {
+          "nom": "écran « tables »",
+          "ok": true,
+          "ms": 1819,
+          "details": ""
+        },
+        {
+          "nom": "écran « fichiers »",
+          "ok": true,
+          "ms": 1870,
+          "details": ""
+        },
+        {
+          "nom": "écran « connaissances »",
+          "ok": true,
+          "ms": 1821,
+          "details": ""
+        },
+        {
+          "nom": "écran « journaux »",
+          "ok": true,
+          "ms": 2979,
+          "details": ""
+        },
+        {
+          "nom": "écran « compétences »",
+          "ok": true,
+          "ms": 2668,
+          "details": ""
+        },
+        {
+          "nom": "écran « réglages »",
+          "ok": true,
+          "ms": 2345,
+          "details": ""
+        },
+        {
+          "nom": "écran « réglages : modèles »",
+          "ok": true,
+          "ms": 2390,
+          "details": ""
+        },
+        {
+          "nom": "écran « réglages : clés »",
+          "ok": true,
+          "ms": 2164,
+          "details": ""
+        },
+        {
+          "nom": "écran « réglages : équipe »",
+          "ok": true,
+          "ms": 2263,
+          "details": ""
+        },
+        {
+          "nom": "éditeur : ouverture du canevas",
+          "ok": true,
+          "ms": 3806,
+          "details": "2 blocs"
+        },
+        {
+          "nom": "éditeur : glisser-déposer d’un bloc depuis la barre d’outils",
+          "ok": true,
+          "ms": 1500,
+          "details": "2 → 3"
+        },
+        {
+          "nom": "éditeur : annuler (Control+Z) puis rétablir (Control+Maj+Z)",
+          "ok": false,
+          "ms": 30083,
+          "details": "locator.click: Timeout 30000ms exceeded."
+        },
+        {
+          "nom": "raccourci de recherche (Control+K)",
+          "ok": true,
+          "ms": 3276,
+          "details": "Control+K ouvre la recherche, Meta+K non"
+        },
+        {
+          "nom": "chat public : création, page, bulle /embed.js sur un site tiers",
+          "ok": true,
+          "ms": 2540,
+          "details": "chat /chat/nav-c6a0b1 et bulle intégrée affichés"
+        },
+        {
+          "nom": "indices de performance de l’accueil",
+          "ok": true,
+          "ms": 3402,
+          "details": "CLS 0.067, LCP 512 ms"
+        }
+      ]
+    },
+    {
+      "navigateur": "chromium",
+      "profil": "bureau",
+      "mac": true,
+      "label": "chromium · bureau · plateforme Mac",
+      "etapes": [
+        {
+          "nom": "page publique « connexion »",
+          "ok": true,
+          "ms": 1289,
+          "details": "polices : season"
+        },
+        {
+          "nom": "page publique « inscription »",
+          "ok": true,
+          "ms": 892,
+          "details": "polices : season"
+        },
+        {
+          "nom": "page publique « mot de passe oublié »",
+          "ok": true,
+          "ms": 1170,
+          "details": "polices : season"
+        },
+        {
+          "nom": "connexion par le formulaire",
+          "ok": true,
+          "ms": 3767,
+          "details": "espace b080d514"
+        },
+        {
+          "nom": "écran « accueil »",
+          "ok": true,
+          "ms": 3611,
+          "details": ""
+        },
+        {
+          "nom": "écran « assistant »",
+          "ok": true,
+          "ms": 2543,
+          "details": ""
+        },
+        {
+          "nom": "écran « playground »",
+          "ok": true,
+          "ms": 2578,
+          "details": ""
+        },
+        {
+          "nom": "écran « agents »",
+          "ok": true,
+          "ms": 2655,
+          "details": ""
+        },
+        {
+          "nom": "écran « prompts »",
+          "ok": true,
+          "ms": 2514,
+          "details": ""
+        },
+        {
+          "nom": "écran « connecteurs »",
+          "ok": true,
+          "ms": 2900,
+          "details": ""
+        },
+        {
+          "nom": "écran « développeurs »",
+          "ok": true,
+          "ms": 1844,
+          "details": ""
+        },
+        {
+          "nom": "écran « traces »",
+          "ok": true,
+          "ms": 2760,
+          "details": ""
+        },
+        {
+          "nom": "écran « évaluations »",
+          "ok": true,
+          "ms": 2804,
+          "details": ""
+        },
+        {
+          "nom": "écran « lots »",
+          "ok": true,
+          "ms": 3019,
+          "details": ""
+        },
+        {
+          "nom": "écran « intégrations »",
+          "ok": true,
+          "ms": 3030,
+          "details": ""
+        },
+        {
+          "nom": "écran « tables »",
+          "ok": true,
+          "ms": 2804,
+          "details": ""
+        },
+        {
+          "nom": "écran « fichiers »",
+          "ok": true,
+          "ms": 2529,
+          "details": ""
+        },
+        {
+          "nom": "écran « connaissances »",
+          "ok": true,
+          "ms": 2367,
+          "details": ""
+        },
+        {
+          "nom": "écran « journaux »",
+          "ok": true,
+          "ms": 2553,
+          "details": ""
+        },
+        {
+          "nom": "écran « compétences »",
+          "ok": true,
+          "ms": 2368,
+          "details": ""
+        },
+        {
+          "nom": "écran « réglages »",
+          "ok": true,
+          "ms": 2290,
+          "details": ""
+        },
+        {
+          "nom": "écran « réglages : modèles »",
+          "ok": true,
+          "ms": 2030,
+          "details": ""
+        },
+        {
+          "nom": "écran « réglages : clés »",
+          "ok": true,
+          "ms": 2505,
+          "details": ""
+        },
+        {
+          "nom": "écran « réglages : équipe »",
+          "ok": true,
+          "ms": 2359,
+          "details": ""
+        },
+        {
+          "nom": "éditeur : ouverture du canevas",
+          "ok": true,
+          "ms": 4405,
+          "details": "3 blocs"
+        },
+        {
+          "nom": "éditeur : glisser-déposer d’un bloc depuis la barre d’outils",
+          "ok": true,
+          "ms": 1517,
+          "details": "3 → 4"
+        },
+        {
+          "nom": "éditeur : annuler (Meta+Z) puis rétablir (Meta+Maj+Z)",
+          "ok": false,
+          "ms": 30047,
+          "details": "locator.click: Timeout 30000ms exceeded."
+        },
+        {
+          "nom": "raccourci de recherche (Meta+K)",
+          "ok": true,
+          "ms": 2267,
+          "details": "Meta+K ouvre la recherche, Control+K non"
+        },
+        {
+          "nom": "chat public : création, page, bulle /embed.js sur un site tiers",
+          "ok": true,
+          "ms": 1820,
+          "details": "chat /chat/nav-1d08e5 et bulle intégrée affichés"
+        },
+        {
+          "nom": "indices de performance de l’accueil",
+          "ok": true,
+          "ms": 2113,
+          "details": "CLS 0.049, LCP 564 ms"
+        }
+      ]
+    },
+    {
+      "navigateur": "chromium",
+      "profil": "mobile",
+      "mac": false,
+      "label": "chromium · mobile",
+      "etapes": [
+        {
+          "nom": "page publique « connexion »",
+          "ok": true,
+          "ms": 916,
+          "details": "polices : season"
+        },
+        {
+          "nom": "page publique « inscription »",
+          "ok": true,
+          "ms": 689,
+          "details": "polices : season"
+        },
+        {
+          "nom": "page publique « mot de passe oublié »",
+          "ok": true,
+          "ms": 693,
+          "details": "polices : season"
+        },
+        {
+          "nom": "connexion par le formulaire",
+          "ok": true,
+          "ms": 2126,
+          "details": "espace b080d514"
+        },
+        {
+          "nom": "écran « accueil »",
+          "ok": true,
+          "ms": 1606,
+          "details": ""
+        },
+        {
+          "nom": "écran « assistant »",
+          "ok": true,
+          "ms": 1532,
+          "details": ""
+        },
+        {
+          "nom": "écran « playground »",
+          "ok": true,
+          "ms": 1540,
+          "details": ""
+        },
+        {
+          "nom": "écran « agents »",
+          "ok": true,
+          "ms": 1524,
+          "details": ""
+        },
+        {
+          "nom": "écran « prompts »",
+          "ok": true,
+          "ms": 1495,
+          "details": ""
+        },
+        {
+          "nom": "écran « connecteurs »",
+          "ok": true,
+          "ms": 1481,
+          "details": ""
+        },
+        {
+          "nom": "écran « développeurs »",
+          "ok": true,
+          "ms": 1557,
+          "details": ""
+        },
+        {
+          "nom": "écran « traces »",
+          "ok": true,
+          "ms": 1476,
+          "details": ""
+        },
+        {
+          "nom": "écran « évaluations »",
+          "ok": true,
+          "ms": 1539,
+          "details": ""
+        },
+        {
+          "nom": "écran « lots »",
+          "ok": true,
+          "ms": 1488,
+          "details": ""
+        },
+        {
+          "nom": "écran « intégrations »",
+          "ok": true,
+          "ms": 1750,
+          "details": ""
+        },
+        {
+          "nom": "écran « tables »",
+          "ok": true,
+          "ms": 1498,
+          "details": ""
+        },
+        {
+          "nom": "écran « fichiers »",
+          "ok": true,
+          "ms": 1532,
+          "details": ""
+        },
+        {
+          "nom": "écran « connaissances »",
+          "ok": true,
+          "ms": 1517,
+          "details": ""
+        },
+        {
+          "nom": "écran « journaux »",
+          "ok": true,
+          "ms": 1569,
+          "details": ""
+        },
+        {
+          "nom": "écran « compétences »",
+          "ok": true,
+          "ms": 1551,
+          "details": ""
+        },
+        {
+          "nom": "écran « réglages »",
+          "ok": true,
+          "ms": 1601,
+          "details": ""
+        },
+        {
+          "nom": "écran « réglages : modèles »",
+          "ok": true,
+          "ms": 1499,
+          "details": ""
+        },
+        {
+          "nom": "écran « réglages : clés »",
+          "ok": true,
+          "ms": 1566,
+          "details": ""
+        },
+        {
+          "nom": "écran « réglages : équipe »",
+          "ok": true,
+          "ms": 1504,
+          "details": ""
+        },
+        {
+          "nom": "chat public : création, page, bulle /embed.js sur un site tiers",
+          "ok": true,
+          "ms": 1772,
+          "details": "chat /chat/nav-894f07 et bulle intégrée affichés"
+        },
+        {
+          "nom": "indices de performance de l’accueil",
+          "ok": true,
+          "ms": 1965,
+          "details": "CLS 0, LCP 524 ms"
+        }
+      ]
+    }
+  ],
+  "resume": {
+    "etapes": 86,
+    "ok": 84,
+    "echecs": 2,
+    "nonVerifies": []
+  }
+}

@@ -10,7 +10,7 @@ import {
   restoreFolderContract,
   type ServedFolderResourceType,
   updateFolderContract,
-} from '@/lib/api/contracts'
+} from '@/lib/api/contracts/folders'
 import { getFolderMap } from '@/hooks/queries/utils/folder-cache'
 import {
   FOLDER_LIST_STALE_TIME,

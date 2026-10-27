@@ -12,7 +12,9 @@ mkdir -p "$work"
 report="${1:-$work/fumee.json}"
 shift || true
 
-secrets_file="$root/scripts/dev/.secrets"
+# Les fichiers ignorés (secrets, deploy/.env) vivent dans le dépôt principal : NEXORA_SECRETS_ROOT les désigne depuis un arbre de travail.
+secrets_root="${NEXORA_SECRETS_ROOT:-$root}"
+secrets_file="$secrets_root/scripts/dev/.secrets"
 [[ -f "$secrets_file" ]] || { echo "absent : $secrets_file" >&2; exit 1; }
 NEXORA_SMOKE_ADMIN_EMAIL="$(grep -E '^SMOKE_ADMIN_EMAIL=' "$secrets_file" | cut -d= -f2-)"
 NEXORA_SMOKE_ADMIN_PASSWORD="$(grep -E '^SMOKE_ADMIN_PASSWORD=' "$secrets_file" | cut -d= -f2-)"
@@ -30,9 +32,9 @@ export NEXORA_SMOKE_SMTP_HOST=nexora-verif-mailpit NEXORA_SMOKE_SMTP_PORT=1025 \
   NEXORA_SMOKE_AUDIO="$audio" NEXORA_SMOKE_AUDIO_TEXT=livraison NEXORA_SMOKE_WEB_SEARCH=1 NEXORA_SMOKE_COLLECTOR_HOST=172.17.0.1
 
 # « Confirmation » checks Nexora Connect's own run log (admin token and published port of the stack).
-export NEXORA_SMOKE_CONNECT_URL="http://127.0.0.1:$(grep -E '^NEXORA_CONNECT_PORT=' "$root/deploy/.env" | cut -d= -f2-)"
-NEXORA_SMOKE_CONNECT_TOKEN="$(grep -E '^NEXORA_CONNECT_ADMIN_TOKEN=' "$root/deploy/.env" | cut -d= -f2-)"
+export NEXORA_SMOKE_CONNECT_URL="http://127.0.0.1:$(grep -E '^NEXORA_CONNECT_PORT=' "$secrets_root/deploy/.env" | cut -d= -f2-)"
+NEXORA_SMOKE_CONNECT_TOKEN="$(grep -E '^NEXORA_CONNECT_ADMIN_TOKEN=' "$secrets_root/deploy/.env" | cut -d= -f2-)"
 export NEXORA_SMOKE_CONNECT_TOKEN
 
-origin="$(grep -E '^NEXORA_PUBLIC_URL=' "$root/deploy/.env" | cut -d= -f2-)"
+origin="$(grep -E '^NEXORA_PUBLIC_URL=' "$secrets_root/deploy/.env" | cut -d= -f2-)"
 exec python3 -I "$root/scripts/smoke.py" --url http://127.0.0.1:3200 --origin "$origin" --report "$report" "$@"
