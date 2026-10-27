@@ -37,6 +37,14 @@ TERMS = [
     ("Etalab", re.compile(r"\b[Ee]talab\b|\bAlbert API\b|\bDINUM\b")),
     ("OpenGateLLM", re.compile(r"opengatellm", re.I)),
 ]
+# L'entreprise s'appelle « Nexora AI » ; « Nexora » seul désigne la suite (WorkStudio, API, Connect). Ces phrases
+# nomment l'entreprise : elles doivent dire « Nexora AI ».
+COMPANY_FILES = ["README.md", "NOTICE", "THIRD_PARTY_NOTICES.md", "install.sh", "docs/guide"]
+COMPANY_PHRASES = re.compile(
+    r"\bNexora\*{0,2} (?:construit|développe|fournit|propose|publie|édite|s’appuie|s\'appuie|SAS|Inc\b|Labs|SARL)"
+    r"|(?:modifiés|ajoutées?|écrits?|édité|développé|publié)s? par Nexora(?! AI)"
+    r"|(?:équipe|société|entreprise) Nexora(?! AI)"
+)
 COMMENT_LINE = re.compile(r"^\s*(//|/\*|\*|#(?!!)|<!--)")
 
 
@@ -98,6 +106,17 @@ def main() -> int:
                     if term.search(line):
                         hits.append(f"{rel}:{number}: [{label}] {line.strip()[:160]}")
                         break
+
+    for target in COMPANY_FILES:
+        base = root / target
+        company_files = sorted(base.rglob("*.md")) if base.is_dir() else [base]
+        for path in company_files:
+            if not path.is_file():
+                continue
+            files += 1
+            for number, line in enumerate(path.read_text(encoding="utf-8").splitlines(), 1):
+                if COMPANY_PHRASES.search(line):
+                    hits.append(f"{path.relative_to(root).as_posix()}:{number}: [Nexora AI] {line.strip()[:160]}")
 
     for hit in hits:
         print(hit)

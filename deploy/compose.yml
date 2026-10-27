@@ -266,6 +266,10 @@ services:
       ALLOWED_LOGIN_DOMAINS: ${NEXORA_ALLOWED_EMAIL_DOMAINS:-}
       DISABLE_REGISTRATION: ${NEXORA_REGISTRATION_DISABLED:-false}
       EMAIL_VERIFICATION_ENABLED: ${NEXORA_EMAIL_VERIFICATION:-false}
+      # Pages légales et adresse de contact de l'exploitant, affichées sous les formulaires de connexion, sur les chats publics et dans les e-mails (rien n'est affiché si elles restent vides).
+      NEXT_PUBLIC_TERMS_URL: ${NEXORA_TERMS_URL:-}
+      NEXT_PUBLIC_SUPPORT_EMAIL: ${NEXORA_SUPPORT_EMAIL:-}
+      NEXT_PUBLIC_PRIVACY_URL: ${NEXORA_PRIVACY_URL:-}
       # Optional single sign-on (OIDC) and outgoing email.
       NEXT_PUBLIC_NEXORA_OIDC_NAME: ${NEXORA_OIDC_NAME:-}
       NEXORA_OIDC_ISSUER: ${NEXORA_OIDC_ISSUER:-}

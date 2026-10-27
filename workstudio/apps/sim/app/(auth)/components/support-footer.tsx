@@ -20,6 +20,7 @@ export interface SupportFooterProps {
 export function SupportFooter({ position = 'fixed' }: SupportFooterProps) {
   const brandConfig = useBrandConfig()
   const t = useTranslations('auth.supportFooter')
+  if (!brandConfig.supportEmail) return null
 
   return (
     <div

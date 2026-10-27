@@ -4,6 +4,8 @@ import { getBrandConfig } from '@/ee/whitelabeling'
 export async function GET() {
   const baseUrl = getBaseUrl()
   const { supportEmail } = getBrandConfig()
+  // Without a contact address there is nothing valid to publish (RFC 9116 requires a Contact field).
+  if (!supportEmail) return new Response('Not found', { status: 404 })
 
   const expiresDate = new Date()
   expiresDate.setFullYear(expiresDate.getFullYear() + 1)

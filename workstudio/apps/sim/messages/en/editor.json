@@ -229,6 +229,7 @@
     "hideControls": "Hide canvas controls"
   },
   "workflowBlock": {
+    "defaultModel": "Default model",
     "sunset": {
       "legacyBlock": "This is a legacy block. Click to upgrade",
       "deprecatedBlock": "This block is no longer supported. Click to replace",

@@ -42,7 +42,14 @@ const MAC_UA =
   'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/18.0 Safari/605.1.15'
 
 /** Bruit sans conséquence : une navigation annule les requêtes en cours (préchargements RSC, flux). */
-const IGNORED_CONSOLE = [/ERR_ABORTED/, /net::ERR_FAILED.*_rsc/, /Download the React DevTools/, /favicon/i]
+const IGNORED_CONSOLE = [
+  // Safari ne connaît pas `interactive-widget` (méta viewport de Next) et le signale en erreur : sans effet sur la page.
+  /Viewport argument key "interactive-widget" not recognized/,
+  /ERR_ABORTED/,
+  /net::ERR_FAILED.*_rsc/,
+  /Download the React DevTools/,
+  /favicon/i,
+]
 
 const SCREENS = [
   ['accueil', 'home'],
@@ -195,7 +202,7 @@ for (const browserName of wanted) {
         await page.fill('input[type=password]', password)
         await page.keyboard.press('Enter')
         // Plusieurs redirections s'enchaînent après la connexion (/home → /workspace → /workspace/<id>) : on attend l'adresse finale.
-        await page.waitForFunction(() => /\/workspace\/[0-9a-f-]{36}/.test(location.href), null, { timeout: 45000 })
+        await page.waitForFunction(() => /\/workspace\/[0-9a-f-]{36}\/(home|w\/)/.test(location.href), null, { timeout: 45000 })
         workspaceId = page.url().match(/workspace\/([0-9a-f-]{36})/)[1]
         await page.waitForLoadState('networkidle', { timeout: 20000 }).catch(() => {})
         await shot('accueil')

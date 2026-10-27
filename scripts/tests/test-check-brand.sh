@@ -19,4 +19,8 @@ d="$(tree)"; echo "<p>Sim</p>" > "$d/workstudio/apps/sim/app/a.test.tsx"; expect
 d="$(tree)"; mkdir -p "$d/workstudio/apps/sim/app/(landing)"; echo "<p>Sim</p>" > "$d/workstudio/apps/sim/app/(landing)/p.tsx"; echo "workstudio/apps/sim/app/(landing)  # blocked" > "$d/scripts/data/brand-allowlist.txt"; expect 0 "allowlisted prefix passes" run "$d"
 d="$(tree)"; echo "const ua = 'Sim/1.0'" > "$d/workstudio/apps/sim/app/a.ts"; echo "line: ^const ua  # test pattern" > "$d/scripts/data/brand-allowlist.txt"; expect 0 "allowlisted line pattern passes" run "$d"
 d="$(tree)"; echo "export const SIMULATION = 'Simple'" > "$d/workstudio/apps/sim/app/a.ts"; expect 0 "words containing Sim pass" run "$d"
+d="$(tree)"; echo "Nexora construit une suite d'IA." > "$d/README.md"; expect 1 "company named Nexora instead of Nexora AI fails" run "$d"
+d="$(tree)"; echo "Nexora AI construit une suite d'IA ; Nexora WorkStudio en est l'application." > "$d/README.md"; expect 0 "company named Nexora AI passes" run "$d"
+d="$(tree)"; echo "Ce dépôt contient des logiciels de tiers, modifiés par Nexora." > "$d/NOTICE"; expect 1 "NOTICE naming Nexora as the company fails" run "$d"
+d="$(tree)"; mkdir -p "$d/docs/guide"; echo "Nexora SAS vous accompagne." > "$d/docs/guide/a.md"; expect 1 "a legal form attached to the bare name fails" run "$d"
 [ "$fails" -eq 0 ] && echo "all passed" || { echo "$fails failed"; exit 1; }

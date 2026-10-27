@@ -13,7 +13,7 @@ const NEXORA_BRAND_DEFAULTS: BrandConfig = Object.freeze({
   wordmarkUrl: undefined,
   faviconUrl: undefined,
   customCssUrl: undefined,
-  supportEmail: 'support@example.com',
+  supportEmail: undefined,
   documentationUrl: undefined,
   termsUrl: undefined,
   privacyUrl: undefined,
@@ -26,6 +26,9 @@ const NEXORA_BRAND_DEFAULTS: BrandConfig = Object.freeze({
   }),
   isWhitelabeled: true,
 }) as BrandConfig
+
+/** The company behind the product; the product itself is the brand name. */
+const COMPANY_NAME = 'Nexora AI'
 
 function read(name: string): string | undefined {
   const value = getEnv(name)
@@ -98,6 +101,9 @@ export function generateBrandedMetadata(overrides: Partial<Metadata> = {}): Meta
     title: { default: brand.name, template: `%s | ${brand.name}` },
     description: `${brand.name} : créez, déployez et pilotez vos agents et automatisations IA.`,
     applicationName: brand.name,
+    authors: [{ name: COMPANY_NAME }],
+    creator: COMPANY_NAME,
+    publisher: COMPANY_NAME,
     ...(brand.faviconUrl ? { icons: { icon: brand.faviconUrl } } : {}),
     ...overrides,
   }
