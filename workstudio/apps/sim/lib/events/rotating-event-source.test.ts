@@ -175,6 +175,43 @@ describe('createRotatingEventSource', () => {
       connection.close()
     })
 
+    it('closes its sources as the page starts to unload, and reopens them if the page stays', () => {
+      vi.useFakeTimers()
+      const reasons: EventSourceOpenReason[] = []
+      const connection = createRotatingEventSource({
+        url: '/api/events',
+        events: {},
+        onOpen: (reason) => reasons.push(reason),
+      })
+      const first = MockEventSource.instances[0]
+      first.open()
+
+      page.dispatchEvent(new Event('beforeunload'))
+      expect(first.readyState).toBe(MockEventSource.CLOSED)
+
+      // The navigation was cancelled (an « unsaved changes » prompt): the page is still here.
+      vi.advanceTimersByTime(3000)
+      expect(MockEventSource.instances).toHaveLength(2)
+      MockEventSource.instances[1].open()
+      expect(reasons).toEqual(['initial', 'reconnect'])
+      connection.close()
+    })
+
+    it('stays closed when the page really is left after beforeunload', () => {
+      vi.useFakeTimers()
+      const connection = createRotatingEventSource({ url: '/api/events', events: {} })
+      MockEventSource.instances[0].open()
+
+      page.dispatchEvent(new Event('beforeunload'))
+      const pagehide = new Event('pagehide') as Event & { persisted: boolean }
+      pagehide.persisted = false
+      page.dispatchEvent(pagehide)
+      vi.advanceTimersByTime(10_000)
+
+      expect(MockEventSource.instances).toHaveLength(1)
+      connection.close()
+    })
+
     it('keeps its sources when the page goes into the back/forward cache', () => {
       const connection = createRotatingEventSource({ url: '/api/events', events: {} })
       const first = MockEventSource.instances[0]

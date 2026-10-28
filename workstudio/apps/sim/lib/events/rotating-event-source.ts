@@ -11,6 +11,9 @@ export interface RotatingEventSourceConnection {
   close(): void
 }
 
+/** How long after a `beforeunload` the page is considered to have stayed (the navigation was cancelled). */
+const RESUME_AFTER_CANCELLED_UNLOAD_MS = 2000
+
 interface SourceState {
   opened: boolean
   erroredBeforeOpen: boolean
@@ -30,9 +33,9 @@ export function createRotatingEventSource(
   let replacement: EventSource | null = null
   let closed = false
 
-  const openSource = (isReplacement: boolean): EventSource => {
+  const openSource = (isReplacement: boolean, resumed = false): EventSource => {
     const source = new EventSource(options.url)
-    const state: SourceState = { opened: false, erroredBeforeOpen: false }
+    const state: SourceState = { opened: false, erroredBeforeOpen: resumed }
     states.set(source, state)
     sources.add(source)
 
@@ -96,29 +99,51 @@ export function createRotatingEventSource(
 
   current = openSource(false)
 
+  let resumeTimer: ReturnType<typeof setTimeout> | null = null
+
+  const closeSources = () => {
+    for (const source of sources) source.close()
+    sources.clear()
+    current = null
+    replacement = null
+  }
+
   /**
    * Leaving the page with a stream still connected makes Firefox write « The connection to … was
    * interrupted while the page was loading » to the console (the site's own console, on every reload
-   * or navigation). Closing the sources ourselves first is silent. A page entering the back/forward
-   * cache (`persisted`) keeps its streams: the browser restores them as they were.
+   * or navigation), because it cuts the connection before `pagehide`. So the sources are closed as the
+   * navigation starts (`beforeunload`). A cancelled navigation (an « unsaved changes » prompt) leaves the
+   * page alive: the stream comes back shortly after, reported as a reconnection so that listeners
+   * refresh what they missed. A page entering the back/forward cache (`persisted`) keeps its streams.
    */
+  const onBeforeUnload = () => {
+    if (closed || resumeTimer) return
+    closeSources()
+    resumeTimer = setTimeout(() => {
+      resumeTimer = null
+      if (!closed) current = openSource(false, true)
+    }, RESUME_AFTER_CANCELLED_UNLOAD_MS)
+  }
   const onPageHide = (event: Event) => {
     if ((event as PageTransitionEvent).persisted) return
     connection.close()
   }
-  if (typeof window !== 'undefined') window.addEventListener('pagehide', onPageHide)
+  if (typeof window !== 'undefined') {
+    window.addEventListener('beforeunload', onBeforeUnload)
+    window.addEventListener('pagehide', onPageHide)
+  }
 
   const connection: RotatingEventSourceConnection = {
     close() {
       if (closed) return
       closed = true
-      if (typeof window !== 'undefined') window.removeEventListener('pagehide', onPageHide)
-      for (const source of sources) {
-        source.close()
+      if (resumeTimer) clearTimeout(resumeTimer)
+      resumeTimer = null
+      if (typeof window !== 'undefined') {
+        window.removeEventListener('beforeunload', onBeforeUnload)
+        window.removeEventListener('pagehide', onPageHide)
       }
-      sources.clear()
-      current = null
-      replacement = null
+      closeSources()
     },
   }
   return connection

@@ -1,28 +1,9 @@
+import * as dbModule from '@sim/db'
+import { dbChainMockFns } from '@sim/testing/mocks/database.mock'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
+import { lockWorkspaceToken } from '@/lib/nexora/connect'
 
 const { events } = vi.hoisted(() => ({ events: [] as string[] }))
-
-vi.mock('@sim/db', () => ({
-  db: {
-    transaction: vi.fn(async (callback: (tx: object) => Promise<unknown>) => {
-      events.push('transaction:start')
-      try {
-        return await callback({})
-      } finally {
-        events.push('transaction:end')
-      }
-    }),
-  },
-  // The real helper runs `fn` outside the transaction's ambient context.
-  runOutsideTransactionContext: vi.fn(<T>(fn: () => T): T => {
-    events.push('outside:start')
-    try {
-      return fn()
-    } finally {
-      events.push('outside:end')
-    }
-  }),
-}))
 
 vi.mock('@/lib/db/advisory-locks', () => ({
   acquireAdvisoryXactLock: vi.fn(async () => {
@@ -31,11 +12,26 @@ vi.mock('@/lib/db/advisory-locks', () => ({
   withLockTimeout: vi.fn(async (_tx: object, _ms: number, fn: () => Promise<void>) => fn()),
 }))
 
-import { lockWorkspaceToken } from '@/lib/nexora/connect'
-
 describe('lockWorkspaceToken', () => {
   beforeEach(() => {
     events.length = 0
+    dbChainMockFns.transaction.mockImplementation(async (callback: (tx: object) => unknown) => {
+      events.push('transaction:start')
+      try {
+        return await callback({})
+      } finally {
+        events.push('transaction:end')
+      }
+    })
+    // The real helper runs `fn` outside the transaction's ambient context.
+    vi.spyOn(dbModule, 'runOutsideTransactionContext').mockImplementation(<T>(fn: () => T): T => {
+      events.push('outside:start')
+      try {
+        return fn()
+      } finally {
+        events.push('outside:end')
+      }
+    })
   })
 
   it('holds the advisory lock while the work runs on the shared pool, outside the lock transaction', async () => {
