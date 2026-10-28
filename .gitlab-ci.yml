@@ -13,9 +13,10 @@ workflow:
     - if: $CI_COMMIT_BRANCH
 
 variables:
-  # Semgrep et SonarQube sont tués à la limite de 2 Go du pod sur ce dépôt (OOMKilled).
+  # Semgrep et SonarQube sont tués à la limite de 2 Go du pod sur ce dépôt (OOMKilled) ; le runner de pc4 accepte
+  # jusqu'à 6 Go par job.
   KUBERNETES_MEMORY_REQUEST: "4Gi"
-  KUBERNETES_MEMORY_LIMIT: "8Gi"
+  KUBERNETES_MEMORY_LIMIT: "6Gi"
 
 # Le réseau de pc4 perd parfois la résolution du CDN de Docker Hub : un échec de préparation du pod est relancé.
 default:
