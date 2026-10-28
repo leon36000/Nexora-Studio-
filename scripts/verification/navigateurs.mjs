@@ -18,7 +18,10 @@ import { fileURLToPath } from 'node:url'
 
 const require = createRequire(import.meta.url)
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../..')
-const { chromium, firefox, webkit, devices } = require(path.join(root, 'workstudio/node_modules/playwright-core'))
+// NEXORA_PLAYWRIGHT_CORE : dossier de playwright-core quand le dépôt n'a pas de node_modules (serveur de vérification x86).
+const { chromium, firefox, webkit, devices } = require(
+  process.env.NEXORA_PLAYWRIGHT_CORE ?? path.join(root, 'workstudio/node_modules/playwright-core')
+)
 
 const argv = process.argv.slice(2)
 const option = (name, fallback) => {
@@ -213,7 +216,12 @@ for (const browserName of wanted) {
         continue
       }
 
+      // Chaque chargement complet d'une page de l'espace réclame un jeton temps réel (POST /api/auth/socket-token :
+      // 30 par minute et par utilisateur, voulu par le produit ; le client attend le Retry-After). Sur un serveur
+      // rapide, un balayage de 20 écrans rechargés en moins de 1,5 s chacun dépasse ce budget et la console voit des
+      // 429 qu'aucun utilisateur réel ne provoque : on espace donc les chargements (≤ 25 par minute).
       for (const [name, route] of SCREENS) {
+        const debutEcran = Date.now()
         await step(`écran « ${name} »`, async () => {
           const response = await page.goto(`${base}/workspace/${workspaceId}/${route}`, { waitUntil: 'load' })
           if (response && response.status() >= 400) throw new Error(`HTTP ${response.status()}`)
@@ -229,6 +237,7 @@ for (const browserName of wanted) {
           if (['accueil', 'réglages'].includes(name)) await shot(name.replace(/\W+/g, '-'))
           return extra > 1 ? `débordement ${extra} px (bureau)` : ''
         })
+        await page.waitForTimeout(Math.max(0, 2400 - (Date.now() - debutEcran)))
       }
 
       if (profile === 'bureau') {

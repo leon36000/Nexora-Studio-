@@ -20,8 +20,14 @@ report="$(realpath -m "${1:-${TMPDIR:-/tmp}/nexora-navigateurs-docker.json}")"
 shift || true
 out="$(dirname "$report")"
 mkdir -p "$out"
+# Sans node_modules dans le dépôt (serveur x86) : NEXORA_PLAYWRIGHT_CORE_DIR = dossier contenant node_modules/playwright-core
+# (installé par `npm install playwright-core@1.61.1` dans le même conteneur), monté en lecture seule.
+core=()
+if [[ -n "${NEXORA_PLAYWRIGHT_CORE_DIR:-}" ]]; then
+  core=(-v "$NEXORA_PLAYWRIGHT_CORE_DIR:/pw:ro" -e NEXORA_PLAYWRIGHT_CORE=/pw/node_modules/playwright-core)
+fi
 docker run --rm --network host --ipc=host --user "$(id -u):$(id -g)" \
-  -v "$root:/work:ro" -v "$out:/out" \
+  -v "$root:/work:ro" -v "$out:/out" "${core[@]}" \
   -e NEXORA_E2E_EMAIL -e NEXORA_E2E_PASSWORD -e NEXORA_E2E_URL="${NEXORA_E2E_URL:-http://localhost:3200}" \
   -e NEXORA_E2E_SHOTS=/out/captures \
   "$image" node /work/scripts/verification/navigateurs.mjs "/out/$(basename "$report")" "$@"
