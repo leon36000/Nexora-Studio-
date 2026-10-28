@@ -1,0 +1,10 @@
+# Surcharge propre à pc1 (vérification x86) : relie la passerelle de modèles et WorkStudio au LiteLLM de pc1, réseau interne seulement. À adapter si le réseau agentos-litellm_backend change.
+services:
+  nexora-api:
+    networks: [default, litellm]
+  workstudio:
+    networks: [default, litellm]
+networks:
+  litellm:
+    external: true
+    name: agentos-litellm_backend
