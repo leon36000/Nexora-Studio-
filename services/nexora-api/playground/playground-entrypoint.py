@@ -20,7 +20,8 @@ OAUTH2_PROXY_ALPHA_CONFIG_PATH = "/playground/oauth2-proxy-alpha.yaml"
 def write_oauth2_proxy_alpha_config(settings) -> None:
     claims = settings.auth_sso_oidc_claims or {}
     acr = claims.get("id_token", {}).get("acr", {})
-    environment = Environment(loader=FileSystemLoader(Path(__file__).parent), undefined=StrictUndefined, trim_blocks=True, lstrip_blocks=True)
+    # The template renders YAML, not HTML: every value goes through `tojson`, and HTML autoescaping would corrupt it.
+    environment = Environment(loader=FileSystemLoader(Path(__file__).parent), undefined=StrictUndefined, trim_blocks=True, lstrip_blocks=True)  # nosec B701
     rendered = environment.get_template("oauth2-proxy-alpha.yaml.j2").render(
         client_id=settings.auth_sso_client_id,
         client_secret=settings.auth_sso_client_secret,

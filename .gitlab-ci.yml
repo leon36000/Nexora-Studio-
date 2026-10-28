@@ -1,0 +1,51 @@
+# Complète la chaîne de sécurité commune de pc4 (root/pc4-ci-securite : gitleaks, Semgrep, Trivy et SonarQube en
+# .pre) par les contrôles propres à ce dépôt. gitleaks lit .gitleaksignore, la liste des alertes déjà examinées.
+# Bloquant ici : une faille critique corrigeable dans les dépendances (Trivy), un problème Bandit grave dans le Python.
+
+stages:
+  - analyse
+
+workflow:
+  rules:
+    - if: $CI_PIPELINE_SOURCE == "merge_request_event"
+    - if: $CI_COMMIT_BRANCH && $CI_OPEN_MERGE_REQUESTS
+      when: never
+    - if: $CI_COMMIT_BRANCH
+
+variables:
+  # Semgrep et SonarQube sont tués à la limite de 2 Go du pod sur ce dépôt (OOMKilled) ; le runner de pc4 accepte
+  # jusqu'à 6 Go par job.
+  KUBERNETES_MEMORY_REQUEST: "4Gi"
+  KUBERNETES_MEMORY_LIMIT: "6Gi"
+
+# Le réseau de pc4 perd parfois la résolution du CDN de Docker Hub : un échec de préparation du pod est relancé.
+default:
+  retry:
+    max: 2
+    when: [runner_system_failure, unknown_failure, stuck_or_timeout_failure, scheduler_failure]
+
+bandit:
+  stage: analyse
+  image: python:3.12-slim
+  script:
+    - pip install --quiet --no-cache-dir bandit==1.9.4
+    - bandit -r services scripts deploy -x '*/tests/*,*/test_*.py' -f json -o bandit.json || true
+    - bandit -r services scripts deploy -x '*/tests/*,*/test_*.py' --severity-level high --confidence-level medium -q
+  artifacts:
+    when: always
+    expire_in: 30 days
+    paths: [bandit.json]
+
+trivy-critique:
+  stage: analyse
+  image:
+    name: aquasec/trivy:0.75.0
+    entrypoint: [""]
+  variables:
+    TRIVY_CACHE_DIR: .trivycache
+    TRIVY_SKIP_DIRS: "**/node_modules,**/.next"
+  cache:
+    key: trivy-db
+    paths: [.trivycache/]
+  script:
+    - trivy fs --scanners vuln --severity CRITICAL --ignore-unfixed --exit-code 1 .
