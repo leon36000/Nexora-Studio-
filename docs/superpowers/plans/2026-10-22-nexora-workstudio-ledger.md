@@ -1,5 +1,7 @@
 # Ledger — Nexora WorkStudio v1
 
+> Note (ménage du 27/10/2026) : les plans par jalon (v1, J1 à J11, K1 à K15), les captures et les rapports de campagne de `docs/verification/`, le rapport de test réel et les anciens codemods cités ci-dessous ont été retirés (exécutés ou remplacés) ; ils restent dans l'historique git (commit `b05d7e07`). Les jeux d'essai de la fumée sont dans `scripts/fixtures/`.
+
 Journal d'exécution du plan `2026-10-22-nexora-workstudio.md`. Chaque entrée indique la date, la tâche, ce qui a été fait, la preuve de vérification et les décisions prises (« rulings »).
 
 ## Décisions (rulings)

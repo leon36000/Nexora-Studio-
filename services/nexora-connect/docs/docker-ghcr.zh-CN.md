@@ -125,4 +125,4 @@ curl http://localhost:3000/health
 镜像会自动构建并推送，因此上面的标签始终保持最新：每次 push 到 `main` 会更新 `tip` 并新增 `<short-sha>`
 标签，每次发布 release 会新增 `latest` 和 release 版本号。每个标签都是为 `linux/amd64` 和 `linux/arm64`
 原生构建的多架构 manifest。构建定义见
-[`.github/workflows/publish-docker.yml`](../.github/workflows/publish-docker.yml)。
+[`.github/workflows/images.yml`](../../../.github/workflows/images.yml)。

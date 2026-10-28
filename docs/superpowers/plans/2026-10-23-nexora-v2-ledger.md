@@ -1,5 +1,7 @@
 # Nexora WorkStudio v2 — ledger
 
+> Note (ménage du 27/10/2026) : les plans par jalon (v1, J1 à J11, K1 à K15), les captures et les rapports de campagne de `docs/verification/`, le rapport de test réel et les anciens codemods cités ci-dessous ont été retirés (exécutés ou remplacés) ; ils restent dans l'historique git (commit `b05d7e07`). Les jeux d'essai de la fumée sont dans `scripts/fixtures/`.
+
 Spec : `docs/superpowers/specs/2026-10-23-nexora-v2-design.md`. Plans : `docs/superpowers/plans/2026-10-23-nexora-v2-*.md`.
 
 ## Décisions (rulings)

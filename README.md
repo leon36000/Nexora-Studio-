@@ -60,7 +60,7 @@ Ce test de fumée crée un compte jetable et vérifie l'interface, les modèles 
 
 - Environnement de développement : `scripts/dev/up.sh` (bases de données jetables), puis `bun run dev` dans `workstudio/apps/sim`.
 - Contrôles du dépôt : `scripts/check-no-ee.sh`, `scripts/check-brand.sh`, `scripts/check-licenses.sh`, `scripts/check-i18n.sh`.
-- Conception et plan : [`docs/superpowers/`](docs/superpowers/).
+- Conception et journaux d'exécution : [`docs/superpowers/`](docs/superpowers/) ; jeux d'essai de la fumée : `scripts/fixtures/`.
 
 ## Licences et provenance
 
