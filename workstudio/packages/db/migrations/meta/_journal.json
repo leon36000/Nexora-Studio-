@@ -3123,6 +3123,20 @@
       "when": 1792917235900,
       "tag": "0451_nexora_assistant_extended",
       "breakpoints": true
+    },
+    {
+      "idx": 452,
+      "version": "7",
+      "when": 1793163803393,
+      "tag": "0452_better_auth_1_7_oauth",
+      "breakpoints": true
+    },
+    {
+      "idx": 453,
+      "version": "7",
+      "when": 1793164717763,
+      "tag": "0453_better_auth_1_7_sso_config",
+      "breakpoints": true
     }
   ]
 }

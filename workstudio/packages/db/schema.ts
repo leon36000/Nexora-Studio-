@@ -5499,8 +5499,18 @@ export const oauthClient = pgTable(
     tokenEndpointAuthMethod: text('token_endpoint_auth_method'),
     grantTypes: text('grant_types').array(),
     responseTypes: text('response_types').array(),
+    /** Legacy: Better Auth 1.7 neither reads nor writes it (`tokenEndpointAuthMethod` 'none' says it); kept for the previous app version. */
     public: boolean('public'),
+    /** Legacy: Better Auth 1.7 replaced it with `applicationType`; kept for the previous app version. */
     type: text('type'),
+    applicationType: text('application_type'),
+    clientDiscoveryId: text('client_discovery_id'),
+    clientCredentialsScopes: text('client_credentials_scopes').array().default(sql`'{}'::text[]`),
+    backchannelLogoutUri: text('backchannel_logout_uri'),
+    backchannelLogoutSessionRequired: boolean('backchannel_logout_session_required'),
+    jwks: text('jwks'),
+    jwksUri: text('jwks_uri'),
+    dpopBoundAccessTokens: boolean('dpop_bound_access_tokens').default(false),
     requirePKCE: boolean('require_pkce'),
     referenceId: text('reference_id'),
     metadata: jsonb('metadata'),
@@ -5509,6 +5519,58 @@ export const oauthClient = pgTable(
     userIdIdx: index('oauth_client_user_id_idx').on(table.userId),
   })
 )
+
+/**
+ * A protected resource (RFC 8707 audience) the provider issues tokens for. Rows are created on
+ * demand for the Nexora MCP server URLs the authorization route has validated.
+ */
+export const oauthResource = pgTable('oauth_resource', {
+  id: text('id').primaryKey(),
+  identifier: text('identifier').notNull().unique(),
+  name: text('name').notNull(),
+  accessTokenTtl: integer('access_token_ttl'),
+  refreshTokenTtl: integer('refresh_token_ttl'),
+  signingAlgorithm: text('signing_algorithm'),
+  signingKeyId: text('signing_key_id'),
+  allowedScopes: text('allowed_scopes').array(),
+  customClaims: jsonb('custom_claims'),
+  dpopBoundAccessTokensRequired: boolean('dpop_bound_access_tokens_required').default(false),
+  disabled: boolean('disabled').default(false),
+  createdAt: timestamp('created_at'),
+  updatedAt: timestamp('updated_at'),
+  policyVersion: integer('policy_version').default(1),
+  metadata: jsonb('metadata'),
+})
+
+/** Links a client to the resources it may request; unused while per-client enforcement is off. */
+export const oauthClientResource = pgTable(
+  'oauth_client_resource',
+  {
+    id: text('id').primaryKey(),
+    clientId: text('client_id')
+      .notNull()
+      .references(() => oauthClient.clientId, { onDelete: 'cascade' }),
+    resourceId: text('resource_id')
+      .notNull()
+      .references(() => oauthResource.identifier, { onDelete: 'cascade' }),
+    metadata: jsonb('metadata'),
+    createdAt: timestamp('created_at'),
+  },
+  (table) => ({
+    clientIdIdx: index('oauth_client_resource_client_id_idx').on(table.clientId),
+    resourceIdIdx: index('oauth_client_resource_resource_id_idx').on(table.resourceId),
+    clientResourceUnique: unique('oauth_client_resource_client_resource_unique').on(
+      table.clientId,
+      table.resourceId
+    ),
+  })
+)
+
+/** Single-use `private_key_jwt` assertion identifiers; the provider purges them at expiry. */
+export const oauthClientAssertion = pgTable('oauth_client_assertion', {
+  id: text('id').primaryKey(),
+  expiresAt: timestamp('expires_at').notNull(),
+})
 
 /** The scopes a user has granted a client; deleted when the user revokes the app. */
 export const oauthConsent = pgTable(
@@ -5520,6 +5582,8 @@ export const oauthConsent = pgTable(
       .references(() => oauthClient.clientId, { onDelete: 'cascade' }),
     userId: text('user_id').references(() => user.id, { onDelete: 'cascade' }),
     referenceId: text('reference_id'),
+    resources: text('resources').array(),
+    requestedUserInfoClaims: text('requested_user_info_claims').array(),
     scopes: text('scopes').array().notNull(),
     createdAt: timestamp('created_at').notNull(),
     updatedAt: timestamp('updated_at').notNull(),
@@ -5587,6 +5651,13 @@ export const oauthRefreshToken = pgTable(
     authTime: timestamp('auth_time'),
     scopes: text('scopes').array().notNull(),
     resource: text('resource'),
+    authorizationCodeId: text('authorization_code_id'),
+    resources: text('resources').array(),
+    requestedUserInfoClaims: text('requested_user_info_claims').array(),
+    rotatedAt: timestamp('rotated_at'),
+    rotationReplayResponse: text('rotation_replay_response'),
+    rotationReplayExpiresAt: timestamp('rotation_replay_expires_at'),
+    confirmation: jsonb('confirmation'),
     familyId: text('family_id')
       .notNull()
       .references(() => oauthTokenFamily.id, { onDelete: 'cascade' }),
@@ -5594,6 +5665,9 @@ export const oauthRefreshToken = pgTable(
   },
   (table) => ({
     clientIdIdx: index('oauth_refresh_token_client_id_idx').on(table.clientId),
+    authorizationCodeIdIdx: index('oauth_refresh_token_authorization_code_id_idx').on(
+      table.authorizationCodeId
+    ),
     sessionIdIdx: index('oauth_refresh_token_session_id_idx').on(table.sessionId),
     userClientIdx: index('oauth_refresh_token_user_client_idx').on(table.userId, table.clientId),
     /** Drives the cleanup pass; nothing else reads tokens by expiry. */
@@ -5633,9 +5707,17 @@ export const oauthAccessToken = pgTable(
     createdAt: timestamp('created_at').notNull(),
     scopes: text('scopes').array().notNull(),
     resource: text('resource'),
+    authorizationCodeId: text('authorization_code_id'),
+    resources: text('resources').array(),
+    requestedUserInfoClaims: text('requested_user_info_claims').array(),
+    revoked: timestamp('revoked'),
+    confirmation: jsonb('confirmation'),
   },
   (table) => ({
     clientIdIdx: index('oauth_access_token_client_id_idx').on(table.clientId),
+    authorizationCodeIdIdx: index('oauth_access_token_authorization_code_id_idx').on(
+      table.authorizationCodeId
+    ),
     sessionIdIdx: index('oauth_access_token_session_id_idx').on(table.sessionId),
     refreshIdIdx: index('oauth_access_token_refresh_id_idx').on(table.refreshId),
     userClientIdx: index('oauth_access_token_user_client_idx').on(table.userId, table.clientId),
