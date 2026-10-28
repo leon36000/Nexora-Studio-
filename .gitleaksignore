@@ -118,3 +118,4 @@
 8fbcd64e80e483d0884de1d9d55e5dda897fe110:workstudio/packages/testing/src/mocks/env.mock.ts:generic-api-key:18
 aaecc1130ab3ba2bb27196d5b6ef74f607eaa37e:workstudio/apps/sim/lib/nexora/traces/redaction.test.ts:jwt:74
 bdc0419e765bd56df05140c40f461846b730105d:services/nexora-connect/src/providers/aws_sts/executors.test.ts:generic-api-key:123
+8fbcd64e80e483d0884de1d9d55e5dda897fe110:services/nexora-connect/src/core/aws-sigv4.test.ts:generic-api-key:163

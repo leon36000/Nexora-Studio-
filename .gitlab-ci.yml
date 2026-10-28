@@ -1,11 +1,9 @@
-# Analyses de sécurité et de qualité, exécutées par le runner GitLab de pc4.
-# Bloquant : secrets (gitleaks) et dépendances critiques (Trivy). Les rapports Semgrep, Bandit et Trivy complets
-# sont gardés en artefacts ; SonarQube reçoit la branche par défaut quand SONAR_TOKEN est défini (variable masquée).
+# Complète la chaîne de sécurité commune de pc4 (root/pc4-ci-securite : gitleaks, Semgrep, Trivy et SonarQube en
+# .pre) par les contrôles propres à ce dépôt. gitleaks lit .gitleaksignore, la liste des alertes déjà examinées.
+# Bloquant ici : une faille critique corrigeable dans les dépendances (Trivy), un problème Bandit grave dans le Python.
 
 stages:
-  - secrets
   - analyse
-  - qualite
 
 workflow:
   rules:
@@ -15,7 +13,9 @@ workflow:
     - if: $CI_COMMIT_BRANCH
 
 variables:
-  SONAR_HOST_URL: "https://pc4.tail0c55ff.ts.net:8443"
+  # Semgrep et SonarQube sont tués à la limite de 2 Go du pod sur ce dépôt (OOMKilled).
+  KUBERNETES_MEMORY_REQUEST: "4Gi"
+  KUBERNETES_MEMORY_LIMIT: "8Gi"
 
 # Le réseau de pc4 perd parfois la résolution du CDN de Docker Hub : un échec de préparation du pod est relancé.
 default:
@@ -23,41 +23,7 @@ default:
     max: 2
     when: [runner_system_failure, unknown_failure, stuck_or_timeout_failure, scheduler_failure]
 
-.rapport:
-  artifacts:
-    when: always
-    expire_in: 30 days
-
-gitleaks:
-  extends: .rapport
-  stage: secrets
-  image:
-    name: ghcr.io/gitleaks/gitleaks:v8.24.3
-    entrypoint: [""]
-  variables:
-    GIT_DEPTH: "0"
-  script:
-    - gitleaks git . --redact --no-banner --gitleaks-ignore-path .gitleaksignore --report-format json --report-path gitleaks.json
-  artifacts:
-    paths: [gitleaks.json]
-
-semgrep:
-  extends: .rapport
-  stage: analyse
-  image: semgrep/semgrep:1.181.1
-  timeout: 45 minutes
-  variables:
-    # L'image Semgrep attend le code dans /src ; dans la CI il est dans le dossier du projet.
-    SEMGREP_SRC_DIRECTORY: "${CI_PROJECT_DIR}"
-  script:
-    - semgrep scan --config p/default --metrics=off --timeout 30 --jobs 4 --json --output semgrep.json
-    - semgrep scan --config p/default --metrics=off --timeout 30 --jobs 4 --severity ERROR --error --quiet
-  allow_failure: true
-  artifacts:
-    paths: [semgrep.json]
-
 bandit:
-  extends: .rapport
   stage: analyse
   image: python:3.12-slim
   script:
@@ -65,10 +31,11 @@ bandit:
     - bandit -r services scripts deploy -x '*/tests/*,*/test_*.py' -f json -o bandit.json || true
     - bandit -r services scripts deploy -x '*/tests/*,*/test_*.py' --severity-level high --confidence-level medium -q
   artifacts:
+    when: always
+    expire_in: 30 days
     paths: [bandit.json]
 
-trivy:
-  extends: .rapport
+trivy-critique:
   stage: analyse
   image:
     name: aquasec/trivy:0.75.0
@@ -80,24 +47,4 @@ trivy:
     key: trivy-db
     paths: [.trivycache/]
   script:
-    - trivy fs --scanners vuln,secret,misconfig --format json --output trivy.json .
     - trivy fs --scanners vuln --severity CRITICAL --ignore-unfixed --exit-code 1 .
-  artifacts:
-    paths: [trivy.json]
-
-sonarqube:
-  stage: qualite
-  image:
-    name: sonarsource/sonar-scanner-cli:12.2
-    entrypoint: [""]
-  variables:
-    GIT_DEPTH: "0"
-    SONAR_USER_HOME: "${CI_PROJECT_DIR}/.sonar"
-  cache:
-    key: sonar
-    paths: [.sonar/cache]
-  timeout: 60 minutes
-  script:
-    - sonar-scanner -Dsonar.qualitygate.wait=false
-  rules:
-    - if: $SONAR_TOKEN && $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH
