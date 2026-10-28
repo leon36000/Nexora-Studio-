@@ -8,6 +8,9 @@ export { PlainTextSecretCodec } from "./secret-codec-core.ts";
 
 const encryptedPrefix = "enc:v1:";
 const keySalt = "oomol-connect-local-secret-store-v1";
+// Node accepts GCM tags as short as 4 bytes; pinning the full 16-byte tag keeps a stored payload from being
+// forged against a truncated tag.
+const authTagLength = 16;
 
 export class AesGcmSecretCodec implements ISecretCodec {
   readonly encrypted = true;
@@ -22,7 +25,7 @@ export class AesGcmSecretCodec implements ISecretCodec {
 
   async encode(plaintext: string): Promise<string> {
     const iv = randomBytes(12);
-    const cipher = createCipheriv("aes-256-gcm", this.key, iv);
+    const cipher = createCipheriv("aes-256-gcm", this.key, iv, { authTagLength });
     const encrypted = Buffer.concat([cipher.update(plaintext, "utf8"), cipher.final()]);
     const tag = cipher.getAuthTag();
     return [
@@ -45,7 +48,7 @@ export class AesGcmSecretCodec implements ISecretCodec {
       throw new Error("Encrypted local secret payload is malformed.");
     }
 
-    const decipher = createDecipheriv("aes-256-gcm", this.key, Buffer.from(ivText, "base64url"));
+    const decipher = createDecipheriv("aes-256-gcm", this.key, Buffer.from(ivText, "base64url"), { authTagLength });
     decipher.setAuthTag(Buffer.from(tagText, "base64url"));
     return Buffer.concat([decipher.update(Buffer.from(encryptedText, "base64url")), decipher.final()]).toString("utf8");
   }
