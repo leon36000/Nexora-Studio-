@@ -151,4 +151,49 @@ describe('createRotatingEventSource', () => {
     expect(onError).toHaveBeenCalledTimes(1)
     connection.close()
   })
+  describe('when the page is left', () => {
+    let page: EventTarget
+
+    beforeEach(() => {
+      page = new EventTarget()
+      vi.stubGlobal('window', page)
+    })
+
+    it('closes its sources when the page is left, so Firefox logs no interrupted connection', () => {
+      const connection = createRotatingEventSource({ url: '/api/events', events: {} })
+      const first = MockEventSource.instances[0]
+      first.open()
+      first.emit('rotate')
+      const second = MockEventSource.instances[1]
+
+      const pagehide = new Event('pagehide') as Event & { persisted: boolean }
+      pagehide.persisted = false
+      page.dispatchEvent(pagehide)
+
+      expect(first.readyState).toBe(MockEventSource.CLOSED)
+      expect(second.readyState).toBe(MockEventSource.CLOSED)
+      connection.close()
+    })
+
+    it('keeps its sources when the page goes into the back/forward cache', () => {
+      const connection = createRotatingEventSource({ url: '/api/events', events: {} })
+      const first = MockEventSource.instances[0]
+      first.open()
+
+      const pagehide = new Event('pagehide') as Event & { persisted: boolean }
+      pagehide.persisted = true
+      page.dispatchEvent(pagehide)
+
+      expect(first.readyState).toBe(MockEventSource.OPEN)
+      connection.close()
+    })
+
+    it('stops listening for the page leaving once closed', () => {
+      const remove = vi.spyOn(page, 'removeEventListener')
+      const connection = createRotatingEventSource({ url: '/api/events', events: {} })
+      connection.close()
+      expect(remove).toHaveBeenCalledWith('pagehide', expect.any(Function))
+      remove.mockRestore()
+    })
+  })
 })

@@ -96,10 +96,23 @@ export function createRotatingEventSource(
 
   current = openSource(false)
 
-  return {
+  /**
+   * Leaving the page with a stream still connected makes Firefox write « The connection to … was
+   * interrupted while the page was loading » to the console (the site's own console, on every reload
+   * or navigation). Closing the sources ourselves first is silent. A page entering the back/forward
+   * cache (`persisted`) keeps its streams: the browser restores them as they were.
+   */
+  const onPageHide = (event: Event) => {
+    if ((event as PageTransitionEvent).persisted) return
+    connection.close()
+  }
+  if (typeof window !== 'undefined') window.addEventListener('pagehide', onPageHide)
+
+  const connection: RotatingEventSourceConnection = {
     close() {
       if (closed) return
       closed = true
+      if (typeof window !== 'undefined') window.removeEventListener('pagehide', onPageHide)
       for (const source of sources) {
         source.close()
       }
@@ -108,4 +121,5 @@ export function createRotatingEventSource(
       replacement = null
     },
   }
+  return connection
 }

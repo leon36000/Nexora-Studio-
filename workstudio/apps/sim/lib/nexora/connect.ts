@@ -1,4 +1,4 @@
-import { db } from '@sim/db'
+import { db, runOutsideTransactionContext } from '@sim/db'
 import { mcpServers } from '@sim/db/schema'
 import { createLogger } from '@sim/logger'
 import { and, eq, isNull } from 'drizzle-orm'
@@ -72,12 +72,21 @@ function configFromEnv(): NexoraConnectConfig | null {
   return url && token ? { url, token } : null
 }
 
-async function lockWorkspaceToken<T>(workspaceId: string, work: () => Promise<T>): Promise<T> {
+/**
+ * Holds the workspace's token lock for the duration of `work`. The transaction exists only to keep the
+ * advisory lock: `work` reads and writes through the shared pool (its writes must commit on their own,
+ * and Connect calls are slow), so it is declared as deliberate global-pool work instead of tripping the
+ * pool's « query issued inside a transaction callback » error on every workspace creation.
+ */
+export async function lockWorkspaceToken<T>(
+  workspaceId: string,
+  work: () => Promise<T>
+): Promise<T> {
   return db.transaction(async (tx) => {
     await withLockTimeout(tx, TOKEN_LOCK_TIMEOUT_MS, () =>
       acquireAdvisoryXactLock(tx, 'nexora_connect_token', workspaceId)
     )
-    return work()
+    return runOutsideTransactionContext(work)
   })
 }
 
