@@ -1,6 +1,10 @@
 import { AsyncLocalStorage } from 'node:async_hooks'
+import { db } from '@sim/db'
+import { oauthResource, organization, workflowMcpServer } from '@sim/db/schema'
+import { generateId } from '@sim/utils/id'
 import type { BetterAuthPlugin } from 'better-auth'
 import { APIError } from 'better-auth/api'
+import { and, eq, isNull } from 'drizzle-orm'
 import { getSimMcpUrl } from '@/lib/api/mcp/urls'
 import {
   narrowResourceOAuthScopes,
@@ -58,6 +62,47 @@ export function parseOAuthResource(value: string | null): OAuthResource | null {
   if (SEARCH_RESOURCE_PATH.test(url.pathname)) return { kind: 'search', url: value }
   if (WORKFLOW_MCP_RESOURCE_PATH.test(url.pathname)) return { kind: 'api', url: value }
   throw new InvalidOAuthResourceError()
+}
+
+async function oauthResourceTargetExists(resource: OAuthResource): Promise<boolean> {
+  if (resource.url === getSimMcpUrl()) return true
+  const id = new URL(resource.url).pathname.split('/').pop() ?? ''
+  if (resource.kind === 'search') {
+    const [row] = await db
+      .select({ id: organization.id })
+      .from(organization)
+      .where(eq(organization.id, id))
+      .limit(1)
+    return row !== undefined
+  }
+  const [row] = await db
+    .select({ id: workflowMcpServer.id })
+    .from(workflowMcpServer)
+    .where(and(eq(workflowMcpServer.id, id), isNull(workflowMcpServer.deletedAt)))
+    .limit(1)
+  return row !== undefined
+}
+
+/**
+ * Makes a validated MCP server URL a protected resource of the OAuth provider, which since Better
+ * Auth 1.7 refuses any `resource` it does not know. Only a URL whose organization or workflow MCP
+ * server exists is registered, so unauthenticated authorization requests cannot grow the table.
+ * Returns `false` when the server does not exist.
+ */
+export async function registerOAuthResource(resource: OAuthResource): Promise<boolean> {
+  if (!(await oauthResourceTargetExists(resource))) return false
+  const now = new Date()
+  await db
+    .insert(oauthResource)
+    .values({
+      id: generateId(),
+      identifier: resource.url,
+      name: resource.url,
+      createdAt: now,
+      updatedAt: now,
+    })
+    .onConflictDoNothing({ target: oauthResource.identifier })
+  return true
 }
 
 /**

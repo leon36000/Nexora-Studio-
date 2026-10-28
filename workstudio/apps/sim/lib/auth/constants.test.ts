@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest'
 import {
   applyRegistrationGate,
   getRequestedSignInProviderId,
+  isGenericOAuthCallbackPath,
   isSignInProviderAllowed,
   SIGN_IN_PROVIDER_IDS,
 } from '@/lib/auth/constants'
@@ -60,19 +61,6 @@ describe('getRequestedSignInProviderId', () => {
     )
   })
 
-  it('reads the `providerId` field on /sign-in/oauth2', () => {
-    expect(getRequestedSignInProviderId('/sign-in/oauth2', { providerId: 'salesforce' })).toBe(
-      'salesforce'
-    )
-  })
-
-  it('checks the field the /sign-in/oauth2 handler uses, ignoring a decoy `provider`', () => {
-    const body = { provider: 'google', providerId: 'salesforce' }
-    const resolved = getRequestedSignInProviderId('/sign-in/oauth2', body)
-    expect(resolved).toBe('salesforce')
-    expect(isSignInProviderAllowed(resolved)).toBe(false)
-  })
-
   it('checks the field the /sign-in/social handler uses, ignoring a decoy `providerId`', () => {
     const body = { provider: 'salesforce', providerId: 'google' }
     const resolved = getRequestedSignInProviderId('/sign-in/social', body)
@@ -83,8 +71,31 @@ describe('getRequestedSignInProviderId', () => {
   it('returns undefined for unrelated paths and missing bodies', () => {
     expect(getRequestedSignInProviderId('/sign-in/email', { provider: 'google' })).toBeUndefined()
     expect(getRequestedSignInProviderId('/sign-in/social', undefined)).toBeUndefined()
-    expect(getRequestedSignInProviderId('/sign-in/oauth2', null)).toBeUndefined()
+    expect(getRequestedSignInProviderId('/sign-in/oauth2', { provider: 'google' })).toBeUndefined()
   })
+})
+
+describe('isGenericOAuthCallbackPath', () => {
+  it.each(['/callback/jira', '/callback/google-email', '/callback/nexora-oidc'])(
+    'treats %s as the callback of a generic OAuth provider',
+    (path) => {
+      expect(isGenericOAuthCallbackPath(path)).toBe(true)
+    }
+  )
+
+  it.each(['/callback/google', '/callback/github', '/callback/microsoft'])(
+    'leaves the first-party login callback %s alone',
+    (path) => {
+      expect(isGenericOAuthCallbackPath(path)).toBe(false)
+    }
+  )
+
+  it.each([undefined, '/sign-in/social', '/sso/callback/acme', '/oauth2/callback/jira'])(
+    'ignores %s',
+    (path) => {
+      expect(isGenericOAuthCallbackPath(path)).toBe(false)
+    }
+  )
 })
 
 describe('registration gate', () => {

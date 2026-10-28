@@ -24623,7 +24623,7 @@
                 "properties": {
                   "id": {
                     "default": "sub",
-                    "description": "Claim holding the stable identity identifier.",
+                    "description": "Kept for compatibility: the identity is always the verified sub claim (OIDC) or signed NameID (SAML).",
                     "type": "string",
                     "minLength": 1,
                     "maxLength": 255
@@ -24764,7 +24764,7 @@
                 "properties": {
                   "id": {
                     "default": "sub",
-                    "description": "Claim holding the stable identity identifier.",
+                    "description": "Kept for compatibility: the identity is always the verified sub claim (OIDC) or signed NameID (SAML).",
                     "type": "string",
                     "minLength": 1,
                     "maxLength": 255

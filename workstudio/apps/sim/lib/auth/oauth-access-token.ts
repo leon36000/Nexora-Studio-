@@ -129,6 +129,7 @@ export async function verifyOAuthAccessToken(
       scopes: oauthAccessToken.scopes,
       resource: oauthAccessToken.resource,
       expiresAt: oauthAccessToken.expiresAt,
+      revokedAt: oauthAccessToken.revoked,
       clientDisabled: oauthClient.disabled,
       userBanned: user.banned,
       userBanExpires: user.banExpires,
@@ -141,7 +142,7 @@ export async function verifyOAuthAccessToken(
     .where(eq(oauthAccessToken.token, hashOAuthToken(raw)))
     .limit(1)
 
-  if (!row) throw new InvalidOAuthAccessTokenError('unknown')
+  if (!row || row.revokedAt) throw new InvalidOAuthAccessTokenError('unknown')
   const acceptsUnboundApiToken =
     options.allowUnboundApiTokens &&
     options.resource &&

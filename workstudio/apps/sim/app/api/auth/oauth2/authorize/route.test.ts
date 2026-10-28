@@ -34,7 +34,7 @@ vi.mock('better-auth/next-js', () => ({
 
 vi.mock('@/lib/auth/auth', () => ({
   getSession: mocks.getSession,
-  auth: { handler: {}, api: { oAuth2LinkAccount: mocks.linkAccount } },
+  auth: { handler: {}, api: { linkSocialAccount: mocks.linkAccount } },
 }))
 vi.mock('@/lib/core/config/env-capabilities.server', () => ({
   requireConfiguredOAuthClient: mocks.requireClient,
@@ -146,7 +146,22 @@ describe('OAuth2 authorize route', () => {
     expect(mocks.betterAuthGET).not.toHaveBeenCalled()
   })
 
+  it('refuses a Search resource whose organization does not exist', async () => {
+    const response = await GET(
+      request({
+        client_id: 'mcp-client',
+        response_type: 'code',
+        redirect_uri: 'https://client.example/callback',
+        scope: 'search:read',
+        resource: `${BASE_URL}/api/mcp/search/organizations/missing-org`,
+      })
+    )
+    expect(response.status).toBe(400)
+    expect(mocks.betterAuthGET).not.toHaveBeenCalled()
+  })
+
   it('narrows issuer-wide scope requests before the provider signs Search consent', async () => {
+    queueTableRows(schemaMock.organization, [{ id: 'org-1' }])
     const req = request({
       client_id: 'mcp-client',
       response_type: 'code',

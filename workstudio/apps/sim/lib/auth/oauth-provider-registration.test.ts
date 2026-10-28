@@ -44,7 +44,7 @@ function createProvider(database: Record<string, Record<string, unknown>[]>) {
         clientRegistrationAllowedScopes: [...OAUTH_PUBLIC_REGISTRATION_SCOPES],
         clientRegistrationDefaultScopes: [...OAUTH_PUBLIC_REGISTRATION_SCOPES],
         clientPrivileges: () => false,
-        silenceWarnings: { oauthAuthServerConfig: true, openidConfig: true },
+        enforcePerClientResources: false,
       }),
     ],
   })
@@ -64,19 +64,31 @@ describe('MCP client registration with the installed OAuth provider', () => {
       oauthConsent: [],
       oauthAccessToken: [],
       oauthRefreshToken: [],
+      oauthResource: [],
+      oauthClientResource: [],
     }
     provider = createProvider(database)
   })
 
+  /**
+   * Registers like `app/api/auth/oauth2/register/route.ts`: the contract forces a public client,
+   * then the route narrows the stored scopes to the grant (Better Auth 1.7 stores the whole
+   * registration policy) and reports that grant.
+   */
   async function register(metadata: object = claudeMetadata) {
     const body = registerOAuthClientBodySchema.parse(metadata)
-    return provider.handler(
+    const response = await provider.handler(
       new Request(`${BASE_URL}/api/auth/oauth2/register`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ ...body, require_pkce: true }),
       })
     )
+    if (!response.ok) return response
+    const registered = await response.json()
+    const stored = database.oauthClient.find((client) => client.clientId === registered.client_id)
+    if (stored) stored.scopes = body.scope.split(' ')
+    return Response.json({ ...registered, scope: body.scope }, { status: response.status })
   }
 
   async function signIn() {
@@ -159,7 +171,6 @@ describe('MCP client registration with the installed OAuth provider', () => {
       expect(body).not.toHaveProperty('client_secret')
       expect(database.oauthClient).toHaveLength(1)
       expect(database.oauthClient[0]).toMatchObject({
-        public: true,
         tokenEndpointAuthMethod: 'none',
         scopes: ['search:read', 'offline_access'],
       })
@@ -181,7 +192,7 @@ describe('MCP client registration with the installed OAuth provider', () => {
     })
     expect(response.ok).toBe(true)
     expect(database.oauthClient[0]).toMatchObject({
-      public: true,
+      tokenEndpointAuthMethod: 'none',
       scopes: ['api:read', 'api:write', 'offline_access', 'search:read'],
     })
     expect(database.oauthClient[0].clientSecret).toBeFalsy()
@@ -311,8 +322,7 @@ describe('MCP client registration with the installed OAuth provider', () => {
         clientId,
         clientSecret: await symmetricEncrypt({ key: AUTH_SECRET, data: clientSecret }),
         name: 'Operator-created test client',
-        public: false,
-        type: 'web',
+        applicationType: 'web',
         tokenEndpointAuthMethod: 'client_secret_basic',
         requirePKCE: true,
         skipConsent: false,
@@ -351,7 +361,6 @@ describe('MCP client registration with the installed OAuth provider', () => {
     expect(missingSecret.ok).toBe(false)
     expect(await missingSecret.json()).not.toHaveProperty('access_token')
     expect(database.oauthClient.find((client) => client.clientId === clientId)).toMatchObject({
-      public: false,
       tokenEndpointAuthMethod: 'client_secret_basic',
       scopes: ['api:read', 'offline_access'],
     })

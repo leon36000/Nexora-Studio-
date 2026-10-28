@@ -11,14 +11,24 @@ import { eq } from 'drizzle-orm'
 const PUBLIC_REGISTRATION_METADATA = { registration: 'public' } as const
 
 /**
- * Stamps a just-registered client. Registration discloses the client ID only
- * after this succeeds, so an unstamped client is never usable: if the write
- * fails, the registration fails and nobody holds the ID.
+ * Stamps a just-registered client and narrows it to the scopes its registration was granted.
+ * Better Auth 1.7 gives every dynamically registered client the provider's whole registration
+ * policy as its scope ceiling, so the narrowing to what the client asked for (and the MCP
+ * resources allow) is written here. Registration discloses the client ID only after this
+ * succeeds, so an unstamped client is never usable: if the write fails, the registration
+ * fails and nobody holds the ID. `public` stays written for app versions that still read it.
  */
-export async function markPubliclyRegisteredOAuthClient(clientId: string): Promise<void> {
+export async function markPubliclyRegisteredOAuthClient(
+  clientId: string,
+  grantedScope: string
+): Promise<void> {
   const updated = await db
     .update(oauthClient)
-    .set({ metadata: PUBLIC_REGISTRATION_METADATA })
+    .set({
+      metadata: PUBLIC_REGISTRATION_METADATA,
+      scopes: grantedScope.split(' ').filter(Boolean),
+      public: true,
+    })
     .where(eq(oauthClient.clientId, clientId))
     .returning({ clientId: oauthClient.clientId })
   if (updated.length !== 1) {

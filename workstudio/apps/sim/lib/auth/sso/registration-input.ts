@@ -1,8 +1,20 @@
 import { z } from 'zod'
 
+/**
+ * Better Auth 1.7 takes the account subject from the verified `sub` (OIDC) or signed NameID
+ * (SAML), so `id` survives only as the accepted default and no other claim can be named.
+ */
+export const SSO_MAPPING_ID_REFUSED =
+  'The identity is the verified sub claim (OIDC) or signed NameID (SAML); no other claim can be mapped to it.'
+
 const ssoMappingSchema = z
   .object({
-    id: z.string().min(1).max(255).default('sub'),
+    id: z
+      .string()
+      .min(1)
+      .max(255)
+      .default('sub')
+      .refine((claim): boolean => claim === 'sub', SSO_MAPPING_ID_REFUSED),
     email: z.string().min(1).max(255).default('email'),
     name: z.string().min(1).max(255).default('name'),
     image: z.string().min(1).max(255).default('picture'),

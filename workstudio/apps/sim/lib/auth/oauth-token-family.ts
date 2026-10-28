@@ -75,7 +75,6 @@ interface OAuthClientRow {
   clientId: string
   clientSecret: string | null
   disabled: boolean
-  public: boolean | null
   tokenEndpointAuthMethod: string | null
   grantTypes: string[] | null
   scopes: string[] | null
@@ -144,13 +143,13 @@ async function authenticateClient(
   }
 
   if (registeredMethod === 'none') {
-    if (!client.public || credentials.clientSecret) {
+    if (credentials.clientSecret) {
       return protocolError('invalid_client', 'Client authentication failed.')
     }
     return { success: true, value: client }
   }
 
-  if (client.public || !client.clientSecret || !credentials.clientSecret) {
+  if (!client.clientSecret || !credentials.clientSecret) {
     return protocolError('invalid_client', 'Client authentication failed.')
   }
 
@@ -179,7 +178,6 @@ async function readClient(
       clientId: oauthClient.clientId,
       clientSecret: oauthClient.clientSecret,
       disabled: oauthClient.disabled,
-      public: oauthClient.public,
       tokenEndpointAuthMethod: oauthClient.tokenEndpointAuthMethod,
       grantTypes: oauthClient.grantTypes,
       scopes: oauthClient.scopes,
@@ -339,7 +337,6 @@ export async function rotateOAuthRefreshToken(
         clientId: oauthClient.clientId,
         clientSecret: oauthClient.clientSecret,
         disabled: oauthClient.disabled,
-        public: oauthClient.public,
         tokenEndpointAuthMethod: oauthClient.tokenEndpointAuthMethod,
         grantTypes: oauthClient.grantTypes,
         scopes: oauthClient.scopes,
@@ -531,7 +528,6 @@ export async function revokeOAuthToken(
           clientId: oauthClient.clientId,
           clientSecret: oauthClient.clientSecret,
           disabled: oauthClient.disabled,
-          public: oauthClient.public,
           tokenEndpointAuthMethod: oauthClient.tokenEndpointAuthMethod,
           grantTypes: oauthClient.grantTypes,
           scopes: oauthClient.scopes,

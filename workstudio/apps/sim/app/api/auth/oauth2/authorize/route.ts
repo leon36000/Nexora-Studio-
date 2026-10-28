@@ -17,6 +17,7 @@ import {
   InvalidOAuthResourceError,
   type OAuthResource,
   parseOAuthResource,
+  registerOAuthResource,
 } from '@/lib/auth/oauth-resource'
 import { ForbiddenOperationError } from '@/lib/core/application/forbidden'
 import { requireConfiguredOAuthClient } from '@/lib/core/config/env-capabilities.server'
@@ -130,6 +131,9 @@ export const GET = withRouteHandler(async (request: NextRequest) => {
     if (!resource && scopes.includes(OAUTH_SEARCH_READ_SCOPE)) {
       return invalidRequest(searchScopeRequired)
     }
+    if (resource && !(await registerOAuthResource(resource))) {
+      return invalidRequest('The resource is not a Nexora MCP server of this instance.')
+    }
     const narrowedScope = resource ? narrowResourceOAuthScopes(rawScope, resource.kind) : null
     if (resource && !narrowedScope) {
       return invalidRequest(
@@ -143,7 +147,9 @@ export const GET = withRouteHandler(async (request: NextRequest) => {
       scopes.some((scope) => scope === OAUTH_API_READ_SCOPE || scope === OAUTH_API_WRITE_SCOPE) &&
       (await isPubliclyRegisteredOAuthClient(params.get('client_id') ?? ''))
     ) {
-      return invalidRequest('This app must request Nexora API access for the Nexora MCP server URL.')
+      return invalidRequest(
+        'This app must request Nexora API access for the Nexora MCP server URL.'
+      )
     }
     if (params.has('request_uri')) {
       return oauthAuthorizationErrorResponse(
@@ -337,9 +343,9 @@ export const GET = withRouteHandler(async (request: NextRequest) => {
     stateCallbackUrl.searchParams.set(OAUTH_CREDENTIAL_DRAFT_CALLBACK_PARAM, connectionDraftId)
     const scopes = getPerRequestOAuthLinkScopes(providerId)
 
-    const linkResponse = await auth.api.oAuth2LinkAccount({
+    const linkResponse = await auth.api.linkSocialAccount({
       body: {
-        providerId,
+        provider: providerId,
         callbackURL: stateCallbackUrl.toString(),
         ...(scopes && { scopes }),
         ...(fromConnectionDraft
@@ -352,7 +358,7 @@ export const GET = withRouteHandler(async (request: NextRequest) => {
 
     const payload = (await linkResponse.json().catch(() => null)) as { url?: string } | null
     if (!linkResponse.ok || !payload?.url) {
-      logger.error('oAuth2LinkAccount did not return an authorization URL', {
+      logger.error('linkSocialAccount did not return an authorization URL', {
         providerId,
         status: linkResponse.status,
       })

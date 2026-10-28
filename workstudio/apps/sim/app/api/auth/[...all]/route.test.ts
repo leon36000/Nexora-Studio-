@@ -105,7 +105,11 @@ describe('auth catch-all route managed OAuth callbacks', () => {
       const response = await GET(request)
 
       expect(response.status).toBe(204)
-      expect(handlerMocks.betterAuthGET).toHaveBeenCalledWith(request)
+      expect(handlerMocks.betterAuthGET).toHaveBeenCalledExactlyOnceWith(
+        expect.objectContaining({
+          url: 'http://localhost:3000/api/auth/callback/jira?state=better-auth-state&code=code-1',
+        })
+      )
       expect(handlerMocks.credentialGroupCallback).not.toHaveBeenCalled()
     }
   )
@@ -367,7 +371,9 @@ describe('OAuth provider client endpoints', () => {
         'http://localhost:3000/api/auth/oauth2/callback/jira'
       )
       expect((await POST(request)).status).toBe(200)
-      expect(handlerMocks.betterAuthPOST).toHaveBeenCalledExactlyOnceWith(request)
+      expect(handlerMocks.betterAuthPOST).toHaveBeenCalledExactlyOnceWith(
+        expect.objectContaining({ url: 'http://localhost:3000/api/auth/callback/jira' })
+      )
     }
   )
 
@@ -377,9 +383,9 @@ describe('OAuth provider client endpoints', () => {
       setEnvFlags({ isAuthDisabled: authDisabled })
       const request = createMockRequest(
         'POST',
-        { providerId: 'google-email', callbackURL: 'http://localhost:3000/workspace' },
+        { provider: 'google-email', callbackURL: 'http://localhost:3000/workspace' },
         { cookie: 'better-auth.session_token=existing-session' },
-        'http://localhost:3000/api/auth/oauth2/link'
+        'http://localhost:3000/api/auth/link-social'
       )
 
       const response = await POST(request)

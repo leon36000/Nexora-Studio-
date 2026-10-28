@@ -7,7 +7,7 @@ import {
 import { account, db, ssoProvider, user } from '@sim/db'
 import { createLogger } from '@sim/logger'
 import { generateId } from '@sim/utils/id'
-import { filterUndefined, sortObjectKeysDeep, toRecord } from '@sim/utils/object'
+import { filterUndefined, omit, sortObjectKeysDeep, toRecord } from '@sim/utils/object'
 import { APIError } from 'better-auth/api'
 import { and, count, eq } from 'drizzle-orm'
 import type { auth } from '@/lib/auth'
@@ -45,15 +45,24 @@ interface SsoProviderUpdateOptions {
   clearUserInfoEndpoint?: boolean
 }
 
+/**
+ * `ignoreAbsentCurrent` names the fields a legacy configuration never held (Better Auth 1.7 asks
+ * for the identity provider's `entityID`): filling one in is not an identity change.
+ */
 function changedFields(
   current: Record<string, unknown>,
   updated: Record<string, unknown>,
-  fields: readonly string[]
+  fields: readonly string[],
+  { ignoreAbsentCurrent = [] }: { ignoreAbsentCurrent?: readonly string[] } = {}
 ) {
   return fields.some(
     (field) =>
+      !(
+        ignoreAbsentCurrent.includes(field) &&
+        (current[field] === undefined || current[field] === '')
+      ) &&
       JSON.stringify(sortObjectKeysDeep(current[field])) !==
-      JSON.stringify(sortObjectKeysDeep(updated[field]))
+        JSON.stringify(sortObjectKeysDeep(updated[field]))
   )
 }
 
@@ -269,7 +278,8 @@ export function createSsoProviderRepository(
               changedFields(
                 samlMetadata(current.idpMetadata),
                 samlMetadata(updated.idpMetadata),
-                SAML_IDP_IDENTITY_FIELDS
+                SAML_IDP_IDENTITY_FIELDS,
+                { ignoreAbsentCurrent: ['entityID'] }
               ) ||
               changedFields(
                 samlMetadata(current.spMetadata),
@@ -277,9 +287,9 @@ export function createSsoProviderRepository(
                 SAML_SP_IDENTITY_FIELDS
               )
           }
-          identityChanged ||= changedFields(toRecord(current.mapping), toRecord(updated.mapping), [
-            'id',
-          ])
+          /** Better Auth 1.7 takes the subject from the verified `sub` or NameID, never a mapping. */
+          if (updated.mapping !== undefined)
+            updated.mapping = omit(toRecord(updated.mapping), ['id'])
           changes[key] = JSON.stringify(updated)
         }
         if (identityChanged) {

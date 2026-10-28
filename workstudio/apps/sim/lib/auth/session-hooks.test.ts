@@ -236,7 +236,7 @@ describe('prepareSessionForCreation with Nexora single sign-on required', () => 
   it('admits a member through the company identity provider', async () => {
     await expect(
       runWithAuthDatabase(memberWithRole('member'), () =>
-        prepareSessionForCreation(session, { path: '/oauth2/callback/nexora-oidc' })
+        prepareSessionForCreation(session, { path: '/callback/nexora-oidc' })
       )
     ).resolves.toMatchObject({ data: { activeOrganizationId: 'org-1' } })
   })

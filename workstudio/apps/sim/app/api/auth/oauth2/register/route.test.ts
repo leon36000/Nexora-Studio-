@@ -68,7 +68,10 @@ describe('MCP public client registration', () => {
       response_types: ['code'],
     })
     const forwarded: Request = mocks.register.mock.calls[0][0]
-    expect(mocks.markPublic).toHaveBeenCalledWith('client-1')
+    expect(mocks.markPublic).toHaveBeenCalledWith(
+      'client-1',
+      'api:read api:write offline_access search:read'
+    )
     expect(forwarded.headers.has('cookie')).toBe(false)
     expect(forwarded.headers.has('authorization')).toBe(false)
     expect(forwarded.headers.get('x-forwarded-for')).toBe('203.0.113.10')
@@ -88,10 +91,11 @@ describe('MCP public client registration', () => {
     expect(await response.json()).toMatchObject({ scope: granted })
     const forwarded: Request = mocks.register.mock.calls[0][0]
     expect(await forwarded.json()).toMatchObject({ scope: granted, require_pkce: true })
+    expect(mocks.markPublic).toHaveBeenCalledWith('client-1', granted)
   })
 
   it.each(['client_secret_post', 'client_secret_basic'])(
-    'lets the provider negotiate Claude-style %s registration to a public client',
+    'forces a public client for Claude-style %s registration',
     async (authMethod) => {
       const response = await POST(
         request({
@@ -113,7 +117,7 @@ describe('MCP public client registration', () => {
       expect(await forwarded.json()).toEqual({
         client_name: 'Claude',
         redirect_uris: ['https://claude.ai/api/mcp/auth_callback'],
-        token_endpoint_auth_method: authMethod,
+        token_endpoint_auth_method: 'none',
         scope: 'search:read offline_access',
         grant_types: ['authorization_code', 'refresh_token'],
         response_types: ['code'],

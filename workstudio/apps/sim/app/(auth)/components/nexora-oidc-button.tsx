@@ -32,7 +32,7 @@ export function NexoraOidcButton({ callbackURL = DEFAULT_POST_AUTH_ROUTE }: Nexo
   const handleClick = async () => {
     setIsRedirecting(true)
     try {
-      await client.signIn.oauth2({ providerId: NEXORA_OIDC_PROVIDER_ID, callbackURL })
+      await client.signIn.social({ provider: NEXORA_OIDC_PROVIDER_ID, callbackURL })
     } catch (error) {
       logger.error('Company sign-in failed', { error: getErrorMessage(error) })
       setIsRedirecting(false)

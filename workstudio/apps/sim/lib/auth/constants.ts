@@ -2,12 +2,12 @@ import { NEXORA_OIDC_PROVIDER_ID } from '@/lib/nexora/oidc'
 
 /**
  * Provider IDs permitted to authenticate (create or link a session) through the
- * unauthenticated sign-in endpoints `/sign-in/social` and `/sign-in/oauth2`.
+ * unauthenticated sign-in endpoint `/sign-in/social`.
  *
  * Only first-party login providers that verify email ownership belong here.
  * Integration connectors (Salesforce, Jira, the Microsoft/Google work
  * connectors, etc.) are deliberately excluded: they are connected exclusively
- * through the authenticated `/oauth2/link` flow, which binds the new account to
+ * through the authenticated `/link-social` flow, which binds the new account to
  * the current session user and never mints a session. Allowing a connector to
  * reach the sign-in endpoints enables nOAuth-style account takeover, where a
  * multi-tenant IdP asserting an attacker-controlled, unverified email mints a
@@ -35,19 +35,34 @@ export function isSignInProviderAllowed(providerId: unknown): boolean {
 
 /**
  * Resolves the provider identifier the sign-in handler will actually act on for a
- * given auth path. Better Auth reads `provider` on `/sign-in/social` and
- * `providerId` on `/sign-in/oauth2`, so the allowlist guard must read the same
- * field the handler uses. Reading the wrong field would let a request pass the
- * guard with an allowed value in one field while the handler starts OAuth for a
- * blocked value in the other, reopening connector sign-in.
+ * given auth path. Since Better Auth 1.7 the generic OAuth providers are ordinary
+ * social providers, so `/sign-in/social` (field `provider`) is the only
+ * unauthenticated endpoint that starts an OAuth login. The allowlist guard must read
+ * the field the handler uses: reading another one would let a request pass the guard
+ * with an allowed value while the handler starts OAuth for a blocked one, reopening
+ * connector sign-in.
  */
 export function getRequestedSignInProviderId(
   path: string,
-  body: { provider?: unknown; providerId?: unknown } | null | undefined
+  body: { provider?: unknown } | null | undefined
 ): unknown {
   if (path === '/sign-in/social') return body?.provider
-  if (path === '/sign-in/oauth2') return body?.providerId
   return undefined
+}
+
+const GENERIC_OAUTH_CALLBACK_PREFIX = '/callback/'
+
+/**
+ * Whether a Better Auth endpoint path is the callback of a generic OAuth provider
+ * (an integration connector or the company identity provider), as opposed to the
+ * callback of a first-party login provider (Google, GitHub, Microsoft). Both kinds
+ * are served at `/callback/:id`; only the generic ones carry a credential draft.
+ * The public URL registered at the third-party console stays
+ * `/api/auth/oauth2/callback/:id`, rewritten in the auth route.
+ */
+export function isGenericOAuthCallbackPath(path: string | undefined): boolean {
+  if (!path?.startsWith(GENERIC_OAUTH_CALLBACK_PREFIX)) return false
+  return !signInProviderIdSet.has(path.slice(GENERIC_OAUTH_CALLBACK_PREFIX.length))
 }
 
 /**

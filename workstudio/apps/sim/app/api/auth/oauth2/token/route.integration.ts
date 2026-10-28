@@ -159,6 +159,16 @@ describe('OAuth token route in PostgreSQL', () => {
           createdAt: now,
           updatedAt: now,
         })
+        /** The authorization route registers a validated MCP server URL before the provider sees it. */
+        await db.insert(schema.oauthResource).values(
+          [resource, otherResource].map((identifier) => ({
+            id: generateId(),
+            identifier,
+            name: identifier,
+            createdAt: now,
+            updatedAt: now,
+          }))
+        )
 
         for (const table of [schema.oauthAccessToken, schema.oauthRefreshToken]) {
           await expect(
@@ -250,6 +260,9 @@ describe('OAuth token route in PostgreSQL', () => {
       } finally {
         await db.delete(schema.verification).where(like(schema.verification.value, `%${userId}%`))
         await db.delete(schema.oauthClient).where(eq(schema.oauthClient.clientId, clientId))
+        await db
+          .delete(schema.oauthResource)
+          .where(inArray(schema.oauthResource.identifier, [resource, otherResource]))
         await db.delete(schema.user).where(eq(schema.user.id, userId))
         await db
           .delete(schema.rateLimitBucket)
@@ -608,9 +621,43 @@ describe('OAuth token route in PostgreSQL', () => {
           .where(eq(schema.oauthTokenFamily.userId, userId))
       ).toHaveLength(1)
 
-      const activeTokens = (await racingResponses
+      /**
+       * Better Auth 1.7 deletes every token a replayed authorization code issued, so the winner of
+       * the race holds no usable grant either; it leaves an empty family that expiry cleans up.
+       */
+      const racedTokens = (await racingResponses
         .find((response) => response.status === 200)
         ?.json()) as TokenResponseBody
+      const racedRefresh = await exchangeToken(
+        createFormRequest(
+          '/api/auth/oauth2/token',
+          new URLSearchParams({
+            grant_type: 'refresh_token',
+            client_id: provider.SIM_CLI_CLIENT_ID,
+            refresh_token: racedTokens.refresh_token,
+          })
+        )
+      )
+      expect(racedRefresh.status).toBe(400)
+      await expect(racedRefresh.json()).resolves.toMatchObject({ error: 'invalid_grant' })
+
+      const activeVerifier = `${testId}-active-verifier-with-more-than-forty-three-characters`
+      const activeTokens = await exchangeAuthorizationCode(
+        await issueAuthorizationCode(activeVerifier),
+        activeVerifier
+      )
+      const [activeRefresh] = await db
+        .select({ familyId: schema.oauthRefreshToken.familyId })
+        .from(schema.oauthRefreshToken)
+        .where(
+          eq(
+            schema.oauthRefreshToken.token,
+            tokenStore.hashOAuthToken(
+              activeTokens.refresh_token.slice(provider.OAUTH_REFRESH_TOKEN_PREFIX.length)
+            )
+          )
+        )
+      const activeFamilyId = activeRefresh?.familyId ?? 'missing'
       const withheldVerifier = `${testId}-withheld-verifier-with-more-than-forty-three-characters`
       const withheldCode = await issueAuthorizationCode(withheldVerifier)
       const consentUrl = await createAuthorizeUrl(withheldVerifier)
@@ -697,7 +744,7 @@ describe('OAuth token route in PostgreSQL', () => {
         await db
           .select({ generation: schema.oauthTokenFamily.currentGeneration })
           .from(schema.oauthTokenFamily)
-          .where(eq(schema.oauthTokenFamily.userId, userId))
+          .where(eq(schema.oauthTokenFamily.id, activeFamilyId))
       ).toEqual([{ generation: 0 }])
       const revokedWhileWithheld = await revokeToken(
         createFormRequest(
@@ -714,7 +761,7 @@ describe('OAuth token route in PostgreSQL', () => {
         await db
           .select({ id: schema.oauthTokenFamily.id })
           .from(schema.oauthTokenFamily)
-          .where(eq(schema.oauthTokenFamily.userId, userId))
+          .where(eq(schema.oauthTokenFamily.id, activeFamilyId))
       ).toHaveLength(0)
     } finally {
       if (issuedCodeHashes.length) {

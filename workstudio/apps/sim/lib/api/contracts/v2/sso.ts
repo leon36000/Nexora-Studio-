@@ -12,7 +12,10 @@ import {
   v2SortFields,
   v2TimestampSchema,
 } from '@/lib/api/contracts/v2/shared'
-import { ssoRegistrationInputSchema } from '@/lib/auth/sso/registration-input'
+import {
+  SSO_MAPPING_ID_REFUSED,
+  ssoRegistrationInputSchema,
+} from '@/lib/auth/sso/registration-input'
 import { addOrganizationDomainBodySchema } from '@/lib/organizations/domain-validation'
 
 const v2SsoOrganizationParamsSchema = z
@@ -83,7 +86,10 @@ const mapping = z
       .min(1)
       .max(255)
       .default('sub')
-      .describe('Claim holding the stable identity identifier.'),
+      .refine((claim): boolean => claim === 'sub', SSO_MAPPING_ID_REFUSED)
+      .describe(
+        'Kept for compatibility: the identity is always the verified sub claim (OIDC) or signed NameID (SAML).'
+      ),
     email: z.string().min(1).max(255).default('email').describe('Claim holding the email address.'),
     name: z.string().min(1).max(255).default('name').describe('Claim holding the display name.'),
     image: z.string().min(1).max(255).default('picture').describe('Claim holding the avatar URL.'),

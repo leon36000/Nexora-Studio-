@@ -1,5 +1,5 @@
 import { toNextJsHandler } from 'better-auth/next-js'
-import { type NextRequest, NextResponse } from 'next/server'
+import { NextRequest, NextResponse } from 'next/server'
 import { sharedCredentialGroupOAuthCallbackContract } from '@/lib/api/contracts/credential-groups'
 import { parseRequest } from '@/lib/api/server'
 import { auth } from '@/lib/auth'
@@ -53,6 +53,37 @@ async function isBlockedVerificationOtpSend(request: NextRequest, path: string):
 }
 
 const OAUTH_CALLBACK_PATH_PREFIX = 'oauth2/callback/'
+
+/**
+ * Public paths operators registered before Better Auth 1.7, and where the plugin now serves them:
+ * the generic OAuth providers (integration connectors, company identity provider) moved to
+ * `callback/:id`, and the SAML ACS to `sso/saml2/sp/acs/:id`. The authorization requests still
+ * carry the old redirect URI and identity providers still post to the old ACS URL, so the answer
+ * is handed to Better Auth under its new path.
+ */
+const RELOCATED_PATH_PREFIXES: readonly (readonly [string, string])[] = [
+  [OAUTH_CALLBACK_PATH_PREFIX, 'callback/'],
+  ['sso/saml2/callback/', 'sso/saml2/sp/acs/'],
+]
+
+async function withBetterAuthCallbackPath(
+  request: NextRequest,
+  path: string
+): Promise<NextRequest> {
+  const relocated = RELOCATED_PATH_PREFIXES.find(([legacy]) => path.startsWith(legacy))
+  if (!relocated) return request
+  const [legacy, current] = relocated
+  const url = new URL(request.url)
+  url.pathname = `/api/auth/${current}${path.slice(legacy.length)}`
+  if (request.method === 'GET' || request.method === 'HEAD') {
+    return new NextRequest(url, { method: request.method, headers: request.headers })
+  }
+  return new NextRequest(url, {
+    method: request.method,
+    headers: request.headers,
+    body: await request.arrayBuffer(),
+  })
+}
 const UNSUPPORTED_OIDC_PATHS = new Set([
   '.well-known/openid-configuration',
   'oauth2/end-session',
@@ -137,15 +168,11 @@ function isBlockedSsoMutationPath(path: string): boolean {
  * granting or revoking it, never by editing the row.
  *
  * Deny-by-default, like the SSO block above, so a future plugin version cannot
- * introduce another unshadowed mutation endpoint. `oauth2/link` and
- * `oauth2/callback/` belong to the existing generic OAuth connector client.
+ * introduce another unshadowed mutation endpoint. `oauth2/callback/` belongs to the generic
+ * OAuth connector client and is rewritten to Better Auth's `callback/` endpoint.
  */
 function isBlockedOAuthProviderMutationPath(path: string): boolean {
-  if (
-    !path.startsWith('oauth2/') ||
-    path === 'oauth2/link' ||
-    path.startsWith('oauth2/callback/')
-  ) {
+  if (!path.startsWith('oauth2/') || path.startsWith(OAUTH_CALLBACK_PATH_PREFIX)) {
     return false
   }
   return !OAUTH_PROVIDER_PROTOCOL_POST_PATHS.has(path)
@@ -219,7 +246,10 @@ export const GET = withRouteHandler(async (request: NextRequest) => {
     return NextResponse.json(createAnonymousSession())
   }
 
-  return withoutNexoraOrganizationMetadata(path, await betterAuthGET(request))
+  return withoutNexoraOrganizationMetadata(
+    path,
+    await betterAuthGET(await withBetterAuthCallbackPath(request, path))
+  )
 })
 
 export const POST = withRouteHandler(async (request: NextRequest) => {
@@ -261,5 +291,8 @@ export const POST = withRouteHandler(async (request: NextRequest) => {
     )
   }
 
-  return withoutNexoraOrganizationMetadata(path, await betterAuthPOST(request))
+  return withoutNexoraOrganizationMetadata(
+    path,
+    await betterAuthPOST(await withBetterAuthCallbackPath(request, path))
+  )
 })

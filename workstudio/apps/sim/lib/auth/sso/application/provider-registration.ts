@@ -5,7 +5,7 @@ import { keepDomainSignInProvider, ssoProviderDomainKey } from '@sim/db/sso-prim
 import { createLogger } from '@sim/logger'
 import { toStringOrNull } from '@sim/utils/coerce'
 import { getErrorMessage, getPostgresErrorCode } from '@sim/utils/errors'
-import { isRecordLike, toRecord } from '@sim/utils/object'
+import { isRecordLike, omit, toRecord } from '@sim/utils/object'
 import { normalizeSSODomain } from '@sim/utils/sso-domain'
 import { and, eq, sql } from 'drizzle-orm'
 import { ssoProviderOperations } from '@/lib/auth/sso/application/operations'
@@ -28,7 +28,6 @@ import {
   validateUrlWithDNS,
 } from '@/lib/core/security/input-validation.server'
 import { REDACTED_MARKER } from '@/lib/core/security/redaction'
-import { getBaseUrl } from '@/lib/core/utils/urls'
 import type { DbOrTx } from '@/lib/db/types'
 import { defineOrganizationConfigurationUseCase } from '@/lib/organizations/application/authorized-configuration-use-case'
 
@@ -512,7 +511,7 @@ export const saveSsoProvider = defineOrganizationConfigurationUseCase({
       oidcConfig.skipDiscovery = true
       // Better Auth reads the attribute mapping from oidcConfig.mapping, not a
       // top-level field — nesting it here is what makes a custom mapping apply.
-      if (mapping) oidcConfig.mapping = mapping
+      if (mapping) oidcConfig.mapping = omit(mapping, ['id'])
       providerConfig.oidcConfig = oidcConfig
     } else if (providerType === 'saml') {
       const {
@@ -527,41 +526,11 @@ export const saveSsoProvider = defineOrganizationConfigurationUseCase({
         idpMetadata,
       } = body
 
-      const computedCallbackUrl =
-        callbackUrl || `${getBaseUrl()}/api/auth/sso/saml2/callback/${providerId}`
-
-      const escapeXml = (str: string) =>
-        str.replace(/[<>&"']/g, (c) => {
-          switch (c) {
-            case '<':
-              return '&lt;'
-            case '>':
-              return '&gt;'
-            case '&':
-              return '&amp;'
-            case '"':
-              return '&quot;'
-            case "'":
-              return '&apos;'
-            default:
-              return c
-          }
-        })
-
-      const spMetadataXml = `<?xml version="1.0" encoding="UTF-8"?>
-<md:EntityDescriptor xmlns:md="urn:oasis:names:tc:SAML:2.0:metadata" entityID="${escapeXml(getBaseUrl())}">
-  <md:SPSSODescriptor AuthnRequestsSigned="false" WantAssertionsSigned="false" protocolSupportEnumeration="urn:oasis:names:tc:SAML:2.0:protocol">
-    <md:AssertionConsumerService Binding="urn:oasis:names:tc:SAML:2.0:bindings:HTTP-POST" Location="${escapeXml(computedCallbackUrl)}" index="1"/>
-  </md:SPSSODescriptor>
-</md:EntityDescriptor>`
-
       const samlConfig: NonNullable<SsoProviderConfig['samlConfig']> = {
         entryPoint,
         cert,
-        callbackUrl: computedCallbackUrl,
-        spMetadata: {
-          metadata: spMetadataXml,
-        },
+        /** Since Better Auth 1.7 the ACS is fixed (`/sso/saml2/sp/acs/:providerId`); this is only the post-login landing page. */
+        ...(callbackUrl ? { callbackUrl } : {}),
       }
 
       if (audience) samlConfig.audience = audience
@@ -570,18 +539,16 @@ export const saveSsoProvider = defineOrganizationConfigurationUseCase({
       if (digestAlgorithm) samlConfig.digestAlgorithm = digestAlgorithm
 
       /**
-       * Always written, empty when unset: Better Auth merges SAML config with
-       * `??`, so an omitted key keeps whatever was stored and clearing either
-       * field would never take effect. Both are falsy-guarded downstream.
-       *
-       * Metadata must not be generated here — a document built from cert +
-       * entryPoint outranks the certificate on re-save, silently defeating
-       * SAML cert rotation.
+       * Better Auth 1.7 needs an identity-provider identity: the metadata XML when the admin
+       * supplied it, otherwise the issuer as `entityID`. Metadata must not be generated here —
+       * a document built from cert + entryPoint outranks the certificate on re-save, silently
+       * defeating SAML cert rotation. `identifierFormat` is always written, empty when unset,
+       * because an omitted key keeps whatever was stored; it is falsy-guarded downstream.
        */
-      samlConfig.idpMetadata = { metadata: idpMetadata ?? '' }
+      samlConfig.idpMetadata = idpMetadata ? { metadata: idpMetadata } : { entityID: issuer }
       samlConfig.identifierFormat = identifierFormat ?? ''
       // Better Auth reads the attribute mapping from samlConfig.mapping.
-      if (mapping) samlConfig.mapping = mapping
+      if (mapping) samlConfig.mapping = omit(mapping, ['id', 'image'])
 
       providerConfig.samlConfig = samlConfig
     }
@@ -640,6 +607,16 @@ export const saveSsoProvider = defineOrganizationConfigurationUseCase({
       const writer = await ssoProviderWriter(principal, orgId, tx)
       let rowId: string
       if (existing) {
+        if (body.providerType === 'saml' && !body.idpMetadata && providerConfig.samlConfig) {
+          /** The issuer is only a default identity: a stored metadata document or entityID stays. */
+          const storedIdp = toRecord(JSON.parse(existing.samlConfig ?? '{}')).idpMetadata
+          const hasStoredIdentity =
+            typeof storedIdp === 'string'
+              ? storedIdp !== ''
+              : Boolean(toRecord(storedIdp).metadata || toRecord(storedIdp).entityID)
+          if (hasStoredIdentity)
+            delete (providerConfig.samlConfig as { idpMetadata?: unknown }).idpMetadata
+        }
         await writer.update(
           {
             providerId,

@@ -14,7 +14,7 @@ import { NEXORA_OIDC_PROVIDER_ID } from '@/lib/nexora/oidc'
 
 const logger = createLogger('SessionHooks')
 
-const NEXORA_OIDC_CALLBACK_PATH = `/oauth2/callback/${NEXORA_OIDC_PROVIDER_ID}`
+const NEXORA_OIDC_CALLBACK_PATH = `/callback/${NEXORA_OIDC_PROVIDER_ID}`
 
 /**
  * Nexora edition, « connexion obligatoire »: a member's session comes from the company identity

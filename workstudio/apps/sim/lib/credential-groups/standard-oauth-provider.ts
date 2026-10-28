@@ -278,13 +278,13 @@ export function createStandardOAuthCredentialGroupProviderAdapter(
             accessType: current.connector.accessType,
             responseType: current.connector.responseType,
             responseMode: current.connector.responseMode,
+            ...(managed.nonceVerification === 'id_token' ? { nonce } : {}),
             additionalParams: {
               ...staticParams(
                 current.connector.authorizationUrlParams,
                 'OAuth authorization parameters'
               ),
               ...managed.authorizationUrlParams,
-              ...(managed.nonceVerification === 'id_token' ? { nonce } : {}),
             },
           })
           return authorizationUrl.toString()

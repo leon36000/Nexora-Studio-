@@ -62,7 +62,7 @@ Copy **Callback URL** for OIDC or **ACS URL (Reply URL)** for SAML, then registe
 | Protocol | Callback format |
 | --- | --- |
 | OIDC | `https://<your-sim-domain>/api/auth/sso/callback/{provider-id}` |
-| SAML | `https://<your-sim-domain>/api/auth/sso/saml2/callback/{provider-id}` |
+| SAML | `https://<your-sim-domain>/api/auth/sso/saml2/sp/acs/{provider-id}` |
 
 Sim Cloud uses `www.sim.ai`; self-hosted deployments use their public domain. Use your chosen **Provider ID** in both systems. For SAML, register the **SP Entity ID** as the provider's audience/Entity ID. If you set a **Callback URL override**, Sim's copyable ACS URL uses that override.
 
@@ -186,7 +186,7 @@ See [Microsoft SAML setup](https://learn.microsoft.com/en-us/entra/identity/ente
 3. Set **Relying party identifier** to Sim's **SP Entity ID**. Sim Cloud normally shows `https://www.sim.ai`; copy the value from your own deployment.
 4. Add a **SAML Assertion Consumer Service** endpoint with HTTP POST binding:
    ```
-   https://<your-sim-domain>/api/auth/sso/saml2/callback/acme-adfs
+   https://<your-sim-domain>/api/auth/sso/saml2/sp/acs/acme-adfs
    ```
 5. Under **Certificates**, export the **Token-signing certificate** using **View Certificate → Details → Copy to File → Base-64 encoded X.509 (.CER)**. Paste the text, including its header and footer, into Sim.
 6. Copy the **Federation Service identifier** from **Service → Federation Service Properties**, and the SSO endpoint, such as `https://adfs.acme.com/adfs/ls`.

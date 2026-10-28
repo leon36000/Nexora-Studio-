@@ -40,10 +40,12 @@ import { reportFreebuffConversion } from '@/lib/analytics/freebuff.server'
 import { getAccessControlConfig, isEmailBlockedByAccessControl } from '@/lib/auth/access-control'
 import { holdAdminRemovalStops, stopAdminRemovedRuns } from '@/lib/auth/admin-removal-stops'
 import { createAnonymousSession, ensureAnonymousUserExists } from '@/lib/auth/anonymous'
+import { withConnectorCallbackDefaults } from '@/lib/auth/connectors/callback-defaults'
 import { buildConnectorProviders } from '@/lib/auth/connectors/providers'
 import {
   applyRegistrationGate,
   getRequestedSignInProviderId,
+  isGenericOAuthCallbackPath,
   isSignInProviderAllowed,
 } from '@/lib/auth/constants'
 import { getAuthDatabase } from '@/lib/auth/database-context'
@@ -512,7 +514,7 @@ export const auth = betterAuth({
           // verified-email claim alone never takes over an owner's or admin's account.
           await assertNexoraOidcLinkAllowed(account, { loadOAuthState: () => getOAuthState() })
 
-          if (context?.path.startsWith('/oauth2/callback/')) {
+          if (context && isGenericOAuthCallbackPath(context.path)) {
             try {
               await captureOAuthCredentialDraftBinding(context, () => getOAuthState())
             } catch (error) {
@@ -644,7 +646,7 @@ export const auth = betterAuth({
             }
           }
 
-          const isOAuth2Callback = context?.path.startsWith('/oauth2/callback/') === true
+          const isOAuth2Callback = isGenericOAuthCallbackPath(context?.path)
           const credentialDraftBinding = context
             ? consumeOAuthCredentialDraftBinding(context)
             : undefined
@@ -783,7 +785,7 @@ export const auth = betterAuth({
          */
         after: async (account, context) => {
           const path = context?.path
-          if (!path?.startsWith('/oauth2/callback/') && !path?.startsWith('/callback/')) return
+          if (!path?.startsWith('/callback/')) return
           // Fails the callback only if this statement fails, so a reconnect never reports
           // success while the old revocation still blocks the credential.
           await clearRecordedRevocation(account.id)
@@ -825,7 +827,7 @@ export const auth = betterAuth({
       /**
        * Only providers that verify email ownership may auto-link to an existing
        * account during sign-in. Integration connectors are deliberately absent:
-       * they connect through the authenticated `/oauth2/link` flow, which binds
+       * they connect through the authenticated `/link-social` flow, which binds
        * to the current session user and never consults this list. `microsoft` is
        * also excluded because it authenticates against the multi-tenant
        * `/common/` endpoint where the email claim is attacker-controllable;
@@ -1033,9 +1035,7 @@ export const auth = betterAuth({
       try {
         /** Refuse provider calls when user authentication is disabled without blocking connector OAuth. */
         if (
-          ((ctx.path.startsWith('/oauth2/') &&
-            ctx.path !== '/oauth2/link' &&
-            !ctx.path.startsWith('/oauth2/callback/')) ||
+          (ctx.path.startsWith('/oauth2/') ||
             ctx.path === '/.well-known/oauth-authorization-server') &&
           isAuthDisabled
         ) {
@@ -1055,11 +1055,11 @@ export const auth = betterAuth({
          * providers. Better Auth registers every generic-OAuth integration
          * connector as a social provider, so without this guard `microsoft-ad`,
          * `salesforce`, `jira`, and the rest are reachable through
-         * `/sign-in/social` and `/sign-in/oauth2` and can mint a session for any
-         * user by email (nOAuth account takeover). Connectors are connected only
-         * through the authenticated `/oauth2/link` flow, which is unaffected.
+         * `/sign-in/social` and can mint a session for any user by email (nOAuth
+         * account takeover). Connectors are connected only through the
+         * authenticated `/link-social` flow, which is unaffected.
          */
-        if (ctx.path === '/sign-in/social' || ctx.path === '/sign-in/oauth2') {
+        if (ctx.path === '/sign-in/social') {
           const requestedProviderId = getRequestedSignInProviderId(ctx.path, ctx.body)
           if (!isSignInProviderAllowed(requestedProviderId)) {
             throw new APIError('FORBIDDEN', {
@@ -1102,10 +1102,7 @@ export const auth = betterAuth({
           }
         }
 
-        if (
-          ctx.path === '/oauth2/link' &&
-          ctx.body?.providerId === MICROSOFT_DATAVERSE_PROVIDER_ID
-        ) {
+        if (ctx.path === '/link-social' && ctx.body?.provider === MICROSOFT_DATAVERSE_PROVIDER_ID) {
           try {
             assertMicrosoftDataverseOAuthLinkRequest(
               ctx.body.callbackURL,
@@ -1493,7 +1490,10 @@ export const auth = betterAuth({
       overrideDefaultEmailVerification: true,
     }),
     genericOAuth({
-      config: [...buildConnectorProviders(), ...(nexoraOidcProvider ? [nexoraOidcProvider] : [])],
+      config: [
+        ...buildConnectorProviders(),
+        ...(nexoraOidcProvider ? [nexoraOidcProvider] : []),
+      ].map(withConnectorCallbackDefaults),
     }),
     /**
      * Sim as an OAuth 2.0 authorization server (auth-code + PKCE, refresh
@@ -1527,6 +1527,12 @@ export const auth = betterAuth({
             clientRegistrationAllowedScopes: [...OAUTH_PUBLIC_REGISTRATION_SCOPES],
             clientRegistrationDefaultScopes: [...OAUTH_PUBLIC_REGISTRATION_SCOPES],
             customTokenResponseFields: bindOAuthIssuedResource,
+            /**
+             * MCP server URLs are the protected resources, registered on demand by the
+             * authorization route; any registered client may request any of them, and
+             * `oauth-resource.ts` binds the grant's scopes to the resource's family.
+             */
+            enforcePerClientResources: false,
             /**
              * Client-management endpoints remain operator-only. Public registration
              * has its own bounded Search-only route and cannot inherit a browser
@@ -1576,6 +1582,12 @@ export const auth = betterAuth({
             stripeClient,
             stripeWebhookSecret: env.STRIPE_WEBHOOK_SECRET || '',
             createCustomerOnSignUp: true,
+            /**
+             * Better Auth 1.7 refuses `customerType: 'organization'` checkouts unless this is on;
+             * `organization.stripe_customer_id` already exists, and `authorizeReference` still
+             * decides who may bill an organization.
+             */
+            organization: { enabled: true },
             onCustomerCreate: async ({ stripeCustomer, user }) => {
               logger.info('[onCustomerCreate] Stripe customer created', {
                 stripeCustomerId: stripeCustomer.id,
