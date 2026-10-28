@@ -10,7 +10,7 @@ from nexora_diarize.audio import DiarizeError, decode_audio
 from nexora_diarize.pipeline import SAMPLE_RATE, Diarizer
 
 MODELS = Path(os.environ.get("NEXORA_DIARIZE_MODELS", "/nonexistent"))
-FIXTURE = Path(__file__).resolve().parents[3] / "docs" / "verification" / "k12-reunion"
+FIXTURE = Path(__file__).resolve().parents[3] / "scripts" / "fixtures" / "reunion"
 needs_models = pytest.mark.skipif(not (MODELS / "segmentation.onnx").is_file(), reason="models absent (set NEXORA_DIARIZE_MODELS)")
 
 

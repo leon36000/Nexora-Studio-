@@ -1,6 +1,6 @@
 """Génère le jeu versionné K4 : 10 factures françaises fictives (5 PDF numériques, 5 scans) et attendu.json.
 
-Usage : python3 docs/verification/k4-factures/generer.py
+Usage : python3 scripts/fixtures/factures/generer.py
 Les PDF numériques sont écrits octet par octet (bibliothèque standard : texte Helvetica, tableau à
 filets). Les scans en sont des rendus bruités et inclinés : ils demandent Pillow et pypdfium2, les
 bibliothèques de lecture de PDF de Nexora API (`pip install pillow pypdfium2`). Le tirage est fixe

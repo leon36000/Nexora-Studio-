@@ -1,7 +1,7 @@
 """Mesure l'exactitude de l'extraction de factures (K4) sur le jeu versionné de ce dossier.
 
 Usage :
-  NEXORA_API_KEY=... python3 -I docs/verification/k4-factures/mesurer.py \\
+  NEXORA_API_KEY=... python3 -I scripts/fixtures/factures/mesurer.py \\
       [--url http://127.0.0.1:8000/v1] [--vision-model qwen2.5vl:3b] \\
       [--annotation-model nexora-default] [--report rapport.json]
 

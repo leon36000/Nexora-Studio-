@@ -1,5 +1,7 @@
 # Ledger Nexora WorkStudio v3.1 — opérationnel, navigateurs, performance, facilité (27/10/2026)
 
+> Note (ménage du 27/10/2026) : les plans par jalon (v1, J1 à J11, K1 à K15), les captures et les rapports de campagne de `docs/verification/`, le rapport de test réel et les anciens codemods cités ci-dessous ont été retirés (exécutés ou remplacés) ; ils restent dans l'historique git (commit `b05d7e07`). Les jeux d'essai de la fumée sont dans `scripts/fixtures/`.
+
 Demande du fondateur : « assure-toi que Nexora WorkStudio soit 100 % opérationnel et performant ainsi que parfaitement optimisé pour les navigateurs », « à la pointe et extrêmement puissant tout en demeurant facile », et l'entreprise devient **Nexora AI** (le produit reste Nexora WorkStudio). Branche `worktree-agent-a5dcfc987412a02d0` ; rien n'est poussé, pc6 n'est pas redéployé (procédure en fin de fichier).
 
 Outils ajoutés (tous dans `scripts/verification/`) : `navigateurs.mjs` (+ `navigateurs-pc6.sh`, `navigateurs-docker.sh`), `lighthouse.sh`, `analyse-bundles.py`, `chaine-import.py` ; `scripts/codemods/contracts-barrel-vers-fichiers.py`. La fumée accepte `NEXORA_SECRETS_ROOT` (arbre de travail sans `.secrets`).

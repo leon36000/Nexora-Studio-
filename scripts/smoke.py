@@ -55,7 +55,7 @@ STEP_TRIGGERS = {"start_trigger", "generic_webhook", "schedule", "chat_trigger"}
 STEP_BLOCKS = {"agent", "condition", "api", "wait", "human_in_the_loop_v2", "response", "smtp", "stt_v2",
                "table_v2", "knowledge", "function", "mcp", "workflow", "variables"}
 # Three voices (a woman, a man, a second woman), 61 s, made by the local French voices.
-MEETING_AUDIO = Path(__file__).resolve().parent.parent / "docs" / "verification" / "k12-reunion" / "reunion-courte.mp3"
+MEETING_AUDIO = Path(__file__).resolve().parent.parent / "scripts" / "fixtures" / "reunion" / "reunion-courte.mp3"
 
 
 # 5×7 glyphs for the OCR and extraction checks' test images (standard library only: no imaging package needed).
@@ -703,7 +703,7 @@ def main() -> int:
                          "Total HT : 1 250,00 EUR", "TVA 20 % : 250,00 EUR", "Total TTC : 1 500,00 EUR"]
             # The scan is a real rendering (150 dpi, slight skew and blur) from the K4 test set: a
             # synthetic bitmap font is not something a 3B vision model reads reliably.
-            k4 = Path(__file__).resolve().parent.parent / "docs" / "verification" / "k4-factures"
+            k4 = Path(__file__).resolve().parent.parent / "scripts" / "fixtures" / "factures"
             scan = json.loads((k4 / "attendu.json").read_text(encoding="utf-8"))["facture-06-scan.png"]
             documents = [("facture.pdf", "application/pdf", text_pdf(pdf_lines)),
                          ("facture-06-scan.png", "image/png", (k4 / "facture-06-scan.png").read_bytes())]
