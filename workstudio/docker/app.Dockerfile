@@ -133,6 +133,12 @@ ENV DATABASE_URL=${DATABASE_URL}
 ARG NEXT_PUBLIC_APP_URL="http://localhost:3000"
 ENV NEXT_PUBLIC_APP_URL=${NEXT_PUBLIC_APP_URL}
 
+# Next lance « cœurs - 1 » processus pour collecter et générer les pages (31 sur un serveur à 32 cœurs, plus de
+# 40 Go de mémoire : la construction a fait redémarrer un serveur de 48 Go). CIRCLE_NODE_TOTAL est la seule commande
+# de ce nombre (processus = valeur - 1) ; vide, Next garde son défaut.
+ARG NEXORA_BUILD_CPUS=""
+ENV CIRCLE_NODE_TOTAL=${NEXORA_BUILD_CPUS}
+
 # Per-platform cache id keeps arm64/amd64 SWC artifacts isolated.
 RUN --mount=type=cache,id=next-cache-${TARGETPLATFORM},target=/app/apps/sim/.next/cache \
     --mount=type=cache,id=turbo-cache-${TARGETPLATFORM},target=/app/.turbo \

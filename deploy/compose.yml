@@ -186,6 +186,9 @@ services:
     build:
       context: ../workstudio
       dockerfile: docker/app.Dockerfile
+      args:
+        # Processus de construction de Next + 1 (vide = cœurs - 1, voir workstudio/docker/app.Dockerfile).
+        NEXORA_BUILD_CPUS: ${NEXORA_BUILD_CPUS:-}
     image: ${NEXORA_IMAGE_PREFIX:-nexora/}workstudio:${NEXORA_VERSION:-local}
     restart: unless-stopped
     # nexora-admin.env: the model administration key (Réglages › Modèles), absent on older volumes.

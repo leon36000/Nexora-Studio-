@@ -46,19 +46,21 @@ fi
 # Mailpit de vérification, sur le réseau du projet (joignable par son nom depuis WorkStudio).
 mailpit="${NEXORA_VERIF_MAILPIT:-nexora-verif-mailpit}"
 if ! docker inspect "$mailpit" >/dev/null 2>&1; then
-  docker run -d --name "$mailpit" --network "$network" -p 127.0.0.1:18025:8025 axllent/mailpit:v1.32.0 >/dev/null
+  docker run -d --name "$mailpit" --restart unless-stopped --network "$network" -p 127.0.0.1:18025:8025 axllent/mailpit:v1.32.0 >/dev/null
 fi
+docker start "$mailpit" >/dev/null
 
 # Relais de la passerelle : le test « OpenAI-compatible » ajoute un modèle par son adresse, sans clé ; la passerelle en exige une.
 relais="${NEXORA_VERIF_RELAIS:-nexora-verif-relais}"
 gateway_network="${NEXORA_VERIF_GATEWAY_NETWORK:-agentos-litellm_backend}"
 if ! docker inspect "$relais" >/dev/null 2>&1; then
   RELAIS_AMONT="$(env_value NEXORA_UPSTREAM_URL)" RELAIS_CLE="$(env_value NEXORA_UPSTREAM_KEY)" \
-    docker run -d --name "$relais" --network "$network" -e RELAIS_AMONT -e RELAIS_CLE \
+    docker run -d --name "$relais" --restart unless-stopped --network "$network" -e RELAIS_AMONT -e RELAIS_CLE \
       -v "$root/scripts/verification/proxy-openai-cle.py:/relais.py:ro" \
       --entrypoint /.venv/bin/python "$(env_value NEXORA_IMAGE_PREFIX)api:$(env_value NEXORA_VERSION)" /relais.py >/dev/null
   docker network connect "$gateway_network" "$relais" 2>/dev/null || true
 fi
+docker start "$relais" >/dev/null
 
 # Le collecteur OTLP de la fumée écoute sur l'hôte : WorkStudio le joint par la passerelle du réseau du projet.
 collector_host="$(docker network inspect "$network" -f '{{(index .IPAM.Config 0).Gateway}}')"
