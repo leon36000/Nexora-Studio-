@@ -17,6 +17,12 @@ workflow:
 variables:
   SONAR_HOST_URL: "https://pc4.tail0c55ff.ts.net:8443"
 
+# Le réseau de pc4 perd parfois la résolution du CDN de Docker Hub : un échec de préparation du pod est relancé.
+default:
+  retry:
+    max: 2
+    when: [runner_system_failure, unknown_failure, stuck_or_timeout_failure, scheduler_failure]
+
 .rapport:
   artifacts:
     when: always
@@ -40,6 +46,9 @@ semgrep:
   stage: analyse
   image: semgrep/semgrep:1.181.1
   timeout: 45 minutes
+  variables:
+    # L'image Semgrep attend le code dans /src ; dans la CI il est dans le dossier du projet.
+    SEMGREP_SRC_DIRECTORY: "${CI_PROJECT_DIR}"
   script:
     - semgrep scan --config p/default --metrics=off --timeout 30 --jobs 4 --json --output semgrep.json
     - semgrep scan --config p/default --metrics=off --timeout 30 --jobs 4 --severity ERROR --error --quiet
