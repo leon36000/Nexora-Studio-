@@ -7,6 +7,7 @@ import { createLogger } from '@sim/logger'
 import { loadRuntimeSecrets } from '@sim/runtime-secrets'
 import { distrustCompromisedRoots } from '@sim/security/tls-trust'
 import { getErrorMessage } from '@sim/utils/errors'
+import { publishNexoraSiteUrl } from '@/lib/nexora/site-links'
 import { loadInstanceSettingsIntoEnv } from '@/lib/nexora/startup-settings'
 
 const tlsTrust = distrustCompromisedRoots()
@@ -34,6 +35,8 @@ try {
   })
   process.exit(1)
 }
+// Nexora edition: the Nexora AI site's address (account, wallet, sign-up links) is the issuer's, minus its path.
+publishNexoraSiteUrl()
 // `server.js` is the Next standalone build artifact, a sibling of this file in
 // the image; it does not exist at type-check time, so the specifier is held in a
 // variable to keep it out of static module resolution.
