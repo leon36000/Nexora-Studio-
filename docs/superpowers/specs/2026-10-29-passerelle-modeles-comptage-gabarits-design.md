@@ -87,6 +87,19 @@ Points qui changent la conception :
 
 † Chiffre repris du tableau d'un autre éditeur (DeepSeek ou MiniMax), faute de publication par l'éditeur du modèle. Les colonnes ne sont pas strictement comparables : chaque éditeur publie ses propres exécutions, avec ses propres harnais. Z.ai publie aussi, pour GLM 5.3 Flash, DeepSWE v1.1 à 63,4 et AutomationBench à 48,8. À afficher dans les fiches avec la mention « publié par l'éditeur », la source et la date de lecture.
 
+### 3.1 Amont unique : OpenRouter (décision du fondateur, 28/10/2026)
+
+Le fondateur veut une seule clé amont, celle d'OpenRouter, pour les cinq modèles. J'ai relu le catalogue public d'OpenRouter le 28/10/2026 : les cinq modèles y sont tous (`deepseek/deepseek-v4.1-flash-1017`, `z-ai/glm-5.3`, `z-ai/glm-5.3-flash`, `minimax/minimax-m3.1-flash`, `moonshotai/kimi-k3.1-pro`) et, chez le fournisseur d'origine, leurs prix sont ceux des pages officielles de la section 3.
+
+Ce que cela change :
+
+- **Un seul fournisseur dans le catalogue** (`code: openrouter`, type `openrouter`, déjà prévu dans le schéma), une seule clé dans le coffre, saisie par le fondateur. La bascule entre fournisseurs (G6) est faite par OpenRouter ; on garde le champ `upstream_id` et le type de fournisseur pour pouvoir ajouter un accès direct plus tard.
+- **OpenRouter choisit lui-même l'hébergeur**, et les prix varient énormément d'un hébergeur à l'autre (GLM 5.3 : de 0,07 $ à 2,80 $ par million de jetons d'entrée selon l'hébergeur). Le prix « du modèle » affiché par OpenRouter n'est donc pas fiable ; **la référence de coût est le prix du fournisseur d'origine** (DeepSeek, Z.ai, MiniMax, Moonshot), qui correspond aux pages officielles. Chaque fiche porte des consignes de routage (`routing`) : refus de la collecte de données (`data_collection: deny`), prix plafonné à la référence (`max_price`), liste d'hébergeurs exclus. Le coût réel est donc toujours inférieur ou égal à la référence.
+- **Le prix de vente est publié et fixe** : référence × 1,10. Le coût réel renvoyé par OpenRouter pour chaque requête (`usage.cost`) est enregistré à côté, ce qui donne la marge réelle sans changer ce que le client paie (G7).
+- **DeepSeek garde ses deux tarifs** : OpenRouter publie les mêmes fenêtres de pointe (01 h à 04 h et 06 h à 10 h UTC, du lundi au vendredi) dans le champ `pricing.overrides` de sa fiche. G1 reste donc nécessaire, et son format de fenêtres s'appuiera sur celui d'OpenRouter.
+- **Frais d'OpenRouter** : 5,5 % à l'achat de crédits (plan Standard), 8 % au plan Business. Avec 10 % de marge sur la référence, la marge nette est d'environ 4,2 % au plan Standard (1,10 / 1,055). C'est mince : à surveiller dès qu'il y a du volume. Deux leviers : utiliser des clés d'hébergeur directes dans OpenRouter (BYOK, sans frais jusqu'à 25 000 $ de coût catalogue par mois), ou relever la marge.
+- **Résidence des données** : OpenRouter peut router vers des hébergeurs en Chine, aux États-Unis ou en Europe. La fiche déclare une `residency` et un ensemble d'hébergeurs permis ; par défaut un modèle n'est publié qu'avec une liste d'hébergeurs approuvée. Pour GLM 5.3, OpenRouter propose un hébergeur européen (Mistral) sans conservation des données.
+
 ## 4. Écarts et chantiers
 
 | # | Écart | Chantier |
@@ -139,9 +152,16 @@ Chaque gabarit déclare son modèle par défaut (`NEXORA_DEFAULT_MODEL`) et rest
 6. G6 et G7 : routeur, bascule, rapprochement.
 7. G8 puis G10 : branchement de WorkStudio et gabarits.
 
-## 9. Ce qu'il me faut du fondateur
+## 9. Décisions
 
-1. **Marge** : marge cible par modèle, ou règle générale (par exemple un pourcentage sur le coût amont), et plancher. Sans réponse, je pose une marge de 30 % comme valeur de développement, en brouillon.
-2. **Clés amont** : sa clé de chaque fournisseur (DeepSeek, Z.ai, MiniMax, Moonshot), à saisir dans le coffre par lui-même. Je ne les demande pas dans la conversation.
-3. **MiniMax** : M3.1 Flash seulement, ou aussi M3 ?
-4. **G8** : OK pour que WorkStudio appelle la passerelle du site ?
+Prises par le fondateur le 28/10/2026 :
+
+1. **Marge : 10 %** sur le coût de référence, plancher à 10 % (la garde de publication refuse un prix sous le plancher).
+2. **Amont : une seule clé OpenRouter** pour tous les modèles (section 3.1).
+3. Le reste est laissé à mon jugement. Mes choix :
+   - **MiniMax** : M3.1 Flash seulement (c'est le seul « M3.1 » qui existe). M3 s'ajoutera par l'assistant d'ajout de modèle si besoin.
+   - **G8** : WorkStudio appelle la passerelle du site, pour une seule comptabilité (sous réserve de la tranche 8, et de l'accord sur le coût de mise en production).
+   - **Accès gratuit du fondateur** : organisation « maison », coût réel compté, débit à zéro (G9).
+   - **Nouveaux modèles : toujours en brouillon** jusqu'à ce que le fondateur ait saisi la clé OpenRouter dans le coffre et approuvé le taux de change.
+
+Reste à faire par le fondateur : saisir sa clé OpenRouter dans le coffre du site (je ne la demande pas ici), et approuver le taux de change USD→CAD.
