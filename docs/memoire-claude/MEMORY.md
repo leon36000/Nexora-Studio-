@@ -12,3 +12,6 @@
 - [GitLab ou pc1](feedback-gitlab-ou-pc1.md) — GitLab par défaut ; si CI bien plus longue, travailler en parallèle sur pc1 et finaliser via GitLab
 - [Passerelle OpenRouter](nexora-passerelle-openrouter.md) — amont unique OpenRouter, marge 10 %, tranche 1 faite, tranches restantes
 - [WebPilot et Privacy Router](nexora-webpilot-privacy-router.md) — décision produit : deux produits indépendants intégrés, confidentialité incluse par défaut
+- [Organisation GitLab seulement](nexora-organisation-gitlab.md) — GitLab = seule source ; pc6 vidé de WorkStudio ; piège : la démo du site tourne sur pc6 (gx10)
+- [Vision Nexora AI (29/10)](nexora-vision-ai.md) — portail IA : tous les produits et l ordre voulu ; réponses courtes
+- [État Nexora 29/10 soir](nexora-essai-sso-demo.md) — tout fusionné sur GitLab ; montage d'essai (ponts, adresses, pièges), reste à faire du fondateur
