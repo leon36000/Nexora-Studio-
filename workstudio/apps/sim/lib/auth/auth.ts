@@ -236,6 +236,7 @@ const additionalTrustedOrigins = parseOriginList(env.TRUSTED_ORIGINS, (value) =>
  */
 const nexoraOidcProvider = buildNexoraOidcProvider(env, {
   registrationDisabled: isRegistrationDisabled,
+  gatewayEnabled: Boolean(env.NEXORA_GATEWAY_URL),
 })
 
 const additionalTrustedSsoProviders = isSsoEnabled

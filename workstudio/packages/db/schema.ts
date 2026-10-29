@@ -8788,6 +8788,23 @@ export const nexoraPersonalConnectToken = pgTable(
 )
 
 /**
+ * Nexora edition: a person's own key to the site's model gateway, made on their first sign-in
+ * through the site. The models a workspace uses are paid from the wallet of the person billed for
+ * it (`workspace.billed_account_user_id`). Only the server reads the key, which is encrypted and
+ * never returned.
+ */
+export const nexoraGatewayKey = pgTable('nexora_gateway_key', {
+  userId: text('user_id')
+    .primaryKey()
+    .references(() => user.id, { onDelete: 'cascade' }),
+  keyEncrypted: text('key_encrypted').notNull(),
+  /** The gateway model `nexora-default` stands for, for this person. */
+  model: text('model').notNull(),
+  createdAt: timestamp('created_at').notNull().defaultNow(),
+  updatedAt: timestamp('updated_at').notNull().defaultNow(),
+})
+
+/**
  * Nexora edition: the latest re-embedding of a knowledge base with another model, one row per
  * base. While it runs, the base keeps its model and every search reads the current vectors; the
  * vectors of the new model wait in {@link knowledgeReindexVector}. Once every chunk has one, a

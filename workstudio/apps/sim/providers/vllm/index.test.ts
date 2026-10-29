@@ -250,6 +250,51 @@ describe('vllmProvider', () => {
       expect(openAIArgs()[0].fetch).toBe(pinnedFetchFn)
     })
 
+    it('takes the Nexora AI gateway\u2019s own address as the operator\u2019s: no check, no pin, the long wait kept', async () => {
+      setEnv({
+        VLLM_BASE_URL: 'http://localhost:8000',
+        VLLM_API_KEY: undefined,
+        NEXORA_GATEWAY_URL: 'https://nexora.example/v1',
+      })
+      mockCreate.mockResolvedValueOnce(chatResponse('hi'))
+
+      await vllmProvider.executeRequest({
+        model: 'vllm/nexora/payer-default',
+        messages: [{ role: 'user', content: 'hi' }],
+        azureEndpoint: 'https://nexora.example/v1',
+        apiKey: 'nxk_payer',
+      })
+
+      expect(mockValidateUrlWithDNS).not.toHaveBeenCalled()
+      expect(mockCreatePinnedFetch).not.toHaveBeenCalled()
+      expect(openAIArgs()[0].baseURL).toBe('https://nexora.example/v1')
+      expect(openAIArgs()[0].apiKey).toBe('nxk_payer')
+      expect(openAIArgs()[0].fetch).toBe(nexoraLongFetch)
+      expect(createPayload(0).model).toBe('nexora/payer-default')
+    })
+
+    it('still checks every other address when the gateway is set', async () => {
+      setEnv({
+        VLLM_BASE_URL: 'http://localhost:8000',
+        VLLM_API_KEY: undefined,
+        NEXORA_GATEWAY_URL: 'https://nexora.example/v1',
+      })
+      mockCreate.mockResolvedValueOnce(chatResponse('hi'))
+
+      await vllmProvider.executeRequest({
+        model: 'vllm/llama-3',
+        messages: [{ role: 'user', content: 'hi' }],
+        azureEndpoint: 'https://nexora.example.evil.test/v1',
+      })
+
+      expect(mockValidateUrlWithDNS).toHaveBeenCalledWith(
+        'https://nexora.example.evil.test/v1',
+        'vLLM endpoint',
+        'selfHostedService'
+      )
+      expect(openAIArgs()[0].fetch).toBe(pinnedFetchFn)
+    })
+
     it('rejects a user-supplied endpoint that fails SSRF validation without issuing a request', async () => {
       mockValidateUrlWithDNS.mockResolvedValueOnce({
         isValid: false,

@@ -52,5 +52,5 @@ Aucune sauvegarde indépendante n'existe : **le fondateur doit en garder une cop
 1. **Sauvegarde de pc4** : GitLab est sur un seul disque ; une copie sur un second disque ou une autre machine reste à prévoir.
 2. `install.sh`, `deploy/nexora-cli.sh` et `deploy/.env.example` pointent encore vers GitHub : ne pas s'en servir pour reconstruire.
 3. Ancien service `nexora-web.service` (ancien site) sur pc6, qui redémarre en boucle : à retirer avec l'accord du fondateur.
-4. WorkStudio n'appelle pas encore la passerelle de modèles du site (une seule comptabilité) : chantier prévu.
+4. WorkStudio n'appelle pas encore la passerelle de modèles du site (une seule comptabilité) : chantier en cours sur la branche `feat/site-integre` (clé de passerelle par personne, voir `docs/superpowers/specs/2026-10-29-workstudio-integre-au-site.md`) ; le point d'accès du site `GET /api/oauth/workstudio-access` reste à construire de l'autre côté.
 5. Conception à écrire : Nexora WebPilot et Nexora Privacy Router.

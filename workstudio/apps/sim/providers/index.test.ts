@@ -7,14 +7,23 @@ import {
 } from '@sim/testing/mocks/workspace-file-secret-provenance.mock'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
-const { mockAttachLargeFileRemoteUrls, mockExecuteRequest, mockUploadLargeFilesToProvider } =
-  vi.hoisted(() => ({
-    mockAttachLargeFileRemoteUrls: vi.fn(),
-    mockExecuteRequest: vi.fn(),
-    mockUploadLargeFilesToProvider: vi.fn(),
-  }))
+const {
+  mockAttachLargeFileRemoteUrls,
+  mockExecuteRequest,
+  mockRouteThroughNexoraGateway,
+  mockUploadLargeFilesToProvider,
+} = vi.hoisted(() => ({
+  mockAttachLargeFileRemoteUrls: vi.fn(),
+  mockExecuteRequest: vi.fn(),
+  mockRouteThroughNexoraGateway: vi.fn(async (request: ProviderRequest) => request),
+  mockUploadLargeFilesToProvider: vi.fn(),
+}))
 
 vi.mock('@/lib/api-key/byok', () => apiKeyByokMock)
+
+vi.mock('@/lib/nexora/gateway-access', () => ({
+  routeThroughNexoraGateway: (request: ProviderRequest) => mockRouteThroughNexoraGateway(request),
+}))
 
 vi.mock('@/providers/registry', () => ({
   getProviderExecutor: vi.fn().mockResolvedValue({
@@ -865,6 +874,54 @@ describe('executeProviderRequest — BYOK regression', () => {
  * inside the stream drain without knowing key provenance or the margin, so the
  * shared policy is installed on the live output before the stream is returned.
  */
+describe('executeProviderRequest — Nexora AI gateway', () => {
+  const nexoraRequest = { model: 'vllm/nexora-default', workspaceId: 'ws-1', userId: 'user-1' }
+
+  beforeEach(() => {
+    mockGetApiKeyWithBYOK.mockResolvedValue({ apiKey: 'instance-key', isBYOK: false })
+    mockExecuteRequest.mockResolvedValue(makeAnthropicResponse())
+    mockRouteThroughNexoraGateway.mockReset().mockImplementation(async (request) => request)
+  })
+
+  it('sends a Nexora request to the provider as the gateway routed it, the payer\u2019s key included', async () => {
+    mockRouteThroughNexoraGateway.mockImplementation(async (request: ProviderRequest) => ({
+      ...request,
+      apiKey: 'nxk_payer',
+      azureEndpoint: 'https://nexora.example/v1',
+      model: 'vllm/nexora/payer-default',
+    }))
+
+    await executeProviderRequest('vllm', nexoraRequest)
+
+    expect(mockExecuteRequest.mock.calls[0][0]).toMatchObject({
+      apiKey: 'nxk_payer',
+      azureEndpoint: 'https://nexora.example/v1',
+      model: 'vllm/nexora/payer-default',
+    })
+  })
+
+  it('routes after the instance key was resolved, so the gateway has the last word on the key', async () => {
+    mockRouteThroughNexoraGateway.mockImplementation(async (request: ProviderRequest) => request)
+
+    await executeProviderRequest('vllm', nexoraRequest)
+
+    expect(mockRouteThroughNexoraGateway.mock.calls[0][0]).toMatchObject({ apiKey: 'instance-key' })
+  })
+
+  it('stops the request when the gateway cannot say who pays, instead of using the instance key', async () => {
+    mockRouteThroughNexoraGateway.mockRejectedValue(new Error('gateway refused'))
+
+    await expect(executeProviderRequest('vllm', nexoraRequest)).rejects.toThrow('gateway refused')
+    expect(mockExecuteRequest).not.toHaveBeenCalled()
+  })
+
+  it('leaves the other providers out of it', async () => {
+    await executeProviderRequest('anthropic', { model: 'claude-opus-4-6', workspaceId: 'ws-1' })
+
+    expect(mockRouteThroughNexoraGateway).not.toHaveBeenCalled()
+  })
+})
+
 describe('executeProviderRequest — streaming cost policy', () => {
   beforeEach(() => {
     mockGetApiKeyWithBYOK.mockResolvedValue({ apiKey: 'sk-rotating', isBYOK: false })

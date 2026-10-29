@@ -2230,6 +2230,7 @@ export const GENERATED_SCHEMA_TABLES = {
     'createdAt',
     'updatedAt',
   ],
+  nexoraGatewayKey: ['userId', 'keyEncrypted', 'model', 'createdAt', 'updatedAt'],
   knowledgeReindex: [
     'knowledgeBaseId',
     'generation',

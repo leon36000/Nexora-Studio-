@@ -12,8 +12,9 @@ import {
 } from '@sim/testing/mocks/workspaces-policy.mock'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
-const { mockCreateWorkspaceAccountsGroup } = vi.hoisted(() => ({
+const { mockCreateWorkspaceAccountsGroup, mockEnsureNexoraGatewayKey } = vi.hoisted(() => ({
   mockCreateWorkspaceAccountsGroup: vi.fn(),
+  mockEnsureNexoraGatewayKey: vi.fn(async () => undefined),
 }))
 
 /** The starter workflow is not what these cases are about, and it reaches the block registry. */
@@ -29,11 +30,22 @@ vi.mock('@/lib/workflows/defaults', () => ({
 
 vi.mock('@/lib/workspaces/policy', () => workspacesPolicyMock)
 
+vi.mock('@/lib/nexora/gateway-access', () => ({
+  ensureNexoraGatewayKey: mockEnsureNexoraGatewayKey,
+}))
+
+vi.mock('@/lib/nexora/connect', () => ({ ensureNexoraConnectServer: vi.fn(async () => undefined) }))
+
+vi.mock('@/lib/nexora/seed-templates', () => ({
+  seedNexoraTemplates: vi.fn(async () => undefined),
+}))
+
 import type { DbOrTx } from '@/lib/db/types'
 import { runWithRequestLocale } from '@/lib/i18n/request-locale.server'
 import {
   createDefaultPersonalWorkspaceInTransaction,
   createWorkspace,
+  emitWorkspaceCreatedPlatformEvent,
 } from '@/lib/workspaces/create'
 import { WORKSPACE_MODE, WorkspaceOwnerMissingError } from '@/lib/workspaces/policy'
 
@@ -180,5 +192,19 @@ describe('createDefaultPersonalWorkspaceInTransaction', () => {
         description: 'Your first workflow - start building here!',
       })
     })
+  })
+})
+
+describe('emitWorkspaceCreatedPlatformEvent', () => {
+  beforeEach(() => mockEnsureNexoraGatewayKey.mockClear())
+
+  it('makes the gateway key of the person who just arrived, once their workspace exists', () => {
+    emitWorkspaceCreatedPlatformEvent({
+      workspaceId: 'ws-1',
+      userId: 'user-1',
+      name: 'Espace de Camille',
+    })
+
+    expect(mockEnsureNexoraGatewayKey).toHaveBeenCalledExactlyOnceWith('user-1')
   })
 })
