@@ -1,6 +1,6 @@
 # Nexora : carte du travail
 
-Dernière mise à jour : 28/10/2026. Cette page dit **quoi est où**. Elle ne contient aucun secret.
+Dernière mise à jour : 29/10/2026. Cette page dit **quoi est où**. Elle ne contient aucun secret.
 
 ## La règle
 
@@ -27,8 +27,8 @@ Dernière mise à jour : 28/10/2026. Cette page dit **quoi est où**. Elle ne co
 
 | Quoi | Machine | Détail |
 |---|---|---|
-| WorkStudio de test | pc1 | projet Compose `nexora-x86`, lancé depuis `~/Bureau/Nexora-Travail/nexora-workstudio/deploy`. Ports locaux : 3300 (WorkStudio), 3302, 8300 (API), 8301 (Connect). À voir depuis pc1, ou par `ssh -L 3300:127.0.0.1:3300 pc1` |
-| Démo publique du site | pc6 (nom `gx10-e526`) | service `nexorasite-demo`, `https://gx10-e526.tail0c55ff.ts.net:10000` (publique, non indexée), avec son worker et la pile de développement `nexorasite` (base 15440, Directus 8456, LiteLLM 4400). Panneau d'administration Directus : `https://gx10-e526.tail0c55ff.ts.net:8446/admin`, réseau privé seulement |
+| WorkStudio de test (intégré au site, connexion unique) | pc1 | projet Compose `nexora-x86`, lancé depuis `~/Bureau/Nexora-Travail/nexora-workstudio/deploy` (`-p nexora-x86 -f compose.yml -f compose.pc1.yml`, Compose v5.2 dans `~/Bureau/Nexora-Travail/outils/`). Vu en privé (réseau Tailscale seulement) sur `https://gx10-e526.tail0c55ff.ts.net:3443` par un pont SSH (service `workstudio-pont` sur pc6) ; ports locaux de pc1 : 3300 (WorkStudio), 8300 (API), 8301 (Connect) |
+| Démo publique du site | pc6 (`gx10-e526`) | service `nexorasite-demo`, `https://gx10-e526.tail0c55ff.ts.net:10000` (publique, non indexée), base `app_demo`. Panneau d'administration Directus : `https://gx10-e526.tail0c55ff.ts.net:8446/admin`, réseau privé seulement, relayé vers la démo. Variables de l'essai : drop-in `~/.config/systemd/user/nexorasite-demo.service.d/workstudio.conf` |
 | Serveur définitif | Proxmox du fondateur | pas encore en place : c'est là qu'on recompilera la version finale |
 
 pc6 ne contient plus rien de WorkStudio. Les dossiers `~/Desktop/NexoraSite` et `~/Desktop/NexoraSite-demo` sont les copies de travail du site qui font tourner la démo.
@@ -50,7 +50,7 @@ Aucune sauvegarde indépendante n'existe : **le fondateur doit en garder une cop
 ## Points ouverts
 
 1. **Sauvegarde de pc4** : GitLab est sur un seul disque ; une copie sur un second disque ou une autre machine reste à prévoir.
-2. `install.sh`, `deploy/nexora-cli.sh` et `deploy/.env.example` pointent encore vers GitHub : ne pas s'en servir pour reconstruire.
-3. Ancien service `nexora-web.service` (ancien site) sur pc6, qui redémarre en boucle : à retirer avec l'accord du fondateur.
-4. **WorkStudio intégré au site** : le code est fusionné (site : fournisseur de connexion unique et route `GET /api/oauth/workstudio-access` ; WorkStudio : clé de modèle par personne, `NEXORA_GATEWAY_URL`). Il reste à **recompiler l'image de WorkStudio** (une compilation, sur pc1), à régler les variables `NEXORA_OIDC_*`, `NEXORA_GATEWAY_URL` et `WORKSTUDIO_*` et à exposer l'instance sous un sous-domaine du site (décision du fondateur avant toute exposition publique). Voir `docs/superpowers/specs/2026-10-29-workstudio-integre-au-site.md` et `docs/workstudio-integre.md` (dépôt `nexora-web`).
-5. Conception à écrire : Nexora WebPilot et Nexora Privacy Router.
+2. **Clés de fournisseurs** (DeepSeek, Z.ai, MiniMax, Moonshot…) : à saisir dans le Coffre depuis le panneau d'administration, avec un taux USD→CAD approuvé ; les cinq modèles sont chargés en brouillon. Le modèle d'essai `nexora/essai-dev`, l'utilisateur d'essai et son crédit de test sont dans la base de la démo : à retirer avant la vraie mise en service (voir `docs/superpowers/briefs/audit-polissage-2026-10-29.md` pour l'état de WorkStudio).
+3. **WorkStudio intégré au site : fait et essayé de bout en bout** (connexion unique, clé de modèle par personne, jetons facturés au portefeuille, abonnement WorkStudio exigé sauf accès « maison » : `WORKSTUDIO_REQUIRE_SUBSCRIPTION`). Reste : l'exposer sous un sous-domaine du site sur le serveur définitif (décision du fondateur avant toute exposition publique).
+4. **WebPilot** : recherche, lecture, exploration et extraction livrées ; sessions de navigateur (Browser Use) en cours ; SearXNG à déployer avec la pile. Prix à fixer par le fondateur (feuille de prix). **Privacy Router** v1 livré (politique standard) ; niveaux renforcé et souverain disponibles, rapport mensuel en CSV.
+5. Décisions du fondateur en attente : licence de Nexora Bot et du plugin WordPress (libre vs redevance commerciale), paliers d'abonnement et leurs prix, modèle par défaut de WorkStudio.
