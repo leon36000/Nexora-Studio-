@@ -12,6 +12,11 @@ import { OnboardingPanel } from '@/app/workspace/[workspaceId]/home/nexora-home/
 import { shouldOfferResume } from '@/app/workspace/[workspaceId]/home/nexora-home/onboarding-state'
 import { PlatformStatus } from '@/app/workspace/[workspaceId]/home/nexora-home/platform-status'
 import { QuickStarts } from '@/app/workspace/[workspaceId]/home/nexora-home/quick-starts'
+import { WelcomePanel } from '@/app/workspace/[workspaceId]/home/nexora-home/welcome-panel'
+import {
+  readWelcomeDismissed,
+  writeWelcomeDismissed,
+} from '@/app/workspace/[workspaceId]/home/nexora-home/welcome-state'
 import { useNexoraHome, useUpdateNexoraOnboarding } from '@/hooks/queries/nexora-home'
 
 interface NexoraHomeProps {
@@ -28,6 +33,20 @@ export function NexoraHome({ workspaceId }: NexoraHomeProps) {
   const { data: home, isError: isHomeError } = useNexoraHome()
   const updateOnboarding = useUpdateNexoraOnboarding()
   const [isFirstResultShown, setIsFirstResultShown] = useState(false)
+  const userId = session?.user?.id
+  const [welcomeClosedFor, setWelcomeClosedFor] = useState<string | null>(null)
+  const showWelcome =
+    home !== undefined &&
+    !home.isInstanceAdmin &&
+    Boolean(userId) &&
+    welcomeClosedFor !== userId &&
+    !(userId && readWelcomeDismissed(userId))
+
+  const handleCloseWelcome = () => {
+    if (!userId) return
+    writeWelcomeDismissed(userId)
+    setWelcomeClosedFor(userId)
+  }
 
   const firstName = session?.user?.name?.trim().split(/\s+/)[0]
   const onboarding = home?.isInstanceAdmin ? home.onboarding : null
@@ -76,6 +95,13 @@ export function NexoraHome({ workspaceId }: NexoraHomeProps) {
             emailConfigured={home?.emailConfigured ?? false}
             onFirstRunCompleted={() => setIsFirstResultShown(true)}
             onClose={() => setIsFirstResultShown(false)}
+          />
+        )}
+        {showWelcome && (
+          <WelcomePanel
+            workspaceId={workspaceId}
+            hasModel={home?.defaultModel != null}
+            onClose={handleCloseWelcome}
           />
         )}
         <CreateCards workspaceId={workspaceId} />

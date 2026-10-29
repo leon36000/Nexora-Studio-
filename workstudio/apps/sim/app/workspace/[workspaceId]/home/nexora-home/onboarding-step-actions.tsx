@@ -12,13 +12,15 @@ import {
   useScrollEdges,
 } from '@sim/emcn'
 import { Loader } from '@sim/emcn/icons'
-import { toRecordOrNull } from '@sim/utils/object'
 import { truncate } from '@sim/utils/string'
 import dynamic from 'next/dynamic'
 import { useFormatter, useTranslations } from 'next-intl'
 import { NEXORA_TEMPLATES, NEXORA_TEMPLATES_FOLDER } from '@/lib/nexora/templates'
 import { InviteModal } from '@/app/workspace/[workspaceId]/components/invite-modal'
-import { quoteFailureKind } from '@/app/workspace/[workspaceId]/home/nexora-home/onboarding-state'
+import {
+  outputText,
+  quoteFailureKind,
+} from '@/app/workspace/[workspaceId]/home/nexora-home/onboarding-state'
 import { useTemplateWorkflows } from '@/app/workspace/[workspaceId]/home/nexora-home/use-template-workflows'
 import { useWorkspaceHostContext } from '@/app/workspace/[workspaceId]/providers/workspace-host-provider'
 import { useUserPermissionsContext } from '@/app/workspace/[workspaceId]/providers/workspace-permissions-provider'
@@ -38,13 +40,6 @@ const MarkdownRenderer = dynamic(
 const QUOTE_TEMPLATE = NEXORA_TEMPLATES.find((template) => template.slug === 'devis')
 
 const TEST_REPLY_MAX_LENGTH = 160
-
-/** The text a run produced: the final Agent's `content`, or a plain string output. */
-function outputText(output: unknown): string {
-  if (typeof output === 'string') return output.trim()
-  const content = toRecordOrNull(output)?.content
-  return typeof content === 'string' ? content.trim() : ''
-}
 
 interface StepActionProps {
   onDone: () => void
