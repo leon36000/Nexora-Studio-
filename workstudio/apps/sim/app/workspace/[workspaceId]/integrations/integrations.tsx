@@ -14,6 +14,7 @@ import {
 import { useParams } from 'next/navigation'
 import { useTranslations } from 'next-intl'
 import { useQueryStates } from 'nuqs'
+import { translatedBlockDescription } from '@/lib/i18n/blocks'
 import {
   blockTypeToIconMap,
   formatIntegrationType,
@@ -159,6 +160,12 @@ export function Integrations() {
 
 function IntegrationsContent() {
   const t = useTranslations('integrations')
+  const tBlocks = useTranslations('blocks')
+  const describe = useCallback(
+    (integration: Integration) =>
+      translatedBlockDescription(integration.type, integration.description, tBlocks),
+    [tBlocks]
+  )
   const scrollContainerRef = useRef<HTMLDivElement>(null)
   const params = useParams()
   const workspaceId = (params?.workspaceId as string) || ''
@@ -248,7 +255,8 @@ function IntegrationsContent() {
     const matchesSearch = (integration: Integration) =>
       !normalizedSearch ||
       integration.name.toLowerCase().includes(normalizedSearch) ||
-      integration.description.toLowerCase().includes(normalizedSearch)
+      integration.description.toLowerCase().includes(normalizedSearch) ||
+      describe(integration).toLowerCase().includes(normalizedSearch)
 
     if (isFeaturedSelected) {
       const items = FEATURED_INTEGRATIONS.filter(matchesSearch)
@@ -286,6 +294,7 @@ function IntegrationsContent() {
     isFeaturedSelected,
     urlSearchTerm,
     selectedCategory,
+    describe,
   ])
 
   const visibleConnectedItems = useMemo(() => {
@@ -385,7 +394,7 @@ function IntegrationsContent() {
                       slug={integration.slug}
                       workspaceId={workspaceId}
                       name={integration.name}
-                      description={integration.description}
+                      description={describe(integration)}
                       icon={Icon}
                       unavailable={integration.authType === 'oauth' && deploymentUnavailable}
                     />

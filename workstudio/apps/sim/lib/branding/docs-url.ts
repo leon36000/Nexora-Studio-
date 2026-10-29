@@ -1,57 +1,20 @@
 import { getEnv } from '@/lib/core/config/env'
+import { getNexoraSiteUrl, nexoraSiteLinks } from '@/lib/nexora/site-links'
 
-/** Nexora's guide, used until a dedicated documentation site is configured. */
-export const NEXORA_GUIDE_URL = 'https://github.com/leon36000/Nexora-Studio-/tree/main/docs/guide'
-
-/** Base of the guide's individual pages (GitHub renders a file under `blob/`). */
-export const NEXORA_GUIDE_PAGE_BASE =
-  'https://github.com/leon36000/Nexora-Studio-/blob/main/docs/guide'
-
-/**
- * Upstream help paths, by prefix, and the guide page that covers the same screen. The first
- * matching prefix wins; `{last}` is replaced by the path's last segment (a block anchor).
- */
-const GUIDE_PAGES: ReadonlyArray<readonly [prefix: string, page: string]> = [
-  ['/getting-started', 'prise-en-main.md'],
-  ['/workflows/blocks/', 'blocs.md#{last}'],
-  ['/workflows/triggers', 'blocs.md#declencheurs'],
-  ['/workflows/deployment', 'workflows.md#deployer'],
-  ['/workflows', 'workflows.md'],
-  ['/tools/', 'integrations.md'],
-  ['/integrations/', 'integrations.md'],
-  ['/knowledgebase', 'connaissances.md'],
-  ['/tables', 'tables.md'],
-  ['/mcp', 'outils-mcp.md'],
-  ['/search/mcp', 'outils-mcp.md'],
-  ['/models', 'modeles.md'],
-  ['/logs-debugging', 'journaux.md'],
-  ['/execution', 'journaux.md'],
-  ['/platform/', 'reglages.md'],
-  ['/permissions', 'reglages.md'],
-  ['/agents', 'agents.md'],
-  ['/playground', 'playground.md'],
-  ['/prompts', 'prompts.md'],
-  ['/evaluations', 'evaluations.md'],
-  ['/lots', 'lots.md'],
-  ['/connectors', 'connecteurs.md'],
-]
-
-function guidePage(path: string): string | null {
-  const normalized = `/${path.replace(/^\/+/, '').split('#')[0]}`
-  const match = GUIDE_PAGES.find(([prefix]) => normalized.startsWith(prefix))
-  if (!match) return null
-  const last = normalized.split('/').filter(Boolean).pop() ?? ''
-  return `${NEXORA_GUIDE_PAGE_BASE}/${match[1].replace('{last}', last)}`
+/** Whether a documentation site is configured: without one, the help menu offers no « Documentation » entry. */
+export function hasDocumentationSite(): boolean {
+  return Boolean(getEnv('NEXT_PUBLIC_DOCUMENTATION_URL')?.trim())
 }
 
 /**
  * Link to a documentation page. Joins `NEXT_PUBLIC_DOCUMENTATION_URL` and `path` when a
- * documentation site is configured; otherwise points to the page of the Nexora guide that
- * covers the same screen, or to the guide's index for anything else.
+ * documentation site is configured. Until one exists, help goes to the Nexora AI site's contact
+ * page (the guide is not published anywhere), and an instance without the site stays on itself:
+ * never to a repository or to the upstream project's documentation.
  */
 export function docsUrl(path = ''): string {
   const base = getEnv('NEXT_PUBLIC_DOCUMENTATION_URL')?.trim().replace(/\/+$/, '')
-  if (!base) return (path && guidePage(path)) || NEXORA_GUIDE_URL
+  if (!base) return nexoraSiteLinks(getNexoraSiteUrl(), 'fr')?.contact ?? '/'
   if (!path) return base
   return `${base}${path.startsWith('/') ? '' : '/'}${path}`
 }

@@ -43,13 +43,14 @@ const POLICY_ERRORS: ReadonlySet<string> = new Set([
   'personal_data',
   'personal_data_unavailable',
   'model_not_allowed',
+  'gateway',
 ])
 
 function toError(error: unknown): Extract<PlaygroundOutcome, { status: 'error' }> {
   if (isApiClientError(error)) {
     const body = toRecord(error.body)
     const reason = toStringOrNull(body.reason)
-    // The instance's own rules (personal-data policy, access group) say why in French: shown as is.
+    // The instance's own rules (personal-data policy, access group) and the site's gateway (wallet, key) say why in French: shown as is.
     if (reason && POLICY_ERRORS.has(toStringOrNull(body.error) ?? '')) {
       return { status: 'error', code: 'policy', reason }
     }

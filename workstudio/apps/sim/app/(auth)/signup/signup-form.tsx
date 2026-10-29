@@ -14,6 +14,7 @@ import { getEnv, isFalsy } from '@/lib/core/config/env'
 import { isSsoEnabled } from '@/lib/core/config/env-flags'
 import { validateCallbackUrl } from '@/lib/core/security/input-validation'
 import { NEXORA_SIGN_UP_REFUSED } from '@/lib/nexora/auth-refusals'
+import { getNexoraOidcName } from '@/lib/nexora/oidc-name'
 import { captureEvent } from '@/lib/posthog/client'
 import {
   buildAuthCrossLink,
@@ -32,7 +33,6 @@ import {
   AuthLegalFooter,
   AuthNavPrompt,
   AuthSubmitButton,
-  getNexoraOidcName,
   NexoraOidcButton,
   PasswordInput,
   SocialLoginButtons,

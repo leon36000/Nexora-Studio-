@@ -36,7 +36,6 @@ import type {
   WorkflowLogRow,
   WorkflowLogSummary,
 } from '@/lib/api/contracts/logs'
-import { dollarsToCredits } from '@/lib/billing/credits/conversion'
 import { getContextMenuPosition } from '@/lib/core/utils/context-menu'
 import { formatDateShort } from '@/lib/core/utils/date-display'
 import {
@@ -52,6 +51,7 @@ import {
   type TriggerData,
   type WorkflowData,
 } from '@/lib/logs/search-suggestions'
+import { logCostCredits } from '@/lib/nexora/log-cost'
 import { SEARCH_DEBOUNCE_MS } from '@/lib/url-state'
 import { LogsEmptyState } from '@/app/workspace/[workspaceId]/components/resource/components/resource-empty-state'
 import type { ResourceAction } from '@/app/workspace/[workspaceId]/components/resource/components/resource-header'
@@ -100,6 +100,7 @@ import {
   useNewLogCount,
   useRetryExecution,
 } from '@/hooks/queries/logs'
+import { useNexoraHome } from '@/hooks/queries/nexora-home'
 import { useWorkflowMap, useWorkflows } from '@/hooks/queries/workflows'
 import { useDateFormat } from '@/hooks/use-date-format'
 import { useDebounce } from '@/hooks/use-debounce'
@@ -245,6 +246,7 @@ export default function Logs() {
   const params = useParams()
   const workspaceId = params.workspaceId as string
   const t = useTranslations('logs')
+  const viaSite = useNexoraHome().data?.viaSite ?? false
   const { locale } = useDateFormat()
 
   const {
@@ -805,8 +807,7 @@ export default function Logs() {
         const durationText =
           durationMs != null ? (formatDuration(durationMs, { precision: 2 }) ?? '—') : '—'
 
-        const costCredits =
-          typeof log.cost?.total === 'number' ? dollarsToCredits(log.cost.total) : null
+        const costCredits = logCostCredits(log.cost?.total, viaSite)
         const costText =
           costCredits !== null
             ? t('list.credits', { count: costCredits, formatted: costCredits.toLocaleString() })
@@ -826,7 +827,7 @@ export default function Logs() {
           },
         }
       }),
-    [logs, t, locale]
+    [logs, t, locale, viaSite]
   )
 
   const hasNextLog = selectedLogIndex >= 0 && selectedLogIndex < logs.length - 1 // i18n-ignore: comparison, not text

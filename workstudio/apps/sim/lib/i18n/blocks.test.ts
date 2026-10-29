@@ -4,6 +4,7 @@ import {
   displayBlockName,
   displaySubflowBlockName,
   translateBlockConfig,
+  translatedBlockDescription,
   translatedBlockName,
 } from '@/lib/i18n/blocks'
 import { resolveCanvasSentence } from '@/lib/workflows/blocks/canvas-sentence'
@@ -297,6 +298,15 @@ describe('translatedBlockName', () => {
   it('gives the French name when there is one, the source name otherwise', () => {
     expect(translatedBlockName('function', 'Function', t)).toBe('Fonction')
     expect(translatedBlockName('slack', 'Slack', t)).toBe('Slack')
+  })
+})
+
+describe('translatedBlockDescription', () => {
+  it('gives the French description when there is one, the source description otherwise', () => {
+    expect(translatedBlockDescription('function', 'Run custom logic', t)).toBe(
+      'Exécuter une logique personnalisée'
+    )
+    expect(translatedBlockDescription('slack', 'Manage Slack', t)).toBe('Manage Slack')
   })
 })
 

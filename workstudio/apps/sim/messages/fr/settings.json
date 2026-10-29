@@ -97,6 +97,13 @@
       "workspacesTransferred": "{count, plural, one {La facturation de <b>{names}</b> passe à un autre administrateur. Son contenu reste inchangé.} other {La facturation de <b>{names}</b> passe à un autre administrateur. Leur contenu reste inchangé.}}",
       "planFailed": "Impossible de vérifier si ce compte peut être supprimé. Réessayez.",
       "confirmEmail": "Confirmez votre e-mail"
+    },
+    "nexoraAccount": {
+      "account": "Compte Nexora AI",
+      "billing": "Portefeuille et facturation",
+      "activity": "Consommation de mes jetons",
+      "open": "Ouvrir",
+      "hint": "Votre mot de passe, votre portefeuille et la suppression de votre compte se gèrent sur Nexora AI."
     }
   },
   "shared": {
@@ -474,8 +481,8 @@
     }
   },
   "sandboxes": {
-    "upgradeTitle": "Les bacs à sable nécessitent un abonnement Max actif",
-    "upgradeDescription": "Passez à l’abonnement Max et assurez-vous que la facturation est active pour ajouter des dépendances, des paquets système et des outils CLI gérés aux blocs Function.",
+    "upgradeTitle": "Les bacs à sable ne sont pas disponibles sur cette instance",
+    "upgradeDescription": "Cette fonction n’est pas activée ici. Pour ajouter des paquets Python ou npm aux blocs Function, contactez l’administrateur de l’instance.",
     "deleteTitle": "Supprimer le bac à sable",
     "deleteConfirm": {
       "intro": "Cette action supprimera définitivement ",
@@ -604,9 +611,6 @@
   "emptyState": {
     "retrying": "Nouvelle tentative…",
     "tryAgain": "Réessayer"
-  },
-  "upgradeNotice": {
-    "upgradeToMax": "Passer à Max"
   },
   "rowActions": {
     "disabledLabel": "{label} — {tooltip}"
@@ -1462,8 +1466,8 @@
   },
   "inbox": {
     "loadFailed": "Impossible de charger les paramètres de la boîte de réception",
-    "upgradeTitle": "Nexora Mailer nécessite une offre Max active",
-    "upgradeDescription": "Passez à l’offre Max et assurez-vous que la facturation est active pour recevoir des tâches par e-mail et laisser Nexora travailler pour vous.",
+    "upgradeTitle": "Nexora Mailer n’est pas disponible sur cette instance",
+    "upgradeDescription": "Cette fonction n’est pas activée ici. Pour recevoir des tâches par e-mail, contactez l’administrateur de l’instance.",
     "sectionLabel": "Boîte de réception",
     "sectionDescription": "Tâches reçues par e-mail dans cet espace de travail.",
     "taskList": {

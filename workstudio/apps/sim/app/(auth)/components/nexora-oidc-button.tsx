@@ -6,24 +6,24 @@ import { createLogger } from '@sim/logger'
 import { getErrorMessage } from '@sim/utils/errors'
 import { useTranslations } from 'next-intl'
 import { client } from '@/lib/auth/client'
-import { getEnv } from '@/lib/core/config/env'
 import { NEXORA_OIDC_PROVIDER_ID } from '@/lib/nexora/oidc'
+import { getNexoraOidcName } from '@/lib/nexora/oidc-name'
 import { DEFAULT_POST_AUTH_ROUTE } from '@/app/(auth)/auth-redirect'
 import { AUTH_BUTTON_CLASS } from '@/app/(auth)/components/constants'
 
 const logger = createLogger('NexoraOidcButton')
 
-/** Name of the company identity provider; the button is hidden while it is unset. */
-export function getNexoraOidcName(): string | null {
-  return getEnv('NEXT_PUBLIC_NEXORA_OIDC_NAME')?.trim() || null
-}
-
 interface NexoraOidcButtonProps {
   callbackURL?: string
+  /** `primary` when the sign-in is the page's main action, `outline` beside a password form. */
+  variant?: 'primary' | 'outline'
 }
 
 /** Nexora edition: "Sign in with <company SSO>" through the configured OpenID Connect provider. */
-export function NexoraOidcButton({ callbackURL = DEFAULT_POST_AUTH_ROUTE }: NexoraOidcButtonProps) {
+export function NexoraOidcButton({
+  callbackURL = DEFAULT_POST_AUTH_ROUTE,
+  variant = 'outline',
+}: NexoraOidcButtonProps) {
   const t = useTranslations('auth.nexoraOidc')
   const [isRedirecting, setIsRedirecting] = useState(false)
   const name = getNexoraOidcName()
@@ -42,9 +42,10 @@ export function NexoraOidcButton({ callbackURL = DEFAULT_POST_AUTH_ROUTE }: Nexo
   return (
     <Chip
       fullWidth
+      variant={variant === 'primary' ? 'primary' : undefined}
       disabled={isRedirecting}
       onClick={() => void handleClick()}
-      className={cn(AUTH_BUTTON_CLASS, 'border border-[var(--border)]')}
+      className={cn(AUTH_BUTTON_CLASS, variant === 'outline' && 'border border-[var(--border)]')}
     >
       {isRedirecting ? t('redirecting') : t('signIn', { name })}
     </Chip>

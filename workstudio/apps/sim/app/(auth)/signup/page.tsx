@@ -1,9 +1,17 @@
 import type { Metadata } from 'next'
-import { getTranslations } from 'next-intl/server'
+import { redirect } from 'next/navigation'
+import { getLocale, getTranslations } from 'next-intl/server'
 import type { SearchParams } from 'nuqs/server'
-import { isEmailSignupDisabled, isRegistrationDisabled } from '@/lib/core/config/env-flags'
+import {
+  isEmailSignupDisabled,
+  isNexoraOidcRequired,
+  isRegistrationDisabled,
+} from '@/lib/core/config/env-flags'
 import { validateCallbackUrl } from '@/lib/core/security/input-validation'
 import { isEmailVerificationEffectivelyEnabled } from '@/lib/messaging/email/verification'
+import { resolveLoginLayout } from '@/lib/nexora/login-layout'
+import { getNexoraOidcName } from '@/lib/nexora/oidc-name'
+import { getNexoraSiteUrl } from '@/lib/nexora/site-links'
 import { resolveAuthRedirect } from '@/app/(auth)/auth-redirect'
 import { getOAuthProviderStatus } from '@/app/(auth)/components/oauth-provider-checker'
 import { RegistrationDisabled } from '@/app/(auth)/signup/registration-disabled'
@@ -22,6 +30,15 @@ export default async function SignupPage({
 }: {
   searchParams: Promise<SearchParams>
 }) {
+  // Nexora edition: a customer's account is made on the Nexora AI site, never on this instance.
+  const { signupUrl } = resolveLoginLayout({
+    oidcName: getNexoraOidcName(),
+    siteUrl: getNexoraSiteUrl(),
+    ssoRequired: isNexoraOidcRequired,
+    locale: await getLocale(),
+  })
+  if (signupUrl) redirect(signupUrl)
+
   if (isRegistrationDisabled) {
     const { redirect, callbackUrl, inviteFlow } = await signupSearchParamsCache.parse(searchParams)
     const { rawCallbackUrl, isInviteFlow } = resolveAuthRedirect({

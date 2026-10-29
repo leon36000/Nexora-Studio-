@@ -405,8 +405,10 @@ export const WorkflowItem = memo(function WorkflowItem({
 
   return (
     <>
+      {/* Not prefetched: a workspace lists dozens of workflows, and each prefetch is a request on every page. */}
       <Link
         href={`/workspace/${workspaceId}/w/${workflow.id}`}
+        prefetch={false}
         data-item-id={workflow.id}
         className={cn(
           chipVariants({

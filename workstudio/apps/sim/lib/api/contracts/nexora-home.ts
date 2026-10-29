@@ -34,6 +34,8 @@ export const getNexoraHomeContract = defineRouteContract({
       organizationId: z.string().nullable(),
       /** Invitations can be e-mailed; otherwise the invitation link is copied by hand. */
       emailConfigured: z.boolean(),
+      /** The person signed in through the Nexora AI site: their models and wallet are theirs there. */
+      viaSite: z.boolean(),
     }),
   },
 })

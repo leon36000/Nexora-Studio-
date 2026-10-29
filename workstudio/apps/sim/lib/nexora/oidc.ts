@@ -4,7 +4,7 @@ import type { GenericOAuthConfig } from 'better-auth/plugins'
 export const NEXORA_OIDC_PROVIDER_ID = 'nexora-oidc'
 
 /** Scope of the site's `GET /api/oauth/workstudio-access` (the person's model key). */
-export const NEXORA_GATEWAY_SCOPE = 'workstudio:model'
+const NEXORA_GATEWAY_SCOPE = 'workstudio:model'
 
 interface OidcEnv {
   NEXORA_OIDC_ISSUER?: string

@@ -1,7 +1,10 @@
 'use client'
 
 import dynamic from 'next/dynamic'
-import { getSettingsPermissionConfigKey } from '@/components/settings/navigation'
+import {
+  getSettingsPermissionConfigKey,
+  NEXORA_INSTANCE_SECTIONS,
+} from '@/components/settings/navigation'
 import { useSession } from '@/lib/auth/client'
 import { useDeploymentShape } from '@/lib/core/config/deployment-shape'
 import { useWorkspaceHostContext } from '@/app/workspace/[workspaceId]/providers/workspace-host-provider'
@@ -99,8 +102,11 @@ function SettingsPageContent({ section }: SettingsPageProps) {
   const isAdminRole = session?.user?.role === 'admin'
   const normalizedSection: SettingsSection =
     (section as string) === 'subscription' ? 'billing' : section
+  // Nexora edition: instance-wide pages need the instance organization; a personal workspace has none.
+  const noInstancePage =
+    NEXORA_INSTANCE_SECTIONS.has(normalizedSection) && !hostContext.hostOrganizationId
   const effectiveSection =
-    !billingEnabled && normalizedSection === 'billing'
+    (!billingEnabled && normalizedSection === 'billing') || noInstancePage
       ? 'general'
       : normalizedSection === 'admin' && !sessionLoading && !isAdminRole
         ? 'general'

@@ -7,7 +7,7 @@ import { createLogger } from '@sim/logger'
 import { usePathname } from 'next/navigation'
 import { usePostHog } from 'posthog-js/react'
 import { isMacPlatform } from '@/lib/core/utils/platform'
-import { DOCS_URL, SLACK_COMMUNITY_URL } from '@/lib/help-links'
+import { DOCS_URL } from '@/lib/help-links'
 import { organizationRoutes } from '@/lib/navigation/paths'
 import { captureEvent } from '@/lib/posthog/client'
 import {
@@ -141,11 +141,6 @@ export const OrganizationSidebar = memo(function OrganizationSidebar({
   const handleOpenDocs = () => {
     window.open(DOCS_URL, '_blank', 'noopener,noreferrer')
     captureEvent(posthog, 'docs_opened', { source: 'help_menu' })
-  }
-
-  const handleOpenSlackCommunity = () => {
-    window.open(SLACK_COMMUNITY_URL, '_blank', 'noopener,noreferrer')
-    captureEvent(posthog, 'slack_community_opened', { source: 'help_menu' })
   }
 
   const handleEdgeKeyDown = (e: React.KeyboardEvent) => {
@@ -300,7 +295,6 @@ export const OrganizationSidebar = memo(function OrganizationSidebar({
             isCollapsed={isCollapsed}
             showCollapsedTooltips={showCollapsedTooltips}
             onOpenDocs={handleOpenDocs}
-            onJoinSlack={handleOpenSlackCommunity}
             onContactSupport={() => setIsHelpModalOpen(true)}
           />
 

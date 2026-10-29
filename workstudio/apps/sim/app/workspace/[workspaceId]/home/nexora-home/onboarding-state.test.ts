@@ -1,7 +1,9 @@
 import { describe, expect, it } from 'vitest'
 import { ApiClientError } from '@/lib/api/client/errors'
 import {
+  outputText,
   quoteFailureKind,
+  runFailureReason,
   shouldOfferResume,
 } from '@/app/workspace/[workspaceId]/home/nexora-home/onboarding-state'
 
@@ -42,5 +44,38 @@ describe('quoteFailureKind', () => {
     ['a run that reported its own failure', null],
   ])('falls back to the generic message for %s', (_case, error) => {
     expect(quoteFailureKind(error)).toBe('generic')
+  })
+})
+
+describe('outputText', () => {
+  it('reads the final Agent’s content, or a plain string output', () => {
+    expect(outputText({ content: '  Devis n° 1  ' })).toBe('Devis n° 1')
+    expect(outputText('  Bonjour ')).toBe('Bonjour')
+  })
+
+  it('is empty for anything else', () => {
+    expect(outputText(null)).toBe('')
+    expect(outputText({ content: 12 })).toBe('')
+    expect(outputText({})).toBe('')
+  })
+})
+
+describe('runFailureReason', () => {
+  it('gives the reason a failed run reported, which the model gateway words in French', () => {
+    expect(
+      runFailureReason({ success: false, error: 'Le solde de votre portefeuille est insuffisant.' })
+    ).toBe('Le solde de votre portefeuille est insuffisant.')
+  })
+
+  it('keeps a long reason short', () => {
+    expect(
+      runFailureReason({ success: false, error: 'x'.repeat(900) })?.length
+    ).toBeLessThanOrEqual(300)
+  })
+
+  it('is null when the run reported nothing readable', () => {
+    expect(runFailureReason({ success: false })).toBeNull()
+    expect(runFailureReason({ success: false, error: '  ' })).toBeNull()
+    expect(runFailureReason(undefined)).toBeNull()
   })
 })

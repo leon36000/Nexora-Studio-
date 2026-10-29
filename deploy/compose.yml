@@ -276,6 +276,8 @@ services:
       NEXT_PUBLIC_TERMS_URL: ${NEXORA_TERMS_URL:-}
       NEXT_PUBLIC_SUPPORT_EMAIL: ${NEXORA_SUPPORT_EMAIL:-}
       NEXT_PUBLIC_PRIVACY_URL: ${NEXORA_PRIVACY_URL:-}
+      # Site de documentation (facultatif) : sans lui, le menu Aide n'offre pas « Documentation » et mène au contact du site Nexora AI.
+      NEXT_PUBLIC_DOCUMENTATION_URL: ${NEXORA_DOCUMENTATION_URL:-}
       # Optional single sign-on (OIDC) and outgoing email.
       NEXT_PUBLIC_NEXORA_OIDC_NAME: ${NEXORA_OIDC_NAME:-}
       NEXORA_OIDC_ISSUER: ${NEXORA_OIDC_ISSUER:-}

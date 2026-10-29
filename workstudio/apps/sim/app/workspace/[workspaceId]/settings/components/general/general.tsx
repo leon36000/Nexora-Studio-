@@ -7,6 +7,7 @@ import {
   Chip,
   ChipCombobox,
   ChipConfirmModal,
+  ChipLink,
   ChipModal,
   ChipModalBody,
   ChipModalError,
@@ -56,6 +57,7 @@ import {
   useUpdateUserProfile,
   useUserProfile,
 } from '@/hooks/queries/user-profile'
+import { useNexoraSiteLinks } from '@/hooks/use-nexora-site-links'
 
 /** `loading` gives the view its own boundary; the section page has none to suspend into. */
 const AuthorizedApps = dynamic(
@@ -99,6 +101,7 @@ export function General() {
   const brandConfig = useBrandConfig()
   const { data: session } = useSession()
   const { hosted } = useDeploymentShape()
+  const siteLinks = useNexoraSiteLinks()
 
   const { data: profile, isLoading: isProfileLoading } = useUserProfile()
   const updateProfile = useUpdateUserProfile()
@@ -313,12 +316,17 @@ export function General() {
             text: t('actions.signOutOtherDevices'),
             onSelect: () => setShowSignOutOtherDevicesModal(true),
           },
-          {
-            id: 'reset-password',
-            text: t('actions.resetPassword'),
-            onSelect: () => setShowResetPasswordModal(true),
-            disabled: !profile?.email,
-          },
+          // Nexora edition: a person from the Nexora AI site has no password here, it is managed there.
+          ...(siteLinks
+            ? []
+            : [
+                {
+                  id: 'reset-password',
+                  text: t('actions.resetPassword'),
+                  onSelect: () => setShowResetPasswordModal(true),
+                  disabled: !profile?.email,
+                },
+              ]),
         ]
       : []),
   ]
@@ -637,12 +645,34 @@ export function General() {
                 <Label>{t('authorizedApps')}</Label>
                 <Chip onClick={() => setView('authorized-apps')}>{t('manage')}</Chip>
               </div>
-              <div className='flex items-center justify-between'>
-                <Label>{t('deleteAccountLabel')}</Label>
-                <Chip onClick={() => setShowDeleteAccountModal(true)}>
-                  {tSettings('shared.delete')}
-                </Chip>
-              </div>
+              {siteLinks ? (
+                <>
+                  {[
+                    { id: 'account', label: t('nexoraAccount.account'), href: siteLinks.account },
+                    { id: 'billing', label: t('nexoraAccount.billing'), href: siteLinks.billing },
+                    {
+                      id: 'activity',
+                      label: t('nexoraAccount.activity'),
+                      href: siteLinks.activity,
+                    },
+                  ].map(({ id, label, href }) => (
+                    <div key={id} className='flex items-center justify-between'>
+                      <Label>{label}</Label>
+                      <ChipLink href={href} target='_blank' rel='noopener noreferrer'>
+                        {t('nexoraAccount.open')}
+                      </ChipLink>
+                    </div>
+                  ))}
+                  <p className='text-[var(--text-muted)] text-caption'>{t('nexoraAccount.hint')}</p>
+                </>
+              ) : (
+                <div className='flex items-center justify-between'>
+                  <Label>{t('deleteAccountLabel')}</Label>
+                  <Chip onClick={() => setShowDeleteAccountModal(true)}>
+                    {tSettings('shared.delete')}
+                  </Chip>
+                </div>
+              )}
             </div>
           </SettingsSection>
         )}

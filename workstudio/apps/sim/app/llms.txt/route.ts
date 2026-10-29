@@ -6,7 +6,7 @@ import {
 import { getAllPostMeta as getAllBlogPostMeta } from '@/lib/blog/registry'
 import { toSiteUrl } from '@/lib/core/utils/urls'
 import { getAllCustomerStoryMeta } from '@/lib/customers/registry'
-import { DOCS_URL, SLACK_COMMUNITY_URL } from '@/lib/help-links'
+import { DOCS_URL } from '@/lib/help-links'
 import { getAllPostMeta as getAllLibraryPostMeta } from '@/lib/library/registry'
 import { ALL_COMPETITORS } from '@/app/(landing)/comparisons/utils'
 import { PLATFORM_MENU } from '@/app/(landing)/components/navbar/components/nav-menu-chip'
@@ -131,7 +131,6 @@ export async function GET() {
       section('Optional', [
         linkLine('Changelog', '/changelog', 'Product updates and release notes'),
         GITHUB_LINE,
-        linkLine('Community Slack', SLACK_COMMUNITY_URL, 'Community workspace'),
         linkLine('Terms of Service', '/terms'),
         linkLine('Privacy Policy', '/privacy'),
         linkLine('Cookie Policy', '/cookie-policy'),

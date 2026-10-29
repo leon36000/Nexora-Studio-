@@ -128,6 +128,24 @@
           }
         }
       }
+    },
+    "welcome": {
+      "title": "Welcome to Nexora WorkStudio",
+      "subtitle": "Your first result in two minutes: pick a template, then run it.",
+      "later": "Later",
+      "done": "Done",
+      "pick": "1. Pick a template",
+      "run": "2. Run it with an example",
+      "runAction": "Run with the example",
+      "running": "Generating…",
+      "openWorkflow": "Open in the editor",
+      "empty": "The workflow returned no text.",
+      "noModel": "No model is available for your account right now: try again in a moment or contact your administrator.",
+      "errors": {
+        "timeout": "The model is taking too long to answer. Try again in a moment.",
+        "forbidden": "You do not have the rights needed to run this template.",
+        "generic": "The result could not be generated. Try again in a moment."
+      }
     }
   }
 }

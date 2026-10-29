@@ -1,3 +1,6 @@
+import { toStringOrNull } from '@sim/utils/coerce'
+import { toRecord, toRecordOrNull } from '@sim/utils/object'
+import { truncate } from '@sim/utils/string'
 import { isApiClientError } from '@/lib/api/client/errors'
 import type { OnboardingStep } from '@/lib/nexora/onboarding-steps'
 
@@ -29,4 +32,19 @@ export function quoteFailureKind(error: unknown): QuoteFailureKind {
   if (TIMEOUT_STATUSES.has(error.status)) return 'timeout'
   if (error.status === 403) return 'forbidden'
   return 'generic'
+}
+
+/** The text a run produced: the final Agent's `content`, or a plain string output. */
+export function outputText(output: unknown): string {
+  if (typeof output === 'string') return output.trim()
+  const content = toRecordOrNull(output)?.content
+  return typeof content === 'string' ? content.trim() : ''
+}
+
+const MAX_FAILURE_REASON_LENGTH = 300
+
+/** The reason a failed run reported, short, `null` when it reported none. */
+export function runFailureReason(result: unknown): string | null {
+  const reason = toStringOrNull(toRecord(result).error)?.trim()
+  return reason ? truncate(reason, MAX_FAILURE_REASON_LENGTH - 1, '…') : null
 }

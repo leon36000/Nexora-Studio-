@@ -71,7 +71,7 @@ export function Developers({ workspaceId }: DevelopersProps) {
         </header>
 
         <SettingsSection label={t('baseUrl')}>
-          <ChipCopyInput value={baseUrl} />
+          <ChipCopyInput value={baseUrl} aria-label={t('baseUrl')} />
           <p className='mt-2 text-[var(--text-muted)] text-caption'>{t('baseUrlNote')}</p>
         </SettingsSection>
 

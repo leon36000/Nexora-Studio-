@@ -1,6 +1,7 @@
 import { authMockFns, createMockRequest, resetEnvMock, setEnv } from '@sim/testing'
 import { providersUtilsMock, providersUtilsMockFns } from '@sim/testing/mocks/providers-utils.mock'
 import { afterAll, beforeEach, describe, expect, it, vi } from 'vitest'
+import { clearGatewayModelsCache } from '@/lib/nexora/gateway-models-cache'
 
 const { mockFetch, mockResolveGatewayAccess } = vi.hoisted(() => ({
   mockFetch: vi.fn(),
@@ -72,6 +73,7 @@ describe('vLLM models route', () => {
         NEXORA_GATEWAY_URL: 'https://nexora.example/v1',
       })
       authMockFns.mockGetSession.mockResolvedValue({ user: { id: 'user-1' } })
+      clearGatewayModelsCache()
       mockResolveGatewayAccess.mockReset().mockResolvedValue(access)
       mockFetch.mockResolvedValue({
         ok: true,
@@ -93,6 +95,45 @@ describe('vLLM models route', () => {
         })
       )
       await expect(response.json()).resolves.toEqual({
+        models: ['vllm/nexora-default', 'vllm/nexora/m1', 'vllm/nexora/m2'],
+      })
+    })
+
+    it('asks the gateway once a minute, not on every page, for the same person', async () => {
+      await getModels()
+      const second = await getModels()
+
+      expect(mockFetch).toHaveBeenCalledTimes(1)
+      await expect(second.json()).resolves.toEqual({
+        models: ['vllm/nexora-default', 'vllm/nexora/m1', 'vllm/nexora/m2'],
+      })
+    })
+
+    it('never shows one person the list kept for another', async () => {
+      await getModels()
+      authMockFns.mockGetSession.mockResolvedValue({ user: { id: 'user-2' } })
+      mockFetch.mockResolvedValue({
+        ok: true,
+        json: async () => ({ data: [{ id: 'nexora/only-for-two' }] }),
+      })
+
+      const response = await getModels()
+
+      expect(mockFetch).toHaveBeenCalledTimes(2)
+      await expect(response.json()).resolves.toEqual({
+        models: ['vllm/nexora-default', 'vllm/nexora/only-for-two'],
+      })
+    })
+
+    it('does not keep a failure: the next page asks again', async () => {
+      mockFetch.mockResolvedValueOnce({ ok: false, status: 503, statusText: 'Unavailable' })
+      const failed = await getModels()
+      await expect(failed.json()).resolves.toEqual({ models: [] })
+
+      const retried = await getModels()
+
+      expect(mockFetch).toHaveBeenCalledTimes(2)
+      await expect(retried.json()).resolves.toEqual({
         models: ['vllm/nexora-default', 'vllm/nexora/m1', 'vllm/nexora/m2'],
       })
     })

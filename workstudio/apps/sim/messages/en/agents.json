@@ -7,9 +7,10 @@
   },
   "model": {
     "placeholder": "Choose a model",
-    "default": "Default model (nexora-default)",
+    "default": "Default model",
     "empty": "No model available",
-    "search": "Search..."
+    "search": "Search...",
+    "defaultNamed": "Default model ({name})"
   },
   "playground": {
     "metaTitle": "Playground",

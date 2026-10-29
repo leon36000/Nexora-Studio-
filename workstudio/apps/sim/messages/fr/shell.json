@@ -577,8 +577,10 @@
     "helpUpdateAvailable": "Aide, mise à jour disponible",
     "help": "Aide",
     "docs": "Documentation",
-    "reportIssue": "Signaler un problème",
-    "contactSupport": "Contacter le support"
+    "contactSupport": "Contacter le support",
+    "nexoraAccount": "Mon compte Nexora AI",
+    "nexoraBilling": "Portefeuille et facturation",
+    "nexoraActivity": "Consommation de mes jetons"
   },
   "sidebarNavChip": {
     "accessRequired": "{label} : accès requis"
@@ -658,5 +660,8 @@
     "thisWorkspace": "cet espace de travail",
     "leaveConfirmSuffix": " ? Vous perdrez l’accès à tous les workflows et données de cet espace de travail. Cette action est irréversible.",
     "leaving": "Départ en cours…"
+  },
+  "featureUnavailable": {
+    "dashboards": "Les tableaux de bord ne sont pas disponibles sur cette instance."
   }
 }

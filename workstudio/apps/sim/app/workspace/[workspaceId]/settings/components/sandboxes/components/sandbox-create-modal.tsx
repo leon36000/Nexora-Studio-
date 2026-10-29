@@ -131,7 +131,6 @@ export function SandboxCreateModal({
           <SettingsUpgradeNotice
             title={t('upgradeTitle')}
             description={t('upgradeDescription')}
-            canUpgrade={canAdmin}
             compact
           />
         ) : gate === 'permission' ? (

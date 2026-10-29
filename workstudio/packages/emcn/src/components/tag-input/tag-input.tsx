@@ -458,7 +458,9 @@ const TagInput = React.forwardRef<HTMLInputElement, TagInputProps>(
               onPaste={handlePaste}
               onBlur={handleBlur}
               placeholder={hasItems ? placeholderWithTags : placeholder}
-              size={hasItems ? placeholderWithTags?.length || 10 : placeholder?.length || 12}
+              // `size` counts average-width characters: a few spare ones keep a longer, wider-lettered
+              // placeholder (« Saisissez des adresses e-mail ») from being cut off.
+              size={(hasItems ? placeholderWithTags?.length || 10 : placeholder?.length || 12) + 4}
               className={cn(
                 'appearance-none border-none bg-transparent align-middle font-sans outline-hidden placeholder:text-[var(--text-muted)] disabled:cursor-not-allowed disabled:opacity-50',
                 inputValue.trim()

@@ -128,6 +128,24 @@
           }
         }
       }
+    },
+    "welcome": {
+      "title": "Bienvenue sur Nexora WorkStudio",
+      "subtitle": "Votre premier résultat en deux minutes : choisissez un gabarit, puis lancez-le.",
+      "later": "Plus tard",
+      "done": "Terminer",
+      "pick": "1. Choisissez un gabarit",
+      "run": "2. Lancez-le avec un exemple",
+      "runAction": "Lancer avec l’exemple",
+      "running": "Génération en cours…",
+      "openWorkflow": "Ouvrir dans l’éditeur",
+      "empty": "Le workflow n’a renvoyé aucun texte.",
+      "noModel": "Aucun modèle n’est disponible pour votre compte pour le moment : réessayez dans un instant ou contactez votre administrateur.",
+      "errors": {
+        "timeout": "Le modèle met trop de temps à répondre. Réessayez dans un instant.",
+        "forbidden": "Vous n’avez pas les droits nécessaires pour exécuter ce gabarit.",
+        "generic": "Le résultat n’a pas pu être généré. Réessayez dans un instant."
+      }
     }
   }
 }

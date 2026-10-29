@@ -84,6 +84,7 @@ import {
   TriggerBadge,
   workflowEditorPath,
 } from '@/app/workspace/[workspaceId]/logs/utils'
+import { useNexoraHome } from '@/hooks/queries/nexora-home'
 import { useCodeViewerFeatures } from '@/hooks/use-code-viewer'
 import { useDateFormat } from '@/hooks/use-date-format'
 import { usePermissionConfig } from '@/hooks/use-permission-config'
@@ -371,7 +372,9 @@ export function LogDetailsContent({ log, onActiveTabChange }: LogDetailsContentP
     deleted: tLogs('workflow.deleted'),
   })
 
-  const hasCostInfo = !!(isWorkflowExecutionLog && log.cost)
+  // A person billed by the Nexora AI site sees their consumption there, not an estimate in WorkStudio's credits.
+  const viaSite = useNexoraHome().data?.viaSite ?? false
+  const hasCostInfo = !!(isWorkflowExecutionLog && log.cost) && !viaSite
   const showWorkflowState =
     isWorkflowExecutionLog &&
     !!log.executionId &&

@@ -31,7 +31,8 @@ export function HomeCard({ icon: Icon, label, href, onClick, disabled }: HomeCar
   )
   if (href) {
     return (
-      <Link href={href} className={CARD_CLASS}>
+      // Not prefetched: the page holds some thirty template cards, each prefetch a request at load.
+      <Link href={href} prefetch={false} className={CARD_CLASS}>
         {content}
       </Link>
     )

@@ -1,5 +1,4 @@
 import path from 'node:path'
-import { SIM_SITE_URL } from '@sim/utils/site'
 import type { NextConfig } from 'next'
 import createNextIntlPlugin from 'next-intl/plugin'
 import { env, isTruthy } from './lib/core/config/env'
@@ -462,74 +461,12 @@ const nextConfig: NextConfig = {
   async redirects() {
     const redirects = []
 
-    // Social link redirects (used in emails to avoid spam filter issues)
-    redirects.push(
-      {
-        source: '/discord',
-        destination: 'https://discord.gg/Hr4UWYEcTT',
-        permanent: false,
-      },
-      {
-        source: '/slack',
-        destination:
-          'https://join.slack.com/t/sim-ott9864/shared_invite/zt-43lp8tc5v-0qrrqHGBKUsvQlpoouH~TA',
-        permanent: false,
-      },
-      {
-        source: '/x',
-        destination: 'https://x.com/simdotai',
-        permanent: false,
-      },
-      {
-        source: '/linkedin',
-        destination: 'https://www.linkedin.com/company/simdotai/',
-        permanent: false,
-      },
-      {
-        source: '/github',
-        destination: 'https://github.com/leon36000/Nexora-Studio-',
-        permanent: false,
-      },
-      {
-        source: '/team',
-        destination: 'https://cal.com/team/sim/demo',
-        permanent: false,
-      }
-    )
-
-    /**
-     * Legacy `/building` and `/studio` URLs map to `/blog`. Posts since moved to
-     * `/library` get their own rules ahead of the wildcard (first match wins)
-     * so they land there in one hop instead of chaining through `/blog`.
-     */
-    for (const legacyPrefix of ['building', 'studio']) {
-      for (const slug of LIBRARY_MOVED_BLOG_SLUGS) {
-        redirects.push({
-          source: `/${legacyPrefix}/${slug}`,
-          destination: `${SIM_SITE_URL}/library/${slug}`,
-          permanent: true,
-        })
-      }
-      redirects.push({
-        source: `/${legacyPrefix}/:path*`,
-        destination: `${SIM_SITE_URL}/blog/:path*`,
-        permanent: true,
-      })
-    }
-
     // The scheduled-tasks marketing page is retired with the feature. The URL is
     // indexed, so send it to the surface that still carries scheduled execution
     // (the workflow Schedule trigger) instead of letting it 404.
     redirects.push({
       source: '/scheduled-tasks',
       destination: '/workflows',
-      permanent: true,
-    })
-
-    redirects.push({
-      source: '/academy/:path*',
-      // Nexora: the upstream academy pages have no equivalent; send readers to the Nexora guide.
-      destination: 'https://github.com/leon36000/Nexora-Studio-/tree/main/docs/guide',
       permanent: true,
     })
 

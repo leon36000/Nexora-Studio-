@@ -23,6 +23,7 @@ import { validateCallbackUrl } from '@/lib/core/security/input-validation'
 import { getBaseUrl } from '@/lib/core/utils/urls'
 import { quickValidateEmail } from '@/lib/messaging/email/validation'
 import { NEXORA_SSO_REQUIRED } from '@/lib/nexora/auth-refusals'
+import { getNexoraOidcName } from '@/lib/nexora/oidc-name'
 import { buildAuthCrossLink, DEFAULT_POST_AUTH_ROUTE } from '@/app/(auth)/auth-redirect'
 import {
   AuthDivider,
@@ -34,7 +35,6 @@ import {
   AuthNavPrompt,
   AuthSubmitButton,
   AuthTextLink,
-  getNexoraOidcName,
   NexoraOidcButton,
   PasswordInput,
   SocialLoginButtons,
@@ -58,12 +58,21 @@ export default function LoginPage({
   googleAvailable,
   microsoftAvailable,
   registrationDisabled,
+  ssoFirst,
+  siteSignupUrl,
 }: {
   githubAvailable: boolean
   googleAvailable: boolean
   microsoftAvailable: boolean
   /** DISABLE_REGISTRATION. Hides the signup cross-link, which `/signup` blocks. */
   registrationDisabled: boolean
+  /**
+   * Nexora edition: the single sign-in button is the main action and the password form, kept for
+   * the instance's owner and administrators, sits behind a link (see `resolveLoginLayout`).
+   */
+  ssoFirst: boolean
+  /** Where « Créer un compte » leads when the account is made on the Nexora AI site. */
+  siteSignupUrl: string | null
 }) {
   const router = useRouter()
   const searchParams = useSearchParams()
@@ -93,6 +102,14 @@ export default function LoginPage({
     callbackUrl: isValidCallbackUrl ? callbackUrl : null,
     isInviteFlow,
   })
+
+  /** With single sign-in first, the password form opens on request, or when the page is reached to use it. */
+  const [showPasswordForm, setShowPasswordForm] = useState(
+    () =>
+      !ssoFirst ||
+      searchParams?.get('mode') === 'password' ||
+      searchParams?.get('resetSuccess') === 'true'
+  )
 
   const [forgotPasswordOpen, setForgotPasswordOpen] = useState(false)
   const [forgotPasswordEmail, setForgotPasswordEmail] = useState('')
@@ -339,12 +356,15 @@ export default function LoginPage({
 
   const ssoEnabled = isSsoEnabled
   const emailEnabled = !isFalsy(getEnv('NEXT_PUBLIC_EMAIL_PASSWORD_SIGNUP_ENABLED'))
-  const hasNexoraOidc = getNexoraOidcName() !== null
+  const nexoraOidcName = getNexoraOidcName()
+  const hasNexoraOidc = nexoraOidcName !== null
   const hasSocial = githubAvailable || googleAvailable || microsoftAvailable || hasNexoraOidc
   const hasOnlySSO = ssoEnabled && !emailEnabled && !hasSocial
   const showTopSSO = hasOnlySSO
-  const showBottomSection = hasSocial || (ssoEnabled && !hasOnlySSO)
-  const showDivider = (emailEnabled || showTopSSO) && showBottomSection
+  const hasOtherProviders = githubAvailable || googleAvailable || microsoftAvailable || ssoEnabled
+  const showBottomSection = ssoFirst ? hasOtherProviders : hasSocial || (ssoEnabled && !hasOnlySSO)
+  const showForm = emailEnabled && showPasswordForm
+  const showDivider = (showForm || showTopSSO) && showBottomSection && !ssoFirst
 
   const emailFieldErrors = showEmailValidationError && emailErrors.length > 0 ? emailErrors : []
   const passwordFieldErrors = showValidationError && passwordErrors.length > 0 ? passwordErrors : []
@@ -353,11 +373,57 @@ export default function LoginPage({
   return (
     <>
       <div className='space-y-6'>
-        <AuthHeader title={t('login.title')} description={t('login.description')} />
+        <AuthHeader
+          title={t('login.title')}
+          description={
+            ssoFirst
+              ? t('login.descriptionSso', { name: nexoraOidcName ?? '' })
+              : t('login.description')
+          }
+        />
+
+        {ssoFirst && (
+          <>
+            <NexoraOidcButton callbackURL={callbackUrl} variant='primary' />
+            {siteSignupUrl && (
+              <AuthNavPrompt
+                prompt={t('login.siteNoAccount', { name: nexoraOidcName ?? '' })}
+                href={siteSignupUrl}
+                linkLabel={t('login.signUp')}
+              />
+            )}
+          </>
+        )}
 
         {showTopSSO && <SSOLoginButton callbackURL={callbackUrl} variant='primary' />}
 
-        {emailEnabled && (
+        {ssoFirst && showBottomSection && (
+          <SocialLoginButtons
+            view='login'
+            googleAvailable={googleAvailable}
+            githubAvailable={githubAvailable}
+            microsoftAvailable={microsoftAvailable}
+            callbackURL={callbackUrl}
+          >
+            {ssoEnabled && <SSOLoginButton callbackURL={callbackUrl} variant='outline' />}
+          </SocialLoginButtons>
+        )}
+
+        {ssoFirst && emailEnabled && !showPasswordForm && (
+          <div className='flex justify-center'>
+            <AuthTextLink onClick={() => setShowPasswordForm(true)} className='text-caption'>
+              {t('login.adminSignIn')}
+            </AuthTextLink>
+          </div>
+        )}
+
+        {ssoFirst && showForm && (
+          <p className='text-center text-[var(--text-muted)] text-caption'>
+            {t('login.adminOnly')}
+          </p>
+        )}
+
+        {showForm && (
           <form onSubmit={onSubmit} className='space-y-6'>
             <div className='space-y-5'>
               <AuthField htmlFor='email' label={t('login.emailLabel')} errors={emailFieldErrors}>
@@ -426,7 +492,7 @@ export default function LoginPage({
 
         {showDivider && <AuthDivider label={t('divider.orContinueWith')} />}
 
-        {showBottomSection && (
+        {!ssoFirst && showBottomSection && (
           <SocialLoginButtons
             view='login'
             googleAvailable={googleAvailable}
@@ -441,7 +507,7 @@ export default function LoginPage({
           </SocialLoginButtons>
         )}
 
-        {emailEnabled && !registrationDisabled && (
+        {emailEnabled && !registrationDisabled && !ssoFirst && (
           <AuthNavPrompt
             prompt={t('login.noAccount')}
             href={signupHref}

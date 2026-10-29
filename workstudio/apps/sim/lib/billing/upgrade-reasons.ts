@@ -5,7 +5,7 @@
  * usage limit, and where that route points. The threshold/limit emails carry
  * their own wording in the `emails` messages (`limitThreshold.reasons`).
  */
-import { SITE_URL } from '@/lib/core/utils/urls'
+import { getNexoraSiteUrl, nexoraSiteLinks } from '@/lib/nexora/site-links'
 
 /** The limit categories that can route a user to the upgrade page. */
 export const UPGRADE_REASONS = ['credits', 'storage', 'tables', 'seats'] as const
@@ -54,18 +54,14 @@ export function buildUpgradeHref(workspaceId: string, reason?: UpgradeReason): s
 }
 
 /**
- * Absolute upgrade URL on the hosted app.
- *
- * Self-hosted deployments talk to Chat through a Chat key issued by the user's
- * sim.ai account, so their plan and credits live there rather than on the local
- * instance. A local workspace id is meaningless on the hosted app, so this
- * points at the account-scoped `/upgrade` entry, which resolves the signed-in
- * user's own workspace.
+ * Where a person raises a limit or tops up. Nexora edition: plan, wallet and limits live on the
+ * Nexora AI site (the account's billing page); without the site an instance stays on itself.
  */
-export function buildHostedUpgradeUrl(reason?: UpgradeReason): string {
-  const base = `${SITE_URL}/upgrade`
-  return reason ? `${base}?${UPGRADE_REASON_PARAM}=${reason}` : base
+export function buildHostedUpgradeUrl(_reason?: UpgradeReason): string {
+  return nexoraSiteLinks(getNexoraSiteUrl(), 'fr')?.billing ?? '/'
 }
 
-/** Account billing settings on the hosted app, for raising a usage limit. */
-export const HOSTED_BILLING_SETTINGS_URL = `${SITE_URL}/account/settings/billing` as const
+/** The billing page for raising a usage limit, see {@link buildHostedUpgradeUrl}. */
+export function hostedBillingSettingsUrl(): string {
+  return buildHostedUpgradeUrl()
+}

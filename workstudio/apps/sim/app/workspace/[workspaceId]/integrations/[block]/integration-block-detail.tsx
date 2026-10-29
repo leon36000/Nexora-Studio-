@@ -8,6 +8,7 @@ import { useTranslations } from 'next-intl'
 import { useQueryState } from 'nuqs'
 import { HEADER_ACTION_CLUSTER, PAGE_HEADER_BAR } from '@/components/page-header-bar'
 import { useDeploymentShape } from '@/lib/core/config/deployment-shape'
+import { translatedBlockDescription } from '@/lib/i18n/blocks'
 import {
   blockTypeToIconMap,
   type Integration,
@@ -63,6 +64,7 @@ interface IntegrationBlockDetailProps {
 
 export function IntegrationBlockDetail({ integration, workspaceId }: IntegrationBlockDetailProps) {
   const t = useTranslations('integrations.detail')
+  const tBlocks = useTranslations('blocks')
   const scrollContainerRef = useRef<HTMLDivElement>(null)
   useOAuthReturnRouter()
   const router = useRouter()
@@ -272,7 +274,9 @@ export function IntegrationBlockDetail({ integration, workspaceId }: Integration
             )}
             <div className='flex flex-col gap-1'>
               <h1 className='text-[var(--text-body)] text-lg'>{integration.name}</h1>
-              <p className='text-[var(--text-muted)] text-md'>{integration.description}</p>
+              <p className='text-[var(--text-muted)] text-md'>
+                {translatedBlockDescription(integration.type, integration.description, tBlocks)}
+              </p>
             </div>
           </div>
 

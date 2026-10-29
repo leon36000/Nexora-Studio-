@@ -20,6 +20,7 @@ import {
   getOrganizationSettingsHref,
   getSettingsPermissionConfigKey,
   isSelfHostedOverrideEnabled,
+  NEXORA_INSTANCE_SECTIONS,
   ORGANIZATION_PLANE_UNIFIED_SECTIONS,
 } from '@/components/settings/navigation'
 import { SettingsIntentLink } from '@/components/settings/settings-intent-link'
@@ -145,14 +146,8 @@ export function SettingsSidebar({
             hostContext.features?.credentialGroups
         )
       }
-      // Nexora edition: the models, the connectors' OAuth apps, the outgoing e-mail and the
-      // instance status concern the whole instance; only its admins see them.
-      if (
-        item.id === 'models' ||
-        item.id === 'connectors' ||
-        item.id === 'email' ||
-        item.id === 'status'
-      ) {
+      // Nexora edition: these concern the whole instance; only its admins see them.
+      if (NEXORA_INSTANCE_SECTIONS.has(item.id)) {
         return Boolean(hostContext.hostOrganizationId && isOrgAdminOrOwner)
       }
       if (item.id === 'requests') {

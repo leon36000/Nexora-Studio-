@@ -16,8 +16,13 @@ import { providersUtilsMock, providersUtilsMockFns } from '@sim/testing/mocks/pr
 import { toolsMock, toolsMockFns } from '@sim/testing/mocks/tools.mock'
 import { afterAll, beforeEach, describe, expect, it, vi } from 'vitest'
 
-const { pinnedFetchFn } = vi.hoisted(() => ({
+const { pinnedFetchFn, mockForgetGatewayKey } = vi.hoisted(() => ({
   pinnedFetchFn: vi.fn(),
+  mockForgetGatewayKey: vi.fn(async () => undefined),
+}))
+
+vi.mock('@/lib/nexora/gateway-access', () => ({
+  forgetNexoraGatewayKey: (...args: unknown[]) => mockForgetGatewayKey(...(args as [])),
 }))
 
 vi.mock('openai', () => openaiMock)
@@ -542,6 +547,84 @@ describe('vllmProvider', () => {
         messages: [{ role: 'user', content: 'hi' }],
       })
     ).rejects.toThrow('bad request')
+  })
+
+  describe('refusals of the Nexora AI gateway', () => {
+    const gatewayRequest = {
+      model: 'vllm/nexora/payer-default',
+      messages: [{ role: 'user' as const, content: 'hi' }],
+      azureEndpoint: 'https://nexora.example/v1',
+      apiKey: 'nxk_payer',
+      workspaceId: 'ws-1',
+      userId: 'user-1',
+    }
+
+    beforeEach(() => {
+      mockCreate.mockReset()
+      mockForgetGatewayKey.mockClear()
+      setEnv({
+        VLLM_BASE_URL: 'http://localhost:8000',
+        VLLM_API_KEY: undefined,
+        NEXORA_GATEWAY_URL: 'https://nexora.example/v1',
+      })
+    })
+
+    it('sends an empty wallet to the wallet, in French', async () => {
+      mockCreate.mockRejectedValueOnce({
+        status: 402,
+        error: {
+          message: 'Solde de crédits insuffisant',
+          type: 'insufficient_quota',
+          code: 'insufficient_quota',
+        },
+      })
+      await expect(vllmProvider.executeRequest(gatewayRequest)).rejects.toThrow(/portefeuille/)
+      expect(mockForgetGatewayKey).not.toHaveBeenCalled()
+    })
+
+    it('drops a rejected key and says to sign in again', async () => {
+      mockCreate.mockRejectedValueOnce({
+        status: 401,
+        error: {
+          message: 'Cette clé API a été révoquée.',
+          type: 'authentication_error',
+          code: 'api_key_revoked',
+        },
+      })
+      await expect(vllmProvider.executeRequest(gatewayRequest)).rejects.toThrow(/reconnect/i)
+      expect(mockForgetGatewayKey).toHaveBeenCalledWith({ workspaceId: 'ws-1', userId: 'user-1' })
+    })
+
+    it('keeps the gateway’s own words for what it explains itself (privacy rule)', async () => {
+      mockCreate.mockRejectedValueOnce({
+        status: 403,
+        error: {
+          message: 'Règle « données clients » : envoi refusé.',
+          type: 'permission_error',
+          code: 'privacy_policy_denied',
+        },
+      })
+      await expect(vllmProvider.executeRequest(gatewayRequest)).rejects.toThrow(/données clients/)
+    })
+
+    it('leaves the errors of the instance’s own Nexora API as they were', async () => {
+      mockCreate.mockRejectedValueOnce({
+        status: 402,
+        error: {
+          message: 'quota of the instance',
+          type: 'insufficient_quota',
+          code: 'insufficient_quota',
+        },
+      })
+      await expect(
+        vllmProvider.executeRequest({
+          ...gatewayRequest,
+          azureEndpoint: undefined,
+          apiKey: undefined,
+        })
+      ).rejects.toThrow('quota of the instance')
+      expect(mockForgetGatewayKey).not.toHaveBeenCalled()
+    })
   })
 
   describe('reasoning models', () => {

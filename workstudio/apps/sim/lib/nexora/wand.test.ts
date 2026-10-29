@@ -11,21 +11,25 @@ import {
 } from '@/lib/nexora/data-protection/errors'
 import { resetProtectionCache } from '@/lib/nexora/data-protection/masking'
 import { isOffInstanceModel } from '@/lib/nexora/data-protection/model-location'
+import { NexoraGatewayError } from '@/lib/nexora/gateway-error'
 import { recordTrace } from '@/lib/nexora/traces/record'
 import {
   describeWandFailure,
+  NexoraWandGatewayError,
   NexoraWandRejectedError,
   NexoraWandUnavailableError,
   nexoraWandComplete,
   nexoraWandStream,
 } from '@/lib/nexora/wand'
 
-const { mockResolveGatewayAccess } = vi.hoisted(() => ({
+const { mockResolveGatewayAccess, mockForgetGatewayKey } = vi.hoisted(() => ({
   mockResolveGatewayAccess: vi.fn(async () => null as unknown),
+  mockForgetGatewayKey: vi.fn(async () => undefined),
 }))
 
 vi.mock('@/lib/nexora/gateway-access', () => ({
   resolveGatewayAccess: (...args: unknown[]) => mockResolveGatewayAccess(...(args as [])),
+  forgetNexoraGatewayKey: (...args: unknown[]) => mockForgetGatewayKey(...(args as [])),
 }))
 vi.mock('@/lib/nexora/traces/record', () => ({ recordTrace: vi.fn(() => Promise.resolve()) }))
 vi.mock('@/lib/nexora/data-protection/policy', () => nexoraDataProtectionMock)
@@ -589,6 +593,7 @@ describe('Nexora wand — Nexora AI gateway', () => {
     mockEnvObject.VLLM_API_KEY = 'sk-workstudio'
     vi.stubGlobal('fetch', fetchMock)
     mockResolveGatewayAccess.mockReset().mockResolvedValue(null)
+    mockForgetGatewayKey.mockReset().mockResolvedValue(undefined)
     fetchMock.mockImplementation(async () =>
       Response.json({ choices: [{ message: { content: 'ok' } }], usage: { prompt_tokens: 1 } })
     )
@@ -650,5 +655,82 @@ describe('Nexora wand — Nexora AI gateway', () => {
     const refused = await nexoraWandComplete({ messages, trace }).catch((error: unknown) => error)
     expect(refused).toBeInstanceOf(NexoraWandRejectedError)
     expect((refused as NexoraWandRejectedError).reason).not.toContain('nxk_payer_0123456789')
+  })
+  it('words an empty wallet in French and sends the person to it', async () => {
+    mockResolveGatewayAccess.mockResolvedValue(access)
+    fetchMock.mockResolvedValueOnce(
+      Response.json(
+        {
+          error: {
+            message: 'Solde de crédits insuffisant pour cette requête. Rechargez votre compte.',
+            code: 'insufficient_quota',
+          },
+        },
+        { status: 402 }
+      )
+    )
+    const refused = await nexoraWandComplete({ messages, trace }).catch((error: unknown) => error)
+    expect(refused).toBeInstanceOf(NexoraWandGatewayError)
+    expect((refused as NexoraWandGatewayError).reason).toContain('portefeuille')
+    expect(describeWandFailure(refused)).toEqual({
+      status: 422,
+      code: 'gateway',
+      reason: (refused as NexoraWandGatewayError).reason,
+    })
+    expect(mockForgetGatewayKey).not.toHaveBeenCalled()
+  })
+
+  it('drops a key the gateway rejects and says to sign in again', async () => {
+    mockResolveGatewayAccess.mockResolvedValue(access)
+    fetchMock.mockResolvedValueOnce(
+      Response.json(
+        { error: { message: 'Cette clé API a été révoquée.', code: 'api_key_revoked' } },
+        { status: 401 }
+      )
+    )
+    const refused = await nexoraWandComplete({ messages, trace }).catch((error: unknown) => error)
+    expect(refused).toBeInstanceOf(NexoraWandGatewayError)
+    expect((refused as NexoraWandGatewayError).reason).toMatch(/reconnect/i)
+    expect(mockForgetGatewayKey).toHaveBeenCalledWith({ workspaceId: 'ws-1', userId: 'user-1' })
+  })
+
+  it('keeps the gateway’s own words when it is the privacy layer that refuses', async () => {
+    mockResolveGatewayAccess.mockResolvedValue(access)
+    fetchMock.mockResolvedValueOnce(
+      Response.json(
+        {
+          error: {
+            message: 'Règle « données clients » : envoi refusé.',
+            code: 'privacy_policy_denied',
+          },
+        },
+        { status: 403 }
+      )
+    )
+    const refused = await nexoraWandComplete({ messages, trace }).catch((error: unknown) => error)
+    expect(refused).toBeInstanceOf(NexoraWandUnavailableError)
+  })
+
+  it('tells the person what to do when their sign-in through the site has ended', async () => {
+    mockResolveGatewayAccess.mockRejectedValue(new NexoraGatewayError('session-expired'))
+    const refused = await nexoraWandComplete({ messages, trace }).catch((error: unknown) => error)
+    expect(refused).toBeInstanceOf(NexoraWandGatewayError)
+    expect((refused as NexoraWandGatewayError).reason).toMatch(/reconnect/i)
+    expect(fetchMock).not.toHaveBeenCalled()
+  })
+
+  it('still answers unavailable when the site simply does not answer', async () => {
+    mockResolveGatewayAccess.mockRejectedValue(new NexoraGatewayError('site-unavailable'))
+    await expect(nexoraWandComplete({ messages, trace })).rejects.toBeInstanceOf(
+      NexoraWandUnavailableError
+    )
+  })
+
+  it('leaves a refusal of the instance’s own Nexora API as it was', async () => {
+    fetchMock.mockResolvedValueOnce(
+      Response.json({ error: { message: 'quota', code: 'insufficient_quota' } }, { status: 402 })
+    )
+    const refused = await nexoraWandComplete({ messages, trace }).catch((error: unknown) => error)
+    expect(refused).toBeInstanceOf(NexoraWandRejectedError)
   })
 })

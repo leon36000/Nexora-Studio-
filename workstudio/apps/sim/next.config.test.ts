@@ -31,3 +31,20 @@ describe('Embedding on other sites', () => {
     expect(headers['x-content-type-options']).toBe('nosniff')
   })
 })
+
+describe('Redirects', () => {
+  it('never send a visitor to the upstream project’s accounts, repository or sales calendar', async () => {
+    const rules = (await nextConfig.redirects?.()) ?? []
+    const outward = rules
+      .map((rule) => rule.destination)
+      .filter((destination) => /^https?:/.test(destination))
+    expect(
+      outward.filter((url) =>
+        /github\.com|discord|slack\.com|x\.com|linkedin|cal\.com|sim\.ai/i.test(url)
+      )
+    ).toEqual([])
+    for (const path of ['/discord', '/slack', '/x', '/linkedin', '/github', '/team']) {
+      expect(rules.some((rule) => rule.source === path)).toBe(false)
+    }
+  })
+})

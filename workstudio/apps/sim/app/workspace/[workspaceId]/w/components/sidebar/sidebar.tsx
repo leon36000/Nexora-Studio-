@@ -63,7 +63,7 @@ import { useDeploymentShape } from '@/lib/core/config/deployment-shape'
 import { isStatusNoticePreviewEnabled } from '@/lib/core/config/env-flags'
 import { isMacPlatform } from '@/lib/core/utils/platform'
 import { buildFolderTree, getFolderPathNames } from '@/lib/folders/tree'
-import { DOCS_URL, SLACK_COMMUNITY_URL } from '@/lib/help-links'
+import { DOCS_URL } from '@/lib/help-links'
 import { SIM_RESOURCES_DRAG_TYPE } from '@/lib/mothership/resource-types'
 import { captureEvent } from '@/lib/posthog/client'
 import { LOGO_ACCEPT_ATTRIBUTE } from '@/lib/uploads/client/logo-file'
@@ -1400,11 +1400,6 @@ export const Sidebar = memo(function Sidebar({ organizationHref, desktopExecutor
     captureEvent(posthog, 'docs_opened', { source: 'help_menu' })
   }
 
-  const handleOpenSlackCommunity = () => {
-    window.open(SLACK_COMMUNITY_URL, '_blank', 'noopener,noreferrer')
-    captureEvent(posthog, 'slack_community_opened', { source: 'help_menu' })
-  }
-
   const handleChatRenameBlur = useCallback(
     () => void chatFlyoutRename.saveRename(),
     [chatFlyoutRename.saveRename]
@@ -1998,7 +1993,6 @@ export const Sidebar = memo(function Sidebar({ organizationHref, desktopExecutor
                   onOpenAccountSettings={() => handleOpenSettings('general')}
                   navigationLinks={profileNavigationLinks}
                   onOpenDocs={handleOpenDocs}
-                  onJoinSlack={handleOpenSlackCommunity}
                   onContactSupport={handleOpenHelpFromMenu}
                 />
 

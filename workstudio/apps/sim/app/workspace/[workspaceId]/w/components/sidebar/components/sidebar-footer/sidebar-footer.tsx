@@ -18,14 +18,24 @@ import {
   OverflowText,
   Skeleton,
 } from '@sim/emcn'
-import { BookOpen, Download, HelpCircle, LogOut, Settings } from '@sim/emcn/icons'
+import {
+  BookOpen,
+  ChartColumn,
+  Credit,
+  Download,
+  HelpCircle,
+  LogOut,
+  Settings,
+  Users,
+} from '@sim/emcn/icons'
 import { useRouter } from 'next/navigation'
-import { useTranslations } from 'next-intl'
-import { GithubIcon } from '@/components/icons'
+import { useLocale, useTranslations } from 'next-intl'
 import { SettingsIntentLink } from '@/components/settings/settings-intent-link'
 import { signOutAndRedirect } from '@/lib/auth/sign-out'
+import { hasDocumentationSite } from '@/lib/branding/docs-url'
 import { getDesktopUpdates } from '@/lib/desktop'
 import { rememberSettingsReturnUrl } from '@/lib/navigation/settings-return'
+import { getNexoraSiteUrl, nexoraSiteLinks } from '@/lib/nexora/site-links'
 import { getUserColor } from '@/lib/workspaces/colors'
 import { SidebarTooltip } from '@/app/workspace/[workspaceId]/w/components/sidebar/components/sidebar-tooltip'
 import {
@@ -34,6 +44,7 @@ import {
 } from '@/app/workspace/[workspaceId]/w/components/sidebar/constants'
 import { useUserProfile } from '@/hooks/queries/user-profile'
 import { useDesktopUpdateState } from '@/hooks/use-desktop-update-state'
+import { useNexoraSiteLinks } from '@/hooks/use-nexora-site-links'
 import { useSettingsDirtyStore } from '@/stores/settings/dirty/store'
 
 function hasAvailableDesktopUpdate(state: DesktopUpdateState): boolean {
@@ -89,7 +100,7 @@ interface SidebarFooterProps {
   onOpenAccountSettings: () => void
   navigationLinks: readonly SidebarNavigationLink[]
   onOpenDocs: () => void
-  onJoinSlack: () => void
+  /** Opens the support form, used when the Nexora AI site's contact page is not known. */
   onContactSupport: () => void
 }
 
@@ -123,13 +134,15 @@ export function SidebarFooter({
   onOpenAccountSettings,
   navigationLinks,
   onOpenDocs,
-  onJoinSlack,
   onContactSupport,
 }: SidebarFooterProps) {
   const t = useTranslations('shell.sidebarFooter')
+  const locale = useLocale()
+  const supportUrl = nexoraSiteLinks(getNexoraSiteUrl(), locale)?.contact ?? null
   const { data: profile } = useUserProfile()
   const router = useRouter()
   const updateState = useDesktopUpdateState()
+  const siteLinks = useNexoraSiteLinks()
 
   const name = profile ? profile.name?.trim() || profile.email : ''
   const updateAvailable = hasAvailableDesktopUpdate(updateState)
@@ -244,6 +257,24 @@ export function SidebarFooter({
             </SettingsIntentLink>
           </DropdownMenuItem>
         ))}
+        {siteLinks && (
+          <>
+            <DropdownMenuSeparator />
+            {[
+              { label: t('nexoraAccount'), icon: Users, href: siteLinks.account },
+              { label: t('nexoraBilling'), icon: Credit, href: siteLinks.billing },
+              { label: t('nexoraActivity'), icon: ChartColumn, href: siteLinks.activity },
+            ].map(({ label, icon: Icon, href }) => (
+              <DropdownMenuItem key={href} asChild>
+                <a href={href} target='_blank' rel='noopener noreferrer'>
+                  <Icon className='size-[14px]' />
+                  <DropdownMenuItemLabel label={label} />
+                </a>
+              </DropdownMenuItem>
+            ))}
+            <DropdownMenuSeparator />
+          </>
+        )}
         {canSignOut && (
           <DropdownMenuItem
             onSelect={() => {
@@ -307,18 +338,25 @@ export function SidebarFooter({
             <DropdownMenuSeparator />
           </>
         )}
-        <DropdownMenuItem onSelect={onOpenDocs}>
-          <BookOpen className='size-[14px]' />
-          {t('docs')}
-        </DropdownMenuItem>
-        <DropdownMenuItem onSelect={onJoinSlack}>
-          <GithubIcon className='size-[14px]' />
-          {t('reportIssue')}
-        </DropdownMenuItem>
-        <DropdownMenuItem onSelect={onContactSupport}>
-          <HelpCircle className='size-[14px]' />
-          {t('contactSupport')}
-        </DropdownMenuItem>
+        {hasDocumentationSite() && (
+          <DropdownMenuItem onSelect={onOpenDocs}>
+            <BookOpen className='size-[14px]' />
+            {t('docs')}
+          </DropdownMenuItem>
+        )}
+        {supportUrl ? (
+          <DropdownMenuItem asChild>
+            <a href={supportUrl} target='_blank' rel='noopener noreferrer'>
+              <HelpCircle className='size-[14px]' />
+              {t('contactSupport')}
+            </a>
+          </DropdownMenuItem>
+        ) : (
+          <DropdownMenuItem onSelect={onContactSupport}>
+            <HelpCircle className='size-[14px]' />
+            {t('contactSupport')}
+          </DropdownMenuItem>
+        )}
       </DropdownMenuContent>
     </DropdownMenu>
   )

@@ -35,6 +35,9 @@ function world(overrides: Partial<GatewayDependencies> = {}) {
     gatewayUrl: () => GATEWAY,
     billedUserOf: async (workspaceId) => state.owners.get(workspaceId) ?? null,
     readKey: async (userId) => state.rows.get(userId) ?? null,
+    deleteKey: async (userId) => {
+      state.rows.delete(userId)
+    },
     writeKey: async (userId, row) => {
       state.rows.set(userId, row)
     },
@@ -180,6 +183,40 @@ describe('gateway access of a person', () => {
   })
 })
 
+describe('forgetting a key the site no longer accepts', () => {
+  it('drops the stored key of whoever pays, so the next call asks the site for a new one', async () => {
+    const { state, deps, gateway } = world()
+    state.rows.set(ALICE, { keyEncrypted: 'enc(nxk_revoked)', model: 'm' })
+    await gateway.forget({ workspaceId: 'ws-alice', userId: BOB })
+    expect(state.rows.has(ALICE)).toBe(false)
+    expect(state.rows.has(BOB)).toBe(false)
+
+    await expect(gateway.resolve({ workspaceId: 'ws-alice' })).resolves.toMatchObject({
+      apiKey: KEY,
+    })
+    expect(deps.requestAccess).toHaveBeenCalledTimes(1)
+  })
+
+  it('asks for the sign-in again once the token has ended, never serving the instance key', async () => {
+    const { state, gateway } = world()
+    state.rows.set(ALICE, { keyEncrypted: 'enc(nxk_revoked)', model: 'm' })
+    state.links.set(ALICE, { accessToken: TOKEN, expiresAt: new Date('2026-10-29T09:00:00Z') })
+    await gateway.forget({ workspaceId: 'ws-alice' })
+    await expect(gateway.resolve({ workspaceId: 'ws-alice' })).rejects.toMatchObject({
+      code: 'session-expired',
+    })
+  })
+
+  it('does nothing without a gateway, and never throws', async () => {
+    const off = world({ gatewayUrl: () => null })
+    off.state.rows.set(ALICE, { keyEncrypted: 'enc(nxk_x)', model: 'm' })
+    await expect(off.gateway.forget({ workspaceId: 'ws-alice' })).resolves.toBeUndefined()
+    expect(off.state.rows.has(ALICE)).toBe(true)
+    const { gateway } = world()
+    await expect(gateway.forget({})).resolves.toBeUndefined()
+  })
+})
+
 describe('ensure the key after the first sign-in', () => {
   it('makes the key and never throws, whatever the site answers', async () => {
     const { state, gateway } = world()
@@ -247,15 +284,29 @@ describe('requestWorkstudioAccess', () => {
   })
 
   it.each([
-    [401, 'site-refused'],
-    [403, 'site-refused'],
-    [500, 'site-unavailable'],
-    [404, 'site-unavailable'],
-  ])('answers HTTP %i as %s', async (status, code) => {
-    const fetchFn = ok({ error: 'no' }, status)
+    [401, { error: 'invalid_token' }, 'session-expired'],
+    [403, { error: 'insufficient_scope' }, 'site-refused'],
+    [403, { error: 'two_factor_required' }, 'two-factor-required'],
+    [403, { error: 'email_not_verified' }, 'email-not-verified'],
+    [403, { error: 'subscription_required' }, 'subscription-required'],
+    [403, { error: { code: 'two_factor_required' } }, 'two-factor-required'],
+    [403, null, 'site-refused'],
+    [500, { error: 'no' }, 'site-unavailable'],
+    [404, { error: 'no' }, 'site-unavailable'],
+  ])('answers HTTP %i %j as %s', async (status, body, code) => {
+    const fetchFn = ok(body, status)
     await expect(
       requestWorkstudioAccess(TOKEN, { gatewayUrl: GATEWAY, fetchFn })
     ).rejects.toMatchObject({ code })
+  })
+
+  it('says in French what to do for each way the site can refuse', () => {
+    expect(new NexoraGatewayError('session-expired').message).toMatch(/reconnect/i)
+    expect(new NexoraGatewayError('two-factor-required').message).toMatch(
+      /double authentification/i
+    )
+    expect(new NexoraGatewayError('email-not-verified').message).toMatch(/adresse e-mail/i)
+    expect(new NexoraGatewayError('site-unavailable').message).toMatch(/réessayez/i)
   })
 
   it('answers an unreachable site, or a redirect, as unavailable', async () => {
