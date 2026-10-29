@@ -1,6 +1,7 @@
 #!/usr/bin/env bash
-# Nexora — installation en une commande :
-#   curl -fsSL https://raw.githubusercontent.com/leon36000/Nexora-Studio-/main/install.sh | bash
+# Nexora — installation depuis une copie locale du dépôt.
+# Dépôt privé sur GitLab (pc4) : cloner puis lancer `NEXORA_BUNDLE="$PWD" bash install.sh --from-source` (voir docs/restauration.md).
+# (Plus aucune installation depuis GitHub : les sources et les images vivent dans le GitLab privé.)
 #
 # Vérifie Docker, télécharge le paquet de déploiement dans ~/nexora, pose quelques questions
 # (organisation, votre adresse, modèle de langage), génère les secrets, démarre la plateforme
@@ -18,7 +19,7 @@
 #   NEXORA_BIN_DIR (~/.local/bin), NEXORA_BUNDLE (copie locale du dépôt, au lieu de GitHub).
 set -euo pipefail
 
-NEXORA_REPO="${NEXORA_REPO:-leon36000/Nexora-Studio-}"
+NEXORA_REPO="${NEXORA_REPO:-root/nexora-workstudio}"
 NEXORA_REF="${NEXORA_REF:-main}"
 NEXORA_HOME="${NEXORA_HOME:-$HOME/nexora}"
 NEXORA_PROJECT="${NEXORA_PROJECT:-nexora}"
@@ -26,8 +27,8 @@ NEXORA_BIN_DIR="${NEXORA_BIN_DIR:-$HOME/.local/bin}"
 NEXORA_BUNDLE="${NEXORA_BUNDLE:-}"
 NEXORA_HEALTH_TIMEOUT="${NEXORA_HEALTH_TIMEOUT:-900}"
 OWNER_LC="$(printf '%s' "${NEXORA_REPO%%/*}" | tr '[:upper:]' '[:lower:]')"
-PUBLISHED_PREFIX="${NEXORA_PUBLISHED_PREFIX:-ghcr.io/$OWNER_LC/nexora-}"
-RAW_URL="https://raw.githubusercontent.com/$NEXORA_REPO/$NEXORA_REF"
+PUBLISHED_PREFIX="${NEXORA_PUBLISHED_PREFIX:-nexora/}"
+NO_REMOTE="Les sources sont dans le GitLab privé de Nexora : clonez le dépôt puis relancez avec NEXORA_BUNDLE=<dossier cloné> (voir docs/restauration.md)."
 ENV_FILE="$NEXORA_HOME/deploy/.env"
 
 # Deployment bundle: everything compose.yml mounts or the CLI runs, nothing else.
@@ -131,11 +132,11 @@ fetch_bundle() {
     if [ -n "$NEXORA_BUNDLE" ]; then
       cp "$NEXORA_BUNDLE/$f" "$NEXORA_HOME/$f"
     else
-      curl -fsSL "$RAW_URL/$f" -o "$NEXORA_HOME/$f" || die "Téléchargement impossible : $RAW_URL/$f"
+      die "$NO_REMOTE"
     fi
   done
   chmod +x "$NEXORA_HOME/scripts/"*.sh
-  info "Source : ${NEXORA_BUNDLE:-github.com/$NEXORA_REPO ($NEXORA_REF)}"
+  info "Source : $NEXORA_BUNDLE"
 }
 
 fetch_sources() {
@@ -149,12 +150,7 @@ fetch_sources() {
   elif [ -n "$NEXORA_BUNDLE" ]; then
     cp -R "$NEXORA_BUNDLE/workstudio" "$NEXORA_BUNDLE/services" "$NEXORA_HOME/"
   else
-    local tmp; tmp="$(mktemp -d)"
-    curl -fsSL "https://codeload.github.com/$NEXORA_REPO/tar.gz/$NEXORA_REF" | tar -xz -C "$tmp" \
-      || { rm -rf "$tmp"; die "Téléchargement des sources impossible."; }
-    rm -rf "$NEXORA_HOME/workstudio" "$NEXORA_HOME/services"
-    mv "$tmp"/*/workstudio "$tmp"/*/services "$NEXORA_HOME/"
-    rm -rf "$tmp"
+    die "$NO_REMOTE"
   fi
   info "Sources prêtes. La construction prend de 10 à 20 minutes."
 }

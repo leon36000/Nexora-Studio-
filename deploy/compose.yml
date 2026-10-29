@@ -1,7 +1,7 @@
 # Nexora — plateforme complète en une commande :
-#   curl -fsSL https://raw.githubusercontent.com/leon36000/Nexora-Studio-/main/install.sh | bash
+#   depuis une copie du GitLab privé : NEXORA_BUNDLE="$PWD" bash install.sh --from-source (voir docs/restauration.md)
 # ou, depuis les sources : scripts/init-env.sh && docker compose -f deploy/compose.yml up -d --build
-# Images : NEXORA_IMAGE_PREFIX (ex. ghcr.io/leon36000/nexora-) et NEXORA_VERSION (ex. latest) ;
+# Images : NEXORA_IMAGE_PREFIX (défaut nexora/) et NEXORA_VERSION (ex. local, ou l'étiquette d'une version chargée) ;
 # par défaut nexora/<service>:local, construites ici. Ollama sert les embeddings et le modèle local.
 # Services : WorkStudio (app, temps réel, migrations), Nexora API, Nexora Connect, PostgreSQL, Redis.
 # Les ports sont publiés sur NEXORA_BIND_ADDRESS (127.0.0.1 par défaut : cette machine seulement).

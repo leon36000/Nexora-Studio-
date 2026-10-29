@@ -4,7 +4,7 @@
 # install.sh, qui le lance avec NEXORA_HOME, NEXORA_PROJECT, NEXORA_REPO, NEXORA_REF et NEXORA_BUNDLE.
 set -euo pipefail
 : "${NEXORA_HOME:?NEXORA_HOME manquant}" "${NEXORA_PROJECT:?NEXORA_PROJECT manquant}"
-NEXORA_REPO="${NEXORA_REPO:-leon36000/Nexora-Studio-}"
+NEXORA_REPO="${NEXORA_REPO:-root/nexora-workstudio}"
 NEXORA_REF="${NEXORA_REF:-main}"
 NEXORA_BUNDLE="${NEXORA_BUNDLE:-}"
 ENV_FILE="$NEXORA_HOME/deploy/.env"
@@ -496,8 +496,8 @@ install_update() {
   if [ -n "$NEXORA_BUNDLE" ]; then
     NEXORA_HOME="$NEXORA_HOME" NEXORA_PROJECT="$NEXORA_PROJECT" NEXORA_BUNDLE="$NEXORA_BUNDLE" bash "$NEXORA_BUNDLE/install.sh" --update
   else
-    curl -fsSL "https://raw.githubusercontent.com/$NEXORA_REPO/$NEXORA_REF/install.sh" \
-      | NEXORA_HOME="$NEXORA_HOME" NEXORA_PROJECT="$NEXORA_PROJECT" NEXORA_REPO="$NEXORA_REPO" NEXORA_REF="$NEXORA_REF" bash -s -- --update
+    echo "Mise à jour : les sources sont dans le GitLab privé de Nexora. Mettez à jour votre copie du dépôt (git pull) puis lancez : NEXORA_BUNDLE=<dossier cloné> nexora update." >&2
+    return 1
   fi
 }
 

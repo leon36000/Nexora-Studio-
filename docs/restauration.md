@@ -52,5 +52,5 @@ La compilation de WorkStudio exige plus de 28 Go de mémoire et une machine x86 
 
 ## Points d'attention
 
-- `install.sh`, `deploy/nexora-cli.sh` et `deploy/.env.example` pointent encore vers GitHub (`leon36000/Nexora-Studio-`, `ghcr.io/leon36000/nexora-`). Depuis le 28/10/2026 on ne pousse plus vers GitHub : **ne pas utiliser `install.sh` pour reconstruire**, suivre la procédure ci-dessus. Les faire pointer vers GitLab est un chantier à part.
+- `install.sh`, `deploy/nexora-cli.sh`, `deploy/.env.example` et le README ne pointent plus vers GitHub (29/10/2026) : l'installateur n'accepte qu'une copie locale du dépôt GitLab (`NEXORA_BUNDLE`).
 - Les **gabarits** sont dans `workstudio/apps/sim/lib/nexora/templates.ts` (29 gabarits, tests : 81 passés sur pc1).

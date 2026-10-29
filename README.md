@@ -10,31 +10,24 @@ Ce dépôt contient la plateforme complète :
 | **Nexora API** | La passerelle de modèles compatible OpenAI : clés, organisations, quotas, mesure de la consommation | [`services/nexora-api/`](services/nexora-api/) |
 | **Nexora Connect** | Le connecteur d'outils (≈ 1 650 services), exposé en MCP et en HTTP | [`services/nexora-connect/`](services/nexora-connect/) |
 
-## Installation en une commande
+## Installation
 
-Il vous faut seulement **Docker** (Linux ou macOS, amd64 ou arm64) :
+Les sources et les images vivent dans le **GitLab privé de Nexora** (plus rien sur GitHub). Il vous faut **Docker** (Compose v5.2 ou plus récent) et un jeton d'accès au dépôt :
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/leon36000/Nexora-Studio-/main/install.sh | bash
+git clone https://pc4.tail0c55ff.ts.net/root/nexora-workstudio.git && cd nexora-workstudio
+NEXORA_BUNDLE="$PWD" bash install.sh --from-source     # ou la procédure avec images prêtes : docs/restauration.md
 ```
 
-L'installateur vérifie Docker, pose quatre questions (nom de votre organisation, votre adresse, domaines autorisés, modèle de langage : local et gratuit, Mistral AI ou un autre service compatible OpenAI), génère les secrets, démarre la plateforme dans `~/nexora` et installe la commande `nexora` :
+L'installateur vérifie Docker, pose quatre questions (nom de votre organisation, votre adresse, domaines autorisés, modèle de langage), génère les secrets, démarre la plateforme dans `~/nexora` et installe la commande `nexora` :
 
 ```bash
 nexora status      # état des services
 nexora logs        # journaux
-nexora update      # mise à jour, configuration conservée
 nexora uninstall   # arrêt ; --purge efface aussi les données
 ```
 
 Ouvrez ensuite l'adresse affichée (par défaut <http://localhost:3000>) et créez votre compte avec l'adresse donnée à l'installation : vous êtes propriétaire de l'organisation. Votre premier espace contient déjà le dossier **« Modèles PME »** (devis, relance de facture, réponse support, tri des e-mails, compte rendu de réunion).
-
-Installation sans questions (serveur, script) :
-
-```bash
-curl -fsSL https://raw.githubusercontent.com/leon36000/Nexora-Studio-/main/install.sh \
-  | NEXORA_ORGANIZATION_OWNER_EMAIL=vous@entreprise.fr NEXORA_MODEL_CHOICE=local bash -s -- --yes
-```
 
 Installation manuelle depuis les sources, options et sauvegarde : voir le [guide](docs/guide/README.md).
 

@@ -34,4 +34,4 @@ Bienvenue dans la documentation de Nexora WorkStudio et de sa plateforme.
 | [Outils MCP](outils-mcp.md) | Utilisateurs avancés | Serveurs MCP, exposer vos workflows |
 | [Réglages et gouvernance](reglages.md) | Administrateurs | Membres, audit, consommation, secrets |
 
-Vous ne trouvez pas une réponse ? Ouvrez un ticket : <https://github.com/leon36000/Nexora-Studio-/issues>.
+Vous ne trouvez pas une réponse ? Écrivez au support Nexora (voir la page Contact du site).
