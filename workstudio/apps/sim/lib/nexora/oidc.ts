@@ -3,6 +3,9 @@ import type { GenericOAuthConfig } from 'better-auth/plugins'
 /** Better Auth provider id of the company identity provider. Callback: `/api/auth/oauth2/callback/nexora-oidc`. */
 export const NEXORA_OIDC_PROVIDER_ID = 'nexora-oidc'
 
+/** Scope of the site's `GET /api/oauth/workstudio-access` (the person's model key). */
+export const NEXORA_GATEWAY_SCOPE = 'workstudio:model'
+
 interface OidcEnv {
   NEXORA_OIDC_ISSUER?: string
   NEXORA_OIDC_CLIENT_ID?: string
@@ -12,6 +15,11 @@ interface OidcEnv {
 interface OidcOptions {
   /** `DISABLE_REGISTRATION`: the identity provider signs in existing users only. */
   registrationDisabled?: boolean
+  /**
+   * `NEXORA_GATEWAY_URL` is set: the site hands each person their model key, and only to a sign-in that
+   * asked for this scope (the site answers 403 otherwise).
+   */
+  gatewayEnabled?: boolean
 }
 
 /**
@@ -21,7 +29,7 @@ interface OidcOptions {
  */
 export function buildNexoraOidcProvider(
   vars: OidcEnv,
-  { registrationDisabled = false }: OidcOptions = {}
+  { registrationDisabled = false, gatewayEnabled = false }: OidcOptions = {}
 ): GenericOAuthConfig | null {
   const issuer = vars.NEXORA_OIDC_ISSUER?.trim()
   const clientId = vars.NEXORA_OIDC_CLIENT_ID?.trim()
@@ -34,7 +42,9 @@ export function buildNexoraOidcProvider(
     discoveryUrl: `${issuer.replace(/\/+$/, '')}/.well-known/openid-configuration`,
     clientId,
     clientSecret,
-    scopes: ['openid', 'profile', 'email'],
+    scopes: gatewayEnabled
+      ? ['openid', 'profile', 'email', NEXORA_GATEWAY_SCOPE]
+      : ['openid', 'profile', 'email'],
     pkce: true,
     disableSignUp: registrationDisabled,
     disableImplicitSignUp: registrationDisabled,

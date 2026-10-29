@@ -25,6 +25,20 @@ describe('buildNexoraOidcProvider', () => {
     })
   })
 
+  it('also asks for the model-access scope when the model gateway is set', () => {
+    expect(buildNexoraOidcProvider(complete, { gatewayEnabled: true })?.scopes).toEqual([
+      'openid',
+      'profile',
+      'email',
+      'workstudio:model',
+    ])
+    expect(buildNexoraOidcProvider(complete, { gatewayEnabled: false })?.scopes).toEqual([
+      'openid',
+      'profile',
+      'email',
+    ])
+  })
+
   it('leaves the expected issuer to discovery, whatever trailing slash the operator typed', () => {
     expect(buildNexoraOidcProvider(complete)?.issuer).toBeUndefined()
     expect(
