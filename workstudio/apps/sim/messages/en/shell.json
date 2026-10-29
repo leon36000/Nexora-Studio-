@@ -577,8 +577,10 @@
     "helpUpdateAvailable": "Help, update available",
     "help": "Help",
     "docs": "Docs",
-    "reportIssue": "Report an issue",
-    "contactSupport": "Contact support"
+    "contactSupport": "Contact support",
+    "nexoraAccount": "My Nexora AI account",
+    "nexoraBilling": "Wallet and billing",
+    "nexoraActivity": "My token usage"
   },
   "sidebarNavChip": {
     "accessRequired": "{label}: access required"

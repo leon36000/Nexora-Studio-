@@ -1,20 +1,12 @@
 'use client'
 
-import { Chip, cn } from '@sim/emcn'
-import { ArrowRight } from '@sim/emcn/icons'
-import { useTranslations } from 'next-intl'
-import { useSettingsNavigation } from '@/hooks/use-settings-navigation'
+import { cn } from '@sim/emcn'
 
 interface SettingsUpgradeNoticeProps {
-  /** Names the gated surface, e.g. `Sandboxes require an active Max plan`. */
+  /** Names the unavailable surface, e.g. `Sandboxes are not available on this instance`. */
   title: string
-  /** One sentence on what the plan unlocks. */
+  /** One sentence on what to do about it. */
   description: string
-  /**
-   * Whether to offer the upgrade action. Members who cannot act on it are shown
-   * the reason without a button that would only dead-end them.
-   */
-  canUpgrade?: boolean
   /**
    * Tightens the vertical rhythm for a modal, where the full-height centering a
    * settings page wants would leave the dialog mostly empty.
@@ -23,21 +15,14 @@ interface SettingsUpgradeNoticeProps {
 }
 
 /**
- * Canonical wall for a surface gated behind the Max plan. Owns the copy rhythm
- * and the route to upgrade, so every gated section reads and behaves the same.
- *
- * The action lands on billing, which redirects a member who cannot manage
- * billing to the plan-comparison page instead — so it is never a dead end.
+ * Nexora edition: the wall for a surface this instance does not offer. There is no plan to move to
+ * here (plan and wallet live on the Nexora AI site), so it states the fact and names no button.
  */
 export function SettingsUpgradeNotice({
   title,
   description,
-  canUpgrade = false,
   compact = false,
 }: SettingsUpgradeNoticeProps) {
-  const t = useTranslations('settings.upgradeNotice')
-  const { navigateToSettings } = useSettingsNavigation()
-
   return (
     <div
       className={cn('flex flex-col items-center justify-center gap-4', compact ? 'py-10' : 'py-20')}
@@ -46,15 +31,6 @@ export function SettingsUpgradeNotice({
         <h3 className='text-[var(--text-primary)] text-md'>{title}</h3>
         <p className='mt-1.5 text-[var(--text-muted)] text-sm'>{description}</p>
       </div>
-      {canUpgrade && (
-        <Chip
-          variant='primary'
-          rightIcon={ArrowRight}
-          onClick={() => navigateToSettings({ section: 'billing' })}
-        >
-          {t('upgradeToMax')}
-        </Chip>
-      )}
     </div>
   )
 }

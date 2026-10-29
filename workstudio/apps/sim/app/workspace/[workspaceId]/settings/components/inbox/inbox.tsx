@@ -47,11 +47,7 @@ export function Inbox() {
     }
     return (
       <SettingsPanel>
-        <SettingsUpgradeNotice
-          title={t('upgradeTitle')}
-          description={t('upgradeDescription')}
-          canUpgrade={canAdmin}
-        />
+        <SettingsUpgradeNotice title={t('upgradeTitle')} description={t('upgradeDescription')} />
       </SettingsPanel>
     )
   }

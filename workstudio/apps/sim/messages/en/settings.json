@@ -97,6 +97,13 @@
       "workspacesTransferred": "{count, plural, one {Billing for <b>{names}</b> moves to another admin. Nothing in it changes.} other {Billing for <b>{names}</b> moves to another admin. Nothing in them changes.}}",
       "planFailed": "Could not check whether this account can be deleted. Try again.",
       "confirmEmail": "Confirm your email"
+    },
+    "nexoraAccount": {
+      "account": "Nexora AI account",
+      "billing": "Wallet and billing",
+      "activity": "My token usage",
+      "open": "Open",
+      "hint": "Your password, your wallet and the deletion of your account are managed on Nexora AI."
     }
   },
   "shared": {
@@ -474,8 +481,8 @@
     }
   },
   "sandboxes": {
-    "upgradeTitle": "Sandboxes require an active Max plan",
-    "upgradeDescription": "Upgrade to Max and ensure billing is active to add dependencies, system packages, and managed CLI tools to Function blocks.",
+    "upgradeTitle": "Sandboxes are not available on this instance",
+    "upgradeDescription": "This feature is not turned on here. To add Python or npm packages to Function blocks, contact the instance administrator.",
     "deleteTitle": "Delete Sandbox",
     "deleteConfirm": {
       "intro": "This will permanently delete ",
@@ -604,9 +611,6 @@
   "emptyState": {
     "retrying": "Retrying…",
     "tryAgain": "Try again"
-  },
-  "upgradeNotice": {
-    "upgradeToMax": "Upgrade to Max"
   },
   "rowActions": {
     "disabledLabel": "{label} — {tooltip}"
@@ -1462,8 +1466,8 @@
   },
   "inbox": {
     "loadFailed": "Failed to load Inbox settings",
-    "upgradeTitle": "Nexora Mailer requires an active Max plan",
-    "upgradeDescription": "Upgrade to Max and ensure billing is active to receive tasks via email and let Nexora work on your behalf.",
+    "upgradeTitle": "Nexora Mailer is not available on this instance",
+    "upgradeDescription": "This feature is not turned on here. To receive tasks by email, contact the instance administrator.",
     "sectionLabel": "Inbox",
     "sectionDescription": "Email tasks received by this workspace.",
     "taskList": {
