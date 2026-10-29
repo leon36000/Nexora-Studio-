@@ -381,15 +381,16 @@ describe('Ready-to-run SME templates', () => {
       'fournisseur',
       'numero',
       'date',
-      'total_ht',
-      'tva',
-      'total_ttc',
+      'sous_total',
+      'tps',
+      'tvq',
+      'total',
       'echeance',
     ]) {
       expect(prompt, key).toContain(key)
     }
     expect(prompt).toMatch(/JSON/)
-    expect(prompt).toMatch(/total HT \+ TVA = total TTC|HT \+ TVA/)
+    expect(prompt).toMatch(/sous-total \+ TPS \+ TVQ = total/)
   })
 
   it('does not invent anything in the competitive watch: it cites the extracts', () => {
@@ -421,5 +422,297 @@ describe('Ready-to-run SME templates', () => {
     if (email?.kind !== 'email') throw new Error('the weekly summary has no e-mail step')
     expect(email.to).toMatch(/^<start\.[a-z_]+>$/)
     expect(email.body).toMatch(/^<[a-z]+\.content>/)
+  })
+})
+
+/** Everything a person can read in a template: names, descriptions, examples, prompts, subjects. */
+function visibleTexts(template: Template): string[] {
+  return [
+    template.name,
+    template.description,
+    ...template.inputs.flatMap((input) => [input.description, input.example]),
+    ...template.steps.flatMap(stepTexts).filter((text) => !/^<[a-z]+\.[A-Za-z_]+>$/.test(text)),
+  ]
+}
+
+/** The prompts of a template (the Agent steps), where the instructions to the model are. */
+function promptsOf(template: Template): string {
+  return template.steps.flatMap(stepTexts).join('\n')
+}
+
+/**
+ * The structure the Québec adaptation must not change: identifiers, inputs and steps, in order.
+ * Only the texts a person reads change.
+ */
+const STRUCTURE: readonly (readonly [string, string, string])[] = [
+  ['devis', 'client,prestations', 'agent:Devis'],
+  ['relance-facture', 'client,facture,montant,echeance,niveau', 'agent:Relance'],
+  ['support-faq', 'question,faq', 'agent:Reponse'],
+  ['tri-emails', 'email', 'agent:Classification,agent:Brouillon'],
+  [
+    'compte-rendu',
+    'enregistrement:file,participants,destinataire',
+    'transcription:Transcription,agent:CompteRendu,approval:Validation,gate:Approbation,email:Email',
+  ],
+  ['offre-emploi', 'poste,missions,profil', 'agent:Annonce'],
+  ['fiche-produit', 'produit,caracteristiques', 'agent:Fiche'],
+  ['reseaux-sociaux', 'actualite,ton', 'agent:Publications'],
+  ['reclamation', 'reclamation,marge', 'agent:Reponse'],
+  ['newsletter', 'infos,cible', 'agent:Newsletter'],
+  ['relance-devis', 'client,devis,envoi', 'agent:Relance'],
+  ['rapport-hebdo', 'notes', 'agent:Rapport'],
+  ['traduction', 'texte,langue', 'agent:Traduction'],
+  ['resume-contrat', 'contrat', 'agent:Resume'],
+  ['controle-facture', 'facture', 'agent:Extraction,agent:Controle'],
+  ['accueil-salarie', 'prenom,poste,arrivee', 'agent:Accueil'],
+  ['avis-client', 'avis,note', 'agent:Reponse'],
+  ['ordre-du-jour', 'sujets,duree', 'agent:Ordre'],
+  [
+    'reponse-validee',
+    'message,destinataire',
+    'agent:Brouillon,approval:Validation,gate:Approbation,email:Email',
+  ],
+  ['cr-entretien', 'notes,type', 'agent:CompteRenduEntretien'],
+  ['tri-sinistres', 'declaration,garanties', 'agent:Analyse,agent:Reponse'],
+  [
+    'conformite-documents',
+    'document,controles,destinataire',
+    'agent:Controle,approval:Validation,gate:Approbation,email:Email',
+  ],
+  ['factures-fournisseurs', 'facture:file,texte', 'agent:Extraction,agent:Coherence'],
+  ['qualification-prospects', 'message,criteres', 'agent:Qualification,agent:Reponse'],
+  [
+    'synthese-projet-hebdo',
+    'projet,notes,destinataire',
+    'agent:Synthese,approval:Validation,gate:Approbation,email:Email',
+  ],
+  ['veille-concurrentielle', 'concurrent,extraits,contexte', 'agent:Faits,agent:Note'],
+  ['reponse-appel-offres', 'cahier,elements', 'agent:Exigences,agent:Reponse'],
+  [
+    'revue-contrat',
+    'contrat,contexte,destinataire',
+    'agent:Revue,approval:Validation,gate:Approbation,email:Email',
+  ],
+  ['rapport-ventes-mensuel', 'mois,chiffres,objectifs', 'agent:Ecarts,agent:Rapport'],
+]
+
+/**
+ * What belongs to France and has no place in a Québec SME template. A template may keep one of
+ * these only if it is listed in `EXCEPTIONS` with the reason; the list starts empty.
+ */
+const FRANCE_MARKERS: readonly [label: string, pattern: RegExp][] = [
+  ['TVA', /\bTVA\b/],
+  ['euro', /€|\bEUR\b|\beuros?\b/i],
+  ['SIRET', /\bSIRET\b/i],
+  ['SIREN', /\bSIREN\b/i],
+  ['HT', /\bHT\b/],
+  ['TTC', /\bTTC\b/],
+  ['URSSAF', /\bURSSAF\b/i],
+  ['CNIL', /\bCNIL\b/i],
+  ['RGPD', /\bRGPD\b/i],
+  ['Kbis', /\bKbis\b/i],
+  ['code du travail', /code du travail/i],
+  ['mutuelle', /\bmutuelle\b/i],
+  ['France', /\bFrance\b|\bfrançaise?s?\b/],
+  ['e-mail', /\be-?mails?\b/i],
+  ['jours ouvrés', /\bouvrés?\b/i],
+  ['villes françaises', /\b(Lyon|Paris|Marseille|Grenoble|Villeurbanne|Bordeaux|Lille)\b/],
+  ['diplômes français', /\bBac\s?\+|\bCDI\b|\bCDD\b/],
+  ['code postal français', /\b\d{5}\s+[A-Z][a-zé]+/],
+  ['date jj/mm/aaaa', /\b\d{2}\/\d{2}\/\d{4}\b/],
+]
+
+const EXCEPTIONS: readonly { slug: string; marker: string; reason: string }[] = []
+
+describe('Gabarits adaptés au Québec', () => {
+  it('keeps the identifiers, the inputs and the steps of the twenty-nine templates', () => {
+    const now = NEXORA_TEMPLATES.map(
+      (template) =>
+        [
+          template.slug,
+          template.inputs
+            .map((input) => input.name + (input.type === 'file' ? ':file' : ''))
+            .join(','),
+          template.steps.map((step) => `${step.kind ?? 'agent'}:${step.name}`).join(','),
+        ] as const
+    )
+    expect(now).toEqual(STRUCTURE.map((row) => [...row]))
+    expect(NEXORA_TEMPLATES).toHaveLength(29)
+  })
+
+  it.each(FRANCE_MARKERS.map(([label, pattern]) => [label, pattern] as const))(
+    'keeps « %s » out of every template, unless the exception is justified',
+    (label, pattern) => {
+      for (const template of NEXORA_TEMPLATES) {
+        const excepted = EXCEPTIONS.some(
+          (exception) =>
+            exception.slug === template.slug && exception.marker === label && exception.reason
+        )
+        if (excepted) continue
+        const found = visibleTexts(template).filter((text) => pattern.test(text))
+        expect(found, `${template.slug}: ${label}`).toEqual([])
+      }
+    }
+  )
+
+  it('only lists exceptions for a template and a marker that exist', () => {
+    for (const exception of EXCEPTIONS) {
+      expect(NEXORA_TEMPLATES.map((template) => template.slug)).toContain(exception.slug)
+      expect(FRANCE_MARKERS.map(([label]) => label)).toContain(exception.marker)
+      expect(exception.reason.trim().length).toBeGreaterThan(20)
+    }
+  })
+
+  it('tells every agent that the company is in Québec and how to write amounts', () => {
+    for (const template of NEXORA_TEMPLATES) {
+      for (const step of template.steps) {
+        if (step.kind !== undefined) continue
+        expect(step.system, `${template.slug}/${step.name}`).toContain('Québec')
+        expect(step.system, `${template.slug}/${step.name}`).toContain('1\u00a0234,56\u00a0$')
+      }
+    }
+  })
+
+  it.each(['devis', 'controle-facture', 'factures-fournisseurs'])(
+    '%s works with the GST (TPS, 5 %) and the QST (TVQ, 9,975 %)',
+    (slug) => {
+      const prompt = promptsOf(bySlug(slug))
+      expect(prompt).toContain('TPS')
+      expect(prompt).toContain('TVQ')
+      expect(prompt).toMatch(/5[\s ]%/)
+      expect(prompt).toMatch(/9,975[\s ]%/)
+    }
+  )
+
+  it.each(['devis', 'controle-facture', 'factures-fournisseurs'])(
+    '%s computes the QST on the amount before taxes, not on the GST',
+    (slug) => {
+      expect(promptsOf(bySlug(slug))).toMatch(/pas sur la TPS/)
+    }
+  )
+
+  it('asks the quote to show the registration numbers of the company, to complete in brackets', () => {
+    const prompt = promptsOf(bySlug('devis'))
+    expect(prompt).toMatch(/TPS/)
+    expect(prompt).toMatch(/NEQ/)
+    expect(prompt).toMatch(/\[[^\]]*(TPS|TVQ|NEQ)[^\]]*\]/)
+  })
+
+  it('reads the supplier registration numbers and the NEQ where it used to read a SIRET', () => {
+    for (const slug of ['controle-facture']) {
+      const prompt = promptsOf(bySlug(slug))
+      for (const key of ['numero_tps', 'numero_tvq', 'neq']) expect(prompt, key).toContain(key)
+    }
+    const example = bySlug('controle-facture').inputs[0].example
+    expect(example).toMatch(/\b\d{9} RT \d{4}\b/)
+    expect(example).toMatch(/\b\d{10} TQ \d{4}\b/)
+    expect(example).toMatch(/\bNEQ \d{10}\b/)
+  })
+
+  it.each(['controle-facture', 'factures-fournisseurs'])(
+    '%s has an example invoice whose GST, QST and total are right to the cent',
+    (slug) => {
+      const template = bySlug(slug)
+      const example = template.inputs.find((input) => input.type !== 'file')?.example ?? ''
+      const cents = (label: RegExp) => {
+        const found = example.match(label)
+        if (!found) throw new Error(`${slug}: ${label} is missing from the example`)
+        return Math.round(Number(found[1].replace(/ /g, '').replace(',', '.')) * 100)
+      }
+      const subtotal = cents(/Sous-total : ([\d ]+,\d{2}) \$/)
+      const gst = cents(/TPS \(5 %\) : ([\d ]+,\d{2}) \$/)
+      const qst = cents(/TVQ \(9,975 %\) : ([\d ]+,\d{2}) \$/)
+      const total = cents(/Total : ([\d ]+,\d{2}) \$/)
+      expect(gst).toBe(Math.round((subtotal * 5) / 100))
+      expect(qst).toBe(Math.round((subtotal * 9975) / 100000))
+      expect(total).toBe(subtotal + gst + qst)
+    }
+  )
+
+  it('writes every amount in Canadian dollars, the Québec way: 1 234,56 $ with no-break spaces', () => {
+    let amounts = 0
+    for (const template of NEXORA_TEMPLATES) {
+      for (const text of visibleTexts(template)) {
+        expect(text, `${template.slug}: $ placed before the figure`).not.toMatch(/\$\s?\d/)
+        for (const [, figure] of text.matchAll(/(\d[\d  ]*(?:,\d+)?)[\s ]?\$/g)) {
+          amounts += 1
+          expect(figure, `${template.slug}: ${figure}`).toMatch(
+            /^(\d{1,3}( \d{3})+|\d+)(,\d{1,3})?$/
+          )
+        }
+        for (const [whole] of text.matchAll(/\d(?:[\s ])\$/g)) {
+          expect(whole, `${template.slug}: space before $`).toContain(' ')
+        }
+      }
+    }
+    expect(amounts).toBeGreaterThan(20)
+  })
+
+  it('uses places, firms and people from Québec in the examples', () => {
+    const examples = NEXORA_TEMPLATES.flatMap((template) =>
+      template.inputs.map((input) => input.example)
+    ).join('\n')
+    const places = [
+      'Montréal',
+      'Québec',
+      'Laval',
+      'Sherbrooke',
+      'Trois-Rivières',
+      'Gatineau',
+      'Longueuil',
+      'Saguenay',
+      'Lévis',
+      'Drummondville',
+    ].filter((place) => examples.includes(place))
+    expect(places.length).toBeGreaterThanOrEqual(5)
+    expect(examples).toMatch(/\(Québec\)|Québec/)
+  })
+
+  it('writes the dates of the examples the Québec way, not day/month/year', () => {
+    for (const template of NEXORA_TEMPLATES) {
+      for (const input of template.inputs) {
+        expect(input.example, `${template.slug}.${input.name}`).not.toMatch(
+          /\b\d{1,2}\/\d{1,2}(\/\d{2,4})?\b/
+        )
+      }
+    }
+  })
+
+  it('names the Loi sur les normes du travail in the job offer, to be validated by an adviser', () => {
+    const prompt = promptsOf(bySlug('offre-emploi'))
+    expect(prompt).toContain('Loi sur les normes du travail')
+    expect(prompt).toContain('à valider par votre conseiller')
+  })
+
+  it('never promises compliance: a legal reference always comes with « à valider par votre conseiller »', () => {
+    for (const template of NEXORA_TEMPLATES) {
+      for (const step of template.steps) {
+        if (step.kind !== undefined) continue
+        const text = `${step.system}\n${step.user}`
+        if (/\b(Loi|Charte|Code civil|Règlement)\b/.test(text))
+          expect(text, `${template.slug}/${step.name}`).toContain('à valider par votre conseiller')
+        expect(text, `${template.slug}/${step.name}`).not.toMatch(
+          /conforme à la loi|garanti[es]? conforme|conformité garantie/i
+        )
+      }
+    }
+  })
+
+  it('says courriel, not e-mail, in the names and descriptions people see', () => {
+    const wanted = ['tri-emails', 'compte-rendu', 'relance-facture', 'reponse-validee']
+    for (const slug of wanted) {
+      const template = bySlug(slug)
+      expect(`${template.name} ${template.description}`, slug).toMatch(/courriel/)
+    }
+    expect(bySlug('tri-emails').name).toBe('Tri des courriels entrants')
+    expect(bySlug('newsletter').name).toBe('Infolettre mensuelle')
+  })
+
+  it('changes no Start field into something the importer would not read', () => {
+    for (const template of NEXORA_TEMPLATES) {
+      const state = buildTemplateWorkflow(template, 'vllm/nexora-default')
+      const { errors } = parseWorkflowJson(JSON.stringify(state))
+      expect(errors, template.slug).toEqual([])
+    }
   })
 })
