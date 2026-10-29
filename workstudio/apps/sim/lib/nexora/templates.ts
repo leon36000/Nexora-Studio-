@@ -559,6 +559,366 @@ export const NEXORA_TEMPLATES: readonly NexoraTemplate[] = [
       },
     ],
   },
+  {
+    slug: 'tri-sinistres',
+    name: 'Tri des déclarations de sinistre',
+    description:
+      'Classe une déclaration de sinistre (catégorie, urgence, pièces manquantes) et propose une réponse à l’assuré.',
+    inputs: [
+      {
+        name: 'declaration',
+        description: 'Texte de la déclaration de sinistre reçue',
+        example:
+          'Bonjour, une fuite sous l’évier de ma cuisine a inondé le sol et abîmé le meuble du dessous, cela s’est produit hier soir vers 22 h. Contrat habitation n° H-45012, Mme Roux, 8 rue des Tilleuls à Villeurbanne. J’ai coupé l’eau et pris des photos.',
+      },
+      {
+        name: 'garanties',
+        description: 'Garanties et franchises du contrat de l’assuré, si vous les avez',
+        example:
+          'Dégâts des eaux garantis ; franchise de 150 EUR ; déclaration sous 5 jours ouvrés.',
+      },
+    ],
+    steps: [
+      {
+        name: 'Analyse',
+        system: `${STYLE} Vous triez les déclarations de sinistre d’un cabinet d’assurance. Vous ne décidez jamais d’une prise en charge : un gestionnaire s’en charge.`,
+        user: 'Déclaration reçue :\n<start.declaration>\n\nGaranties connues : <start.garanties>\n\nRépondez en JSON avec les clés « categorie » (dégât des eaux, incendie, vol, bris de glace, collision automobile, responsabilité civile ou autre), « urgence » (basse, normale ou haute ; haute si une personne est blessée, si un danger persiste ou si le délai de déclaration est proche), « resume » (deux phrases), « date_sinistre » (null si absente), « pieces_manquantes » (liste des pièces ou informations à demander : photos, devis, constat, coordonnées, numéro de contrat…) et « points_de_vigilance » (liste, par exemple une garantie à vérifier).',
+      },
+      {
+        name: 'Reponse',
+        system: `${STYLE} Vous préparez les réponses aux assurés que le gestionnaire relira avant envoi.`,
+        user: 'Déclaration reçue :\n<start.declaration>\n\nAnalyse du tri : <analyse.content>\n\nRédigez la réponse à l’assuré (objet + corps) : accusez réception, reformulez le sinistre, demandez les pièces manquantes sous forme de liste et indiquez la suite. N’annoncez aucune prise en charge, aucun montant ni aucun délai d’indemnisation.',
+      },
+    ],
+  },
+  {
+    slug: 'conformite-documents',
+    name: 'Contrôle de conformité d’un document',
+    description:
+      'Vérifie un document point par point selon votre liste de contrôles, puis envoie le rapport après validation.',
+    inputs: [
+      {
+        name: 'document',
+        description: 'Texte du document à contrôler',
+        example:
+          'Procédure de sauvegarde v2. Les sauvegardes sont réalisées chaque nuit sur un disque externe conservé dans le bureau du directeur. Le test de restauration est réalisé une fois par an. Responsable : M. Girard.',
+      },
+      {
+        name: 'controles',
+        description: 'Liste des contrôles à appliquer, un par ligne',
+        example:
+          '1. Le document indique un responsable nommé\n2. La fréquence des sauvegardes est précisée\n3. Une copie est conservée hors site\n4. Un test de restauration est prévu au moins deux fois par an',
+      },
+      {
+        name: 'destinataire',
+        description: 'Adresse e-mail à laquelle envoyer le rapport',
+        example: 'qualite@exemple.fr',
+      },
+    ],
+    steps: [
+      {
+        name: 'Controle',
+        system: `${STYLE} Vous contrôlez la conformité de documents d’entreprise. Vous ne jugez que sur les contrôles fournis et sur le texte du document.`,
+        user: 'Document à contrôler :\n<start.document>\n\nContrôles à appliquer :\n<start.controles>\n\nPour chaque contrôle, indiquez : le numéro, le verdict (« Conforme », « Non conforme » ou « Non vérifiable »), le passage du document qui le justifie (cité entre guillemets) et, si le verdict n’est pas « Conforme », l’action corrective proposée. Terminez par une conclusion : « CONFORME », « NON CONFORME » ou « À COMPLÉTER », avec le nombre de contrôles dans chaque catégorie.',
+      },
+      {
+        kind: 'approval',
+        name: 'Validation',
+        shows: [{ name: 'rapport', value: '<controle.content>' }],
+      },
+      { kind: 'gate', name: 'Approbation', approved: '<validation.approuve>' },
+      {
+        kind: 'email',
+        name: 'Email',
+        to: '<start.destinataire>',
+        subject: 'Rapport de conformité',
+        body: '<controle.content>',
+      },
+    ],
+  },
+  {
+    slug: 'factures-fournisseurs',
+    name: 'Extraction d’une facture fournisseur',
+    description:
+      'Extrait les champs d’une facture en JSON (fournisseur, numéro, montants, échéance) et vérifie la cohérence des totaux.',
+    inputs: [
+      {
+        name: 'facture',
+        description: 'Facture déposée en fichier (PDF ou image)',
+        type: 'file',
+        example: '',
+      },
+      {
+        name: 'texte',
+        description: 'Texte de la facture, tel qu’il apparaît dans le fichier',
+        example:
+          'Papeterie Dubois, facture F-9921 du 12/10/2026. Ramettes A4 : 10 x 4,50 EUR HT = 45,00 EUR HT. Port : 8,00 EUR HT. Total HT : 53,00 EUR. TVA 20 % : 10,60 EUR. Total TTC : 63,60 EUR. Échéance : 11/11/2026.',
+      },
+    ],
+    steps: [
+      {
+        name: 'Extraction',
+        system: `${STYLE} Vous lisez des factures fournisseur avec rigueur et vous ne recalculez rien : vous recopiez ce qui est écrit.`,
+        user: 'Extrayez de cette facture, en JSON uniquement, les clés « fournisseur », « numero », « date » (format AAAA-MM-JJ), « total_ht », « tva », « total_ttc » (nombres, sans symbole monétaire) et « echeance » (format AAAA-MM-JJ). Mettez null pour toute valeur absente du texte.\n\nTexte de la facture :\n<start.texte>',
+      },
+      {
+        name: 'Coherence',
+        system: `${STYLE} Vous contrôlez des factures fournisseur avant leur saisie en comptabilité.`,
+        user: 'Données extraites : <extraction.content>\n\nTexte d’origine :\n<start.texte>\n\nVérifiez : total HT + TVA = total TTC (à un centime près), taux de TVA plausible (20 %, 10 %, 5,5 % ou 2,1 %), échéance postérieure à la date de la facture, aucune valeur à null. Affichez le calcul. Concluez par « COHÉRENTE » ou « À VÉRIFIER », avec la liste des anomalies.',
+      },
+    ],
+  },
+  {
+    slug: 'qualification-prospects',
+    name: 'Qualification d’un prospect',
+    description:
+      'Évalue un message entrant (score, besoin, budget, prochaine action) et prépare la réponse au prospect.',
+    inputs: [
+      {
+        name: 'message',
+        description: 'Message reçu du prospect (formulaire, e-mail ou appel noté)',
+        example:
+          'Bonjour, je dirige une entreprise de 25 personnes à Grenoble. Nous cherchons un outil pour automatiser nos relances de factures et trier nos e-mails. Nous aimerions démarrer en janvier. Pouvez-vous nous appeler cette semaine ?',
+      },
+      {
+        name: 'criteres',
+        description: 'Vos critères de qualification (cible, taille, budget minimum)',
+        example: 'Cible : PME de 10 à 250 salariés en France ; budget minimum 3 000 EUR par an.',
+      },
+    ],
+    steps: [
+      {
+        name: 'Qualification',
+        system: `${STYLE} Vous qualifiez les demandes commerciales entrantes d’une PME, sans exagérer leur potentiel.`,
+        user: 'Message du prospect :\n<start.message>\n\nCritères de qualification : <start.criteres>\n\nRépondez en JSON avec les clés « score » (de 1 à 5, 5 = à rappeler aujourd’hui), « justification » (une phrase), « besoin » (reformulé), « budget » (null si non mentionné), « delai » (null si non mentionné), « decideur » (oui, non ou inconnu), « donnees_manquantes » (liste) et « prochaine_action » (une action précise avec une échéance conseillée).',
+      },
+      {
+        name: 'Reponse',
+        system: `${STYLE} Vous préparez les premières réponses aux prospects ; l’équipe commerciale les relit avant envoi.`,
+        user: 'Message du prospect :\n<start.message>\n\nQualification : <qualification.content>\n\nRédigez la réponse au prospect (objet + corps) : remerciez, reformulez son besoin, posez au plus trois questions pour combler les données manquantes et proposez un créneau d’échange à compléter entre crochets.',
+      },
+    ],
+  },
+  {
+    slug: 'synthese-projet-hebdo',
+    name: 'Synthèse hebdomadaire d’un projet',
+    description:
+      'Transforme vos notes de la semaine en synthèse de projet, qui part par e-mail après votre validation.',
+    inputs: [
+      { name: 'projet', description: 'Nom du projet', example: 'Refonte du site vitrine' },
+      {
+        name: 'notes',
+        description: 'Vos notes en vrac de la semaine sur le projet',
+        example:
+          'Maquettes validées mardi par la direction. Retard de 3 jours sur l’intégration, le prestataire attend les textes. Budget consommé : 6 200 EUR sur 9 000. Il faut décider si on garde le blog dans la première version. Risque : le responsable des contenus part en congé du 20 au 30.',
+      },
+      {
+        name: 'destinataire',
+        description: 'Adresse e-mail à laquelle envoyer la synthèse',
+        example: 'direction@exemple.fr',
+      },
+    ],
+    steps: [
+      {
+        name: 'Synthese',
+        system: `${STYLE} Vous rédigez des synthèses de projet claires pour une direction qui a peu de temps.`,
+        user: 'Projet : <start.projet>\n\nNotes de la semaine :\n<start.notes>\n\nPrésentez : 1. Avancement (réalisé, en cours, retards avec leur cause), 2. Risques (tableau : risque, probabilité, impact, mesure proposée), 3. Décisions à prendre (qui décide, avant quand), 4. Priorités de la semaine suivante. Une phrase par point, aucun chiffre ni date inventé.',
+      },
+      {
+        kind: 'approval',
+        name: 'Validation',
+        shows: [{ name: 'synthese', value: '<synthese.content>' }],
+      },
+      { kind: 'gate', name: 'Approbation', approved: '<validation.approuve>' },
+      {
+        kind: 'email',
+        name: 'Email',
+        to: '<start.destinataire>',
+        subject: 'Synthèse hebdomadaire du projet <start.projet>',
+        body: '<synthese.content>',
+      },
+    ],
+  },
+  {
+    slug: 'veille-concurrentielle',
+    name: 'Note de veille concurrentielle',
+    description:
+      'Produit une note structurée (faits, signaux faibles, implications pour vous) à partir d’extraits que vous collez.',
+    inputs: [
+      {
+        name: 'concurrent',
+        description: 'Nom du concurrent suivi',
+        example: 'Atelier Numérique Lyon',
+      },
+      {
+        name: 'extraits',
+        description: 'Extraits collés (site, communiqué, offre d’emploi, avis clients)',
+        example:
+          'Extrait 1 (site, 14/10) : « Nouveau forfait Essentiel à 49 EUR par mois, sans engagement. »\nExtrait 2 (offre d’emploi) : « Nous recrutons deux commerciaux pour ouvrir l’agence de Marseille. »\nExtrait 3 (avis client) : « Support réactif mais délais d’intégration trop longs. »',
+      },
+      {
+        name: 'contexte',
+        description: 'Votre offre et votre positionnement, en deux phrases',
+        example:
+          'Nous vendons des sites vitrines et de la maintenance aux artisans, à partir de 2 400 EUR.',
+      },
+    ],
+    steps: [
+      {
+        name: 'Faits',
+        system: `${STYLE} Vous faites de la veille concurrentielle : vous ne rapportez que ce que les extraits disent.`,
+        user: 'Concurrent suivi : <start.concurrent>\n\nExtraits :\n<start.extraits>\n\nDressez la liste numérotée des faits établis. Pour chacun, citez entre guillemets le passage exact de l’extrait et indiquez son numéro. N’inventez rien : un fait qui n’est pas dans un extrait n’apparaît pas. Séparez à la fin les affirmations douteuses ou invérifiables.',
+      },
+      {
+        name: 'Note',
+        system: `${STYLE} Vous rédigez des notes de veille pour la direction d’une PME. Vous distinguez toujours le fait de l’interprétation.`,
+        user: 'Concurrent suivi : <start.concurrent>\n\nNotre positionnement : <start.contexte>\n\nFaits établis, avec leur extrait :\n<faits.content>\n\nRédigez la note : 1. Faits (rappel court avec numéros d’extraits), 2. Signaux faibles (ce que les extraits laissent deviner, marqué « hypothèse » et appuyé sur un extrait cité), 3. Implications pour nous (opportunités, menaces, actions possibles), 4. Informations à rechercher pour confirmer. N’inventez rien.',
+      },
+    ],
+  },
+  {
+    slug: 'reponse-appel-offres',
+    name: 'Réponse à un appel d’offres',
+    description:
+      'Prépare une première version de réponse à un appel d’offres et liste les exigences que vos éléments ne couvrent pas.',
+    inputs: [
+      {
+        name: 'cahier',
+        description: 'Extrait du cahier des charges (exigences, critères de sélection)',
+        example:
+          'Exigence 1 : hébergement des données en France. Exigence 2 : assistance par téléphone de 8 h à 18 h en jours ouvrés. Exigence 3 : formation de 10 agents sur site. Exigence 4 : certification ISO 27001. Critères : prix 40 %, valeur technique 40 %, délais 20 %.',
+      },
+      {
+        name: 'elements',
+        description: 'Vos éléments de réponse (offre, références, moyens, prix)',
+        example:
+          'Hébergement chez un opérateur français. Assistance du lundi au vendredi de 9 h à 17 h. Formation à distance ou sur site, 1 200 EUR par jour. Trois références dans des collectivités. Délai de mise en service : 6 semaines.',
+      },
+    ],
+    steps: [
+      {
+        name: 'Exigences',
+        system: `${STYLE} Vous analysez des appels d’offres pour une PME : vous ne promettez que ce que les éléments fournis permettent de promettre.`,
+        user: 'Cahier des charges :\n<start.cahier>\n\nÉléments de réponse disponibles :\n<start.elements>\n\nListez chaque exigence avec un numéro, puis indiquez si elle est « Couverte », « Partiellement couverte » ou « Non couverte » par les éléments, en citant l’élément concerné. Terminez par la liste des exigences non couvertes et des informations à obtenir pour les couvrir. Rappelez les critères de sélection et leur pondération.',
+      },
+      {
+        name: 'Reponse',
+        system: `${STYLE} Vous rédigez des réponses à appel d’offres claires, précises et honnêtes.`,
+        user: 'Cahier des charges :\n<start.cahier>\n\nÉléments de réponse :\n<start.elements>\n\nAnalyse des exigences :\n<exigences.content>\n\nRédigez la première version de la réponse : compréhension du besoin, solution proposée (exigence par exigence), moyens et références, planning, prix. Pour une exigence non couverte, n’affirmez rien : écrivez « [à compléter : …] ». Terminez par un encadré « Exigences non couvertes » à traiter avant l’envoi.',
+      },
+    ],
+  },
+  {
+    slug: 'accueil-employe',
+    name: 'Plan d’intégration à 30 jours',
+    description:
+      'Construit le plan d’intégration d’un nouvel employé sur 30 jours (checklist par semaine, accès, interlocuteurs).',
+    inputs: [
+      {
+        name: 'poste',
+        description: 'Poste, missions principales et date d’arrivée',
+        example:
+          'Technicienne de maintenance, interventions chez les clients ; arrivée le lundi 2 novembre 2026',
+      },
+      {
+        name: 'equipe',
+        description: 'Équipe d’accueil : manager, collègues, outils utilisés',
+        example:
+          'Manager : Paul Girard, responsable d’exploitation. Équipe de 6 techniciens. Outils : logiciel de planification, messagerie, application mobile d’intervention.',
+      },
+    ],
+    steps: [
+      {
+        name: 'Plan',
+        system: `${STYLE} Vous préparez l’intégration des nouveaux collègues dans une PME.`,
+        user: 'Poste : <start.poste>\n\nÉquipe et outils : <start.equipe>\n\nRédigez le plan d’intégration sur 30 jours : 1. Avant le premier jour (à préparer par l’entreprise), 2. Semaine 1, 3. Semaine 2, 4. Semaine 3, 5. Semaine 4 : une checklist à cocher par semaine, avec objectifs et personne référente. Ajoutez ensuite le tableau des accès à demander (outil, niveau d’accès, qui le demande, avant quand) et la liste des interlocuteurs à rencontrer (rôle, sujet, semaine). Écrivez les noms que vous ne connaissez pas entre crochets.',
+      },
+      {
+        name: 'Suivi',
+        system: `${STYLE} Vous aidez les managers à suivre l’intégration de leurs nouveaux collègues.`,
+        user: 'Poste : <start.poste>\n\nPlan d’intégration :\n<plan.content>\n\nPréparez la trame des trois points de suivi du manager (fin de semaine 1, jour 15, jour 30) : questions à poser, indicateurs d’une bonne intégration tirés du plan, et décisions à prendre à l’issue (par exemple ajuster le plan ou prolonger l’accompagnement).',
+      },
+    ],
+  },
+  {
+    slug: 'revue-contrat',
+    name: 'Revue de contrat',
+    description:
+      'Relève les clauses à risque, les clauses manquantes et les questions à poser, puis envoie le résumé après validation.',
+    inputs: [
+      {
+        name: 'contrat',
+        description: 'Texte du contrat ou des clauses à relire',
+        example:
+          'Article 3 : le prestataire est payé à 60 jours fin de mois. Article 5 : le contrat se renouvelle tacitement pour douze mois, sauf résiliation par lettre recommandée trois mois avant l’échéance. Article 8 : la responsabilité du prestataire est limitée à 500 EUR. Article 9 : tout litige relève du tribunal de commerce de Paris.',
+      },
+      {
+        name: 'contexte',
+        description: 'Votre rôle dans le contrat et vos priorités',
+        example:
+          'Nous sommes le client ; notre priorité est de pouvoir quitter le prestataire sans pénalité.',
+      },
+      {
+        name: 'destinataire',
+        description: 'Adresse e-mail à laquelle envoyer le résumé',
+        example: 'juridique@exemple.fr',
+      },
+    ],
+    steps: [
+      {
+        name: 'Revue',
+        system: `${STYLE} Vous aidez à relire un contrat. Vous ne donnez jamais de conseil juridique : vous relevez, vous expliquez simplement et vous posez des questions.`,
+        user: 'Contrat :\n<start.contrat>\n\nContexte : <start.contexte>\n\nRédigez la revue : 1. Clauses à risque (tableau : article, extrait cité, risque pour nous, niveau faible, moyen ou élevé), 2. Clauses manquantes courantes pour ce type de contrat (confidentialité, réversibilité, protection des données, plafond de responsabilité…), 3. Questions à poser à l’autre partie ou à un juriste. Ne citez que ce qui figure dans le texte fourni. Terminez par : « Cette revue ne constitue pas un avis juridique ; faites relire le contrat par un juriste. »',
+      },
+      {
+        kind: 'approval',
+        name: 'Validation',
+        shows: [{ name: 'revue', value: '<revue.content>' }],
+      },
+      { kind: 'gate', name: 'Approbation', approved: '<validation.approuve>' },
+      {
+        kind: 'email',
+        name: 'Email',
+        to: '<start.destinataire>',
+        subject: 'Revue de contrat (ne constitue pas un avis juridique)',
+        body: '<revue.content>\n\nCette revue ne constitue pas un avis juridique ; faites relire le contrat par un juriste.',
+      },
+    ],
+  },
+  {
+    slug: 'rapport-ventes-mensuel',
+    name: 'Rapport de ventes mensuel',
+    description:
+      'Met en forme les chiffres de vente du mois en rapport : faits saillants, écarts aux objectifs et actions.',
+    inputs: [
+      { name: 'mois', description: 'Mois concerné', example: 'octobre 2026' },
+      {
+        name: 'chiffres',
+        description:
+          'Chiffres du mois collés (chiffre d’affaires, ventes par produit ou par commercial)',
+        example:
+          'Chiffre d’affaires : 84 300 EUR. Commande moyenne : 410 EUR. Ventes par gamme : Bio 31 200 EUR, Épicerie 40 100 EUR, Coffrets 13 000 EUR. Nouveaux clients : 22 ; clients perdus : 5.',
+      },
+      {
+        name: 'objectifs',
+        description: 'Objectifs du mois et chiffres du mois précédent',
+        example:
+          'Objectif : 90 000 EUR. Mois précédent : 79 800 EUR (Bio 27 500, Épicerie 41 300, Coffrets 11 000).',
+      },
+    ],
+    steps: [
+      {
+        name: 'Ecarts',
+        system: `${STYLE} Vous analysez des chiffres de vente : vous ne calculez qu’à partir des chiffres fournis et vous montrez chaque calcul.`,
+        user: 'Mois : <start.mois>\n\nChiffres du mois :\n<start.chiffres>\n\nObjectifs et mois précédent :\n<start.objectifs>\n\nDressez un tableau des écarts : pour chaque indicateur, la valeur du mois, l’objectif, l’écart en valeur et en pourcentage par rapport à l’objectif, puis l’évolution par rapport au mois précédent. Si une comparaison est impossible faute de chiffre, écrivez « [donnée manquante] ».',
+      },
+      {
+        name: 'Rapport',
+        system: `${STYLE} Vous rédigez des rapports de ventes synthétiques pour la direction.`,
+        user: 'Mois : <start.mois>\n\nTableau des écarts :\n<ecarts.content>\n\nRédigez le rapport : 1. Faits saillants (trois à cinq phrases), 2. Écarts à expliquer (les plus importants d’abord, avec une cause possible marquée « hypothèse »), 3. Actions proposées (action, responsable à compléter, échéance). Aucun chiffre qui ne figure pas dans le tableau.',
+      },
+    ],
+  },
 ]
 
 /** The Nexora API model templates start with: `NEXORA_DEFAULT_MODEL`, else `nexora-default`. */

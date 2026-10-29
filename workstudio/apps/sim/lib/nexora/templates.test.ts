@@ -7,7 +7,7 @@ import {
 import { parseWorkflowJson } from '@/lib/workflows/operations/import-export'
 
 describe('Nexora SME workflow templates', () => {
-  it('ships the twenty SME templates, the five original ones first', () => {
+  it('ships the thirty SME templates, the five original ones first', () => {
     const slugs = NEXORA_TEMPLATES.map((t) => t.slug)
     expect(slugs.slice(0, 5)).toEqual([
       'devis',
@@ -16,9 +16,9 @@ describe('Nexora SME workflow templates', () => {
       'tri-emails',
       'compte-rendu',
     ])
-    expect(slugs).toHaveLength(20)
-    expect(new Set(slugs).size).toBe(20)
-    expect(new Set(NEXORA_TEMPLATES.map((t) => t.name)).size).toBe(20)
+    expect(slugs).toHaveLength(30)
+    expect(new Set(slugs).size).toBe(30)
+    expect(new Set(NEXORA_TEMPLATES.map((t) => t.name)).size).toBe(30)
   })
 
   it.each(NEXORA_TEMPLATES.map((t) => [t.slug, t] as const))(
@@ -206,5 +206,221 @@ describe('Compte rendu de réunion', () => {
       'condition',
       'smtp',
     ])
+  })
+})
+
+const READY_TO_RUN_SLUGS = [
+  'tri-sinistres',
+  'conformite-documents',
+  'factures-fournisseurs',
+  'qualification-prospects',
+  'synthese-projet-hebdo',
+  'veille-concurrentielle',
+  'reponse-appel-offres',
+  'accueil-employe',
+  'revue-contrat',
+  'rapport-ventes-mensuel',
+] as const
+
+type Template = (typeof NEXORA_TEMPLATES)[number]
+
+function bySlug(slug: string): Template {
+  const found = NEXORA_TEMPLATES.find((template) => template.slug === slug)
+  if (!found) throw new Error(`the ${slug} template is missing`)
+  return found
+}
+
+/** Every string of a step in which a `<block.field>` reference may appear. */
+function stepTexts(step: Template['steps'][number]): string[] {
+  switch (step.kind) {
+    case 'transcription':
+      return []
+    case 'approval':
+      return step.shows.map((shown) => shown.value)
+    case 'gate':
+      return [step.approved]
+    case 'email':
+      return [step.to, step.subject, step.body]
+    default:
+      return [step.system, step.user]
+  }
+}
+
+describe('Every SME template, original or ready to run', () => {
+  it('has a lowercase ASCII slug made of words separated by hyphens', () => {
+    for (const template of NEXORA_TEMPLATES) {
+      expect(template.slug, template.slug).toMatch(/^[a-z]+(-[a-z]+)*$/)
+    }
+  })
+
+  it('names its steps in ASCII, each name used once (references ignore the case)', () => {
+    for (const template of NEXORA_TEMPLATES) {
+      const names = template.steps.map((step) => step.name)
+      for (const name of names)
+        expect(name, `${template.slug}.${name}`).toMatch(/^[A-Za-z][A-Za-z0-9]*$/)
+      expect(new Set(names.map((name) => name.toLowerCase())).size, template.slug).toBe(
+        names.length
+      )
+      expect(
+        names.map((name) => name.toLowerCase()),
+        template.slug
+      ).not.toContain('start')
+    }
+  })
+
+  it('only references a Start field, or a step that comes before the reference', () => {
+    for (const template of NEXORA_TEMPLATES) {
+      const inputs = new Set(template.inputs.map((input) => input.name))
+      const earlier = new Set<string>()
+      for (const step of template.steps) {
+        for (const text of stepTexts(step)) {
+          for (const [, block, field] of text.matchAll(/<([a-z][a-z0-9]*)\.([A-Za-z_]+)>/g)) {
+            const where = `${template.slug}/${step.name}: <${block}.${field}>`
+            if (block === 'start') expect(inputs.has(field), where).toBe(true)
+            else expect(earlier.has(block), where).toBe(true)
+          }
+        }
+        if (step.kind === 'transcription')
+          expect(inputs.has(step.recording), template.slug).toBe(true)
+        earlier.add(step.name.toLowerCase())
+      }
+    }
+  })
+
+  it('asks a person to approve, then lets the workflow go on only if approved, before any e-mail', () => {
+    for (const template of NEXORA_TEMPLATES) {
+      template.steps.forEach((step, index) => {
+        if (step.kind !== 'email') return
+        const gate = template.steps[index - 1]
+        const approval = template.steps[index - 2]
+        expect(gate?.kind, `${template.slug}: gate before e-mail`).toBe('gate')
+        expect(approval?.kind, `${template.slug}: approval before gate`).toBe('approval')
+        if (gate?.kind === 'gate' && approval?.kind === 'approval') {
+          expect(gate.approved).toBe(`<${approval.name.toLowerCase()}.approuve>`)
+        }
+      })
+    }
+  })
+
+  it('tells every agent to flag missing data between square brackets', () => {
+    for (const template of NEXORA_TEMPLATES) {
+      for (const step of template.steps) {
+        if (step.kind === undefined)
+          expect(step.system, `${template.slug}/${step.name}`).toContain('entre crochets')
+      }
+    }
+  })
+})
+
+describe('Ready-to-run SME templates', () => {
+  it('adds the ten new ones after the twenty that were already there', () => {
+    const slugs = NEXORA_TEMPLATES.map((template) => template.slug)
+    expect(slugs.slice(20)).toEqual([...READY_TO_RUN_SLUGS])
+  })
+
+  it.each(READY_TO_RUN_SLUGS.map((slug) => [slug] as const))(
+    '%s has two to five steps, one to four inputs and a short description',
+    (slug) => {
+      const template = bySlug(slug)
+      expect(template.steps.length).toBeGreaterThanOrEqual(2)
+      expect(template.steps.length).toBeLessThanOrEqual(5)
+      expect(template.inputs.length).toBeGreaterThanOrEqual(1)
+      expect(template.inputs.length).toBeLessThanOrEqual(4)
+      expect(template.name.trim()).not.toBe('')
+      const sentences = template.description.match(/[.!?](\s|$)/g) ?? []
+      expect(sentences.length).toBeGreaterThanOrEqual(1)
+      expect(sentences.length).toBeLessThanOrEqual(2)
+      for (const input of template.inputs) {
+        expect(input.name, `${slug}.${input.name}`).toMatch(/^[a-z_]+$/)
+        expect(input.description.trim(), `${slug}.${input.name}`).not.toBe('')
+        if (input.type === 'file') expect(input.example).toBe('')
+        else expect(input.example.trim().length, `${slug}.${input.name}`).toBeGreaterThan(10)
+      }
+    }
+  )
+
+  it.each(READY_TO_RUN_SLUGS.map((slug) => [slug] as const))(
+    '%s builds a workflow with every step wired in a line',
+    (slug) => {
+      const template = bySlug(slug)
+      const state = buildTemplateWorkflow(template, 'vllm/nexora-default')
+      const blocks = Object.values(state.blocks)
+      expect(blocks).toHaveLength(template.steps.length + 1)
+      expect(blocks.filter((block) => block.type === 'agent').length).toBeGreaterThanOrEqual(1)
+      expect(state.edges).toHaveLength(blocks.length - 1)
+    }
+  )
+
+  it.each([
+    ['conformite-documents', ['agent', 'human_in_the_loop_v2', 'condition', 'smtp']],
+    ['synthese-projet-hebdo', ['agent', 'human_in_the_loop_v2', 'condition', 'smtp']],
+    ['revue-contrat', ['agent', 'human_in_the_loop_v2', 'condition', 'smtp']],
+  ] as const)('%s sends nothing before a person has approved', (slug, types) => {
+    const state = buildTemplateWorkflow(bySlug(slug), 'vllm/nexora-default')
+    expect(
+      Object.values(state.blocks)
+        .slice(1)
+        .map((block) => block.type)
+    ).toEqual([...types])
+  })
+
+  it('checks a document against the list of controls it is given, and cites nothing else', () => {
+    const template = bySlug('conformite-documents')
+    expect(template.inputs.map((input) => input.name)).toEqual(
+      expect.arrayContaining(['document', 'controles'])
+    )
+    const prompt = template.steps.flatMap(stepTexts).join('\n')
+    expect(prompt).toContain('<start.controles>')
+    expect(prompt).toContain('<start.document>')
+  })
+
+  it('extracts the invoice fields as JSON and checks the totals add up', () => {
+    const template = bySlug('factures-fournisseurs')
+    expect(template.inputs.some((input) => input.type === 'file')).toBe(true)
+    const prompt = template.steps.flatMap(stepTexts).join('\n')
+    for (const key of [
+      'fournisseur',
+      'numero',
+      'date',
+      'total_ht',
+      'tva',
+      'total_ttc',
+      'echeance',
+    ]) {
+      expect(prompt, key).toContain(key)
+    }
+    expect(prompt).toMatch(/JSON/)
+    expect(prompt).toMatch(/total HT \+ TVA = total TTC|HT \+ TVA/)
+  })
+
+  it('does not invent anything in the competitive watch: it cites the extracts', () => {
+    const prompt = bySlug('veille-concurrentielle').steps.flatMap(stepTexts).join('\n')
+    expect(prompt).toMatch(/extrait/)
+    expect(prompt).toMatch(/N’inventez rien|n’inventez rien/)
+    expect(prompt).toMatch(/signaux faibles/i)
+  })
+
+  it('lists the requirements of the tender that the answer does not cover', () => {
+    const prompt = bySlug('reponse-appel-offres').steps.flatMap(stepTexts).join('\n')
+    expect(prompt).toMatch(/exigences non couvertes/i)
+  })
+
+  it('says that the contract review is not legal advice, in the agent and in the e-mail', () => {
+    const template = bySlug('revue-contrat')
+    const agent = template.steps.find((step) => step.kind === undefined)
+    const email = template.steps.find((step) => step.kind === 'email')
+    if (!agent || agent.kind !== undefined || !email || email.kind !== 'email') {
+      throw new Error('the contract review needs an agent step and an e-mail step')
+    }
+    expect(agent.user).toMatch(/avis juridique/)
+    expect(email.body).toMatch(/avis juridique/)
+  })
+
+  it('e-mails the weekly project summary to the person named in the inputs', () => {
+    const template = bySlug('synthese-projet-hebdo')
+    const email = template.steps.find((step) => step.kind === 'email')
+    if (email?.kind !== 'email') throw new Error('the weekly summary has no e-mail step')
+    expect(email.to).toMatch(/^<start\.[a-z_]+>$/)
+    expect(email.body).toMatch(/^<[a-z]+\.content>/)
   })
 })
