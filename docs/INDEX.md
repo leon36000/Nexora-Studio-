@@ -6,7 +6,7 @@ Dernière mise à jour : 29/10/2026. Cette page dit **quoi est où**. Elle ne co
 
 - **GitLab (pc4) est la seule source** de Nexora WorkStudio et de Nexora Web. Rien d'autre n'est gardé ailleurs, sauf les secrets (voir plus bas). On ne pousse plus vers GitHub.
 - **Un seul dossier de travail** : `~/Bureau/Nexora-Travail/` sur pc1, avec des copies de GitLab (`nexora-workstudio`, `nexora-web`) et rien d'autre.
-- **Une seule compilation de WorkStudio** pour tester : les images `nexora/*:local`, identiques à `nexora/*:securite-1.7.12`. Les anciennes sont supprimées. Les images de cette version sont aussi dans le registre GitLab.
+- **Une seule compilation de WorkStudio** pour tester : les images `nexora/*:local` (version `integre-2026-10-29`). Les anciennes sont supprimées. Ces images sont aussi dans le registre GitLab.
 - Hors périmètre de cette carte : `nexora-code`, le corpus, DSPy, Godel, LLMLingua, NAOS et les autres chantiers menés avec d'autres agents.
 
 ## Dépôts (GitLab sur pc4, privés, branche `main`)
@@ -20,7 +20,7 @@ Dernière mise à jour : 29/10/2026. Cette page dit **quoi est où**. Elle ne co
 
 | Paquet | Contenu |
 |---|---|
-| `nexora-images` / `securite-1.7.12` | 9 images x86, `SHA256SUMS`, archive de recette |
+| `nexora-images` / `integre-2026-10-29` | 9 images x86 de WorkStudio intégré au site (gabarits québécois compris), `SHA256SUMS` |
 | `nexora-archives` / `verification-2026-10-28` | preuves de vérification : captures, journaux de compilation, outils de sonde |
 
 ## Où ça tourne
