@@ -61,47 +61,51 @@ export interface NexoraTemplate {
 }
 
 const STYLE =
-  'Vous écrivez pour une PME française : français professionnel, vouvoiement, phrases courtes, aucune information inventée. Si une donnée manque, signalez-la entre crochets.'
+  'Vous écrivez pour une PME québécoise : français professionnel du Québec, vouvoiement, phrases courtes, aucune information inventée. Les montants sont en dollars canadiens, écrits à la québécoise (1 234,56 $), les dates en toutes lettres (2 novembre 2026) ou au format AAAA-MM-JJ, et le vocabulaire est celui des affaires au Québec (courriel, infolettre, jours ouvrables). Si une donnée manque, signalez-la entre crochets.'
 
 /** The workspace folder that holds the SME templates (created with every new workspace). */
 export const NEXORA_TEMPLATES_FOLDER = 'Modèles PME'
 
-/** Nexora edition: ready-to-run workflows for the everyday work of a French SME. */
+/** Nexora edition: ready-to-run workflows for the everyday work of a Québec SME. */
 export const NEXORA_TEMPLATES: readonly NexoraTemplate[] = [
   {
     slug: 'devis',
     name: 'Devis client',
     description:
-      'Rédige un devis structuré (HT, TVA 20 %, TTC) à partir d’une liste de prestations.',
+      'Rédige un devis structuré (sous-total avant taxes, TPS 5 %, TVQ 9,975 %, total) à partir d’une liste de prestations.',
     inputs: [
       {
         name: 'client',
         description: 'Nom et coordonnées du client',
-        example: 'Boulangerie Martin, 12 rue des Lilas, 69003 Lyon',
+        example: 'Boulangerie Gagnon, 12, rue des Érables, Trois-Rivières (Québec) G8Z 1A1',
       },
       {
         name: 'prestations',
-        description: 'Prestations, quantités et prix unitaires HT',
-        example: 'Site vitrine : 1 x 2 400 EUR HT ; Maintenance annuelle : 1 x 360 EUR HT',
+        description: 'Prestations, quantités et prix unitaires (avant taxes)',
+        example: 'Site vitrine : 1 x 2 400,00 $ ; Maintenance annuelle : 1 x 360,00 $',
       },
     ],
     steps: [
       {
         name: 'Devis',
         system: `${STYLE} Vous préparez des devis clairs et exacts.`,
-        user: 'Rédigez un devis pour le client suivant : <start.client>\n\nPrestations : <start.prestations>\n\nPrésentez un tableau (désignation, quantité, prix unitaire HT, total HT), puis le total HT, la TVA à 20 % et le total TTC, la durée de validité (30 jours) et les conditions de paiement (30 jours fin de mois).',
+        user: 'Rédigez un devis pour le client suivant : <start.client>\n\nPrestations : <start.prestations>\n\nPrésentez un tableau (désignation, quantité, prix unitaire, total avant taxes), puis le sous-total avant taxes, la TPS à 5 %, la TVQ à 9,975 % et le total taxes incluses, en dollars canadiens. Calculez la TPS et la TVQ chacune sur le sous-total avant taxes : la TVQ se calcule sur le sous-total, pas sur la TPS. Arrondissez chaque taxe au cent. Indiquez ensuite la durée de validité (30 jours) et les conditions de paiement (net 30 jours). En en-tête, prévoyez les coordonnées de l’entreprise avec ses numéros d’inscription : [numéro d’inscription à la TPS], [numéro d’inscription à la TVQ] et [NEQ], à compléter. Si une prestation est exonérée de taxes ou si l’entreprise n’est pas inscrite aux fichiers de la TPS et de la TVQ, signalez-le entre crochets plutôt que de deviner.',
       },
     ],
   },
   {
     slug: 'relance-facture',
     name: 'Relance de facture impayée',
-    description: 'Écrit l’e-mail de relance adapté au niveau de relance (1, 2 ou 3).',
+    description: 'Écrit le courriel de relance adapté au niveau de relance (1, 2 ou 3).',
     inputs: [
-      { name: 'client', description: 'Nom du client', example: 'Garage Durand' },
+      { name: 'client', description: 'Nom du client', example: 'Garage Tremblay et fils' },
       { name: 'facture', description: 'Numéro de la facture', example: 'F-2026-104' },
-      { name: 'montant', description: 'Montant TTC dû', example: '1 250 EUR TTC' },
-      { name: 'echeance', description: 'Date d’échéance dépassée', example: '15/09/2026' },
+      {
+        name: 'montant',
+        description: 'Montant dû, taxes incluses',
+        example: '1 437,19 $ (taxes incluses)',
+      },
+      { name: 'echeance', description: 'Date d’échéance dépassée', example: '2026-09-15' },
       {
         name: 'niveau',
         description: 'Niveau de relance : 1 (courtois), 2 (ferme) ou 3 (mise en demeure)',
@@ -112,7 +116,7 @@ export const NEXORA_TEMPLATES: readonly NexoraTemplate[] = [
       {
         name: 'Relance',
         system: `${STYLE} Vous rédigez des relances de paiement qui préservent la relation client.`,
-        user: 'Rédigez un e-mail de relance (objet + corps) pour le client <start.client> : facture <start.facture> de <start.montant>, échue le <start.echeance>. Niveau de relance : <start.niveau>. Niveau 1 : ton courtois et rappel simple. Niveau 2 : ton ferme, nouveau délai de 8 jours. Niveau 3 : mise en demeure, rappel des pénalités de retard et de l’indemnité forfaitaire de 40 €.',
+        user: 'Rédigez un courriel de relance (objet + corps) pour le client <start.client> : facture <start.facture> de <start.montant>, échue le <start.echeance>. Niveau de relance : <start.niveau>. Niveau 1 : ton courtois et rappel simple. Niveau 2 : ton ferme, nouveau délai de 8 jours. Niveau 3 : mise en demeure ; rappelez les frais ou intérêts de retard seulement s’ils figurent déjà sur la facture ou dans les conditions de paiement convenues, sans en inventer le taux ni le montant, et ajoutez en fin de réponse la note interne « Mise en demeure à valider par votre conseiller avant l’envoi. »',
       },
     ],
   },
@@ -130,7 +134,8 @@ export const NEXORA_TEMPLATES: readonly NexoraTemplate[] = [
       {
         name: 'faq',
         description: 'Texte de votre FAQ ou de vos conditions',
-        example: 'Livraison du lundi au samedi, de 8 h à 18 h. Retours acceptés sous 14 jours.',
+        example:
+          'Livraison du lundi au samedi, de 8 h à 18 h, partout au Québec. Retours acceptés sous 30 jours avec la facture.',
       },
     ],
     steps: [
@@ -143,27 +148,27 @@ export const NEXORA_TEMPLATES: readonly NexoraTemplate[] = [
   },
   {
     slug: 'tri-emails',
-    name: 'Tri des e-mails entrants',
+    name: 'Tri des courriels entrants',
     description:
-      'Classe un e-mail (catégorie, urgence, résumé), puis prépare un brouillon de réponse adapté.',
+      'Classe un courriel (catégorie, urgence, résumé), puis prépare un brouillon de réponse adapté.',
     inputs: [
       {
         name: 'email',
-        description: 'E-mail reçu (expéditeur, objet, corps)',
+        description: 'Courriel reçu (expéditeur, objet, corps)',
         example:
-          "De : client@exemple.fr\nObjet : Facture en double\nBonjour, j'ai reçu deux fois la facture F-88. Pouvez-vous vérifier ?",
+          "De : client@exemple.ca\nObjet : Facture en double\nBonjour, j'ai reçu deux fois la facture F-88. Pouvez-vous vérifier ?",
       },
     ],
     steps: [
       {
         name: 'Classification',
         system: `${STYLE} Vous triez le courrier entrant d’une PME.`,
-        user: 'Analysez cet e-mail :\n<start.email>\n\nRépondez en JSON avec les clés « categorie » (devis, facturation, support, commercial, administratif, spam ou autre), « urgence » (basse, normale ou haute) et « resume » (une phrase).',
+        user: 'Analysez ce courriel :\n<start.email>\n\nRépondez en JSON avec les clés « categorie » (devis, facturation, support, commercial, administratif, spam ou autre), « urgence » (basse, normale ou haute) et « resume » (une phrase).',
       },
       {
         name: 'Brouillon',
         system: `${STYLE} Vous préparez des réponses que l’équipe relira avant envoi.`,
-        user: 'E-mail reçu :\n<start.email>\n\nClassification : <classification.content>\n\nRédigez un brouillon de réponse adapté à la catégorie et à l’urgence. Pour un spam, répondez seulement « Aucune réponse à envoyer ».',
+        user: 'Courriel reçu :\n<start.email>\n\nClassification : <classification.content>\n\nRédigez un brouillon de réponse adapté à la catégorie et à l’urgence. Pour un pourriel, répondez seulement « Aucune réponse à envoyer ».',
       },
     ],
   },
@@ -171,7 +176,7 @@ export const NEXORA_TEMPLATES: readonly NexoraTemplate[] = [
     slug: 'compte-rendu',
     name: 'Compte rendu de réunion',
     description:
-      'Enregistrement de la réunion → transcription par intervenant → compte rendu → validation → e-mail.',
+      'Enregistrement de la réunion → transcription par intervenant → compte rendu → validation → courriel.',
     inputs: [
       {
         name: 'enregistrement',
@@ -182,12 +187,13 @@ export const NEXORA_TEMPLATES: readonly NexoraTemplate[] = [
       {
         name: 'participants',
         description: 'Participants, avec leur fonction (facultatif)',
-        example: 'Marie (cheffe de projet), Paul (commercial), Claire (comptable)',
+        example:
+          'Marie Tremblay (cheffe de projet), Paul Gagnon (représentant), Claire Roy (comptable)',
       },
       {
         name: 'destinataire',
-        description: 'Adresse e-mail à laquelle envoyer le compte rendu',
-        example: 'equipe@exemple.fr',
+        description: 'Adresse courriel à laquelle envoyer le compte rendu',
+        example: 'equipe@exemple.ca',
       },
     ],
     steps: [
@@ -222,19 +228,21 @@ export const NEXORA_TEMPLATES: readonly NexoraTemplate[] = [
       {
         name: 'missions',
         description: 'Missions principales',
-        example: 'Suivre le portefeuille clients, préparer les devis, relancer les impayés',
+        example:
+          'Suivre le portefeuille clients, préparer les devis, relancer les comptes en souffrance',
       },
       {
         name: 'profil',
         description: 'Profil recherché et conditions (contrat, lieu, salaire)',
-        example: 'Bac+2 commerce, 2 ans d’expérience ; CDI à Lyon ; 32 000 EUR brut par an',
+        example:
+          'DEC en administration ou formation équivalente, 2 ans d’expérience ; emploi permanent à temps plein à Sherbrooke ; salaire annuel de 52 000 $',
       },
     ],
     steps: [
       {
         name: 'Annonce',
         system: `${STYLE} Vous rédigez des offres d’emploi honnêtes, sans discrimination.`,
-        user: 'Rédigez une offre d’emploi pour le poste « <start.poste> ».\n\nMissions : <start.missions>\n\nProfil et conditions : <start.profil>\n\nStructure : présentation de l’entreprise (une phrase à compléter entre crochets), missions, profil recherché, conditions, comment candidater. Aucun critère d’âge, de sexe ou d’origine.',
+        user: 'Rédigez une offre d’emploi, en français, pour le poste « <start.poste> ».\n\nMissions : <start.missions>\n\nProfil et conditions : <start.profil>\n\nStructure : présentation de l’entreprise (une phrase à compléter entre crochets), missions, profil recherché, conditions (type d’emploi, lieu, salaire ou fourchette salariale en dollars canadiens), comment postuler. Aucun critère d’âge, de sexe, d’origine ni aucun autre motif de discrimination interdit par la Charte des droits et libertés de la personne. Les conditions annoncées doivent respecter au moins les normes de la Loi sur les normes du travail. Après l’annonce, ajoutez une courte note interne, à ne pas publier : « Références : Loi sur les normes du travail et Charte des droits et libertés de la personne ; à valider par votre conseiller avant publication. »',
       },
     ],
   },
@@ -247,15 +255,16 @@ export const NEXORA_TEMPLATES: readonly NexoraTemplate[] = [
       { name: 'produit', description: 'Nom du produit', example: 'Panier garni du terroir' },
       {
         name: 'caracteristiques',
-        description: 'Caractéristiques, composition, prix',
-        example: 'Confiture de figues, miel de lavande, terrine de canard ; 3,2 kg ; 49 EUR TTC',
+        description: 'Caractéristiques, composition, prix (avant taxes)',
+        example:
+          'Confiture de bleuets, miel de sarrasin, tire d’érable ; 3,2 kg ; 49,00 $ avant taxes',
       },
     ],
     steps: [
       {
         name: 'Fiche',
         system: `${STYLE} Vous écrivez des fiches produit claires pour un site de vente en ligne.`,
-        user: 'Rédigez la fiche du produit « <start.produit> » à partir de : <start.caracteristiques>\n\nFournissez un titre, une description de 80 mots, cinq points forts en liste, puis une méta-description de 150 caractères au plus. N’inventez aucune caractéristique.',
+        user: 'Rédigez la fiche du produit « <start.produit> » à partir de : <start.caracteristiques>\n\nFournissez un titre, une description de 80 mots, cinq points forts en liste, puis une méta-description de 150 caractères au plus. Précisez si le prix est avant ou après taxes. N’inventez aucune caractéristique.',
       },
     ],
   },
@@ -268,7 +277,7 @@ export const NEXORA_TEMPLATES: readonly NexoraTemplate[] = [
       {
         name: 'actualite',
         description: 'Ce que vous voulez annoncer',
-        example: 'Nous ouvrons un second atelier à Villeurbanne le 4 novembre',
+        example: 'Nous ouvrons un second atelier à Longueuil le 4 novembre',
       },
       { name: 'ton', description: 'Ton souhaité', example: 'chaleureux et professionnel' },
     ],
@@ -276,7 +285,7 @@ export const NEXORA_TEMPLATES: readonly NexoraTemplate[] = [
       {
         name: 'Publications',
         system: `${STYLE} Vous animez les réseaux sociaux d’une petite entreprise.`,
-        user: 'Actualité : <start.actualite>\n\nTon : <start.ton>\n\nÉcrivez trois publications adaptées à LinkedIn (professionnelle, 600 caractères au plus), Facebook (conviviale) et Instagram (courte, avec cinq mots-clés). Terminez chacune par un appel à l’action.',
+        user: 'Actualité : <start.actualite>\n\nTon : <start.ton>\n\nÉcrivez trois publications adaptées à LinkedIn (professionnelle, 600 caractères au plus), Facebook (conviviale) et Instagram (courte, avec cinq mots-clics). Terminez chacune par un appel à l’action.',
       },
     ],
   },
@@ -293,8 +302,8 @@ export const NEXORA_TEMPLATES: readonly NexoraTemplate[] = [
       },
       {
         name: 'marge',
-        description: 'Ce que vous pouvez proposer (remise, remplacement, remboursement)',
-        example: 'Remplacement de l’article et 10 % de remise sur la prochaine commande',
+        description: 'Ce que vous pouvez proposer (rabais, remplacement, remboursement)',
+        example: 'Remplacement de l’article et 10 % de rabais sur la prochaine commande',
       },
     ],
     steps: [
@@ -307,22 +316,22 @@ export const NEXORA_TEMPLATES: readonly NexoraTemplate[] = [
   },
   {
     slug: 'newsletter',
-    name: 'Newsletter mensuelle',
-    description: 'Compose la newsletter du mois à partir de vos informations brutes.',
+    name: 'Infolettre mensuelle',
+    description: 'Compose l’infolettre du mois à partir de vos informations brutes.',
     inputs: [
       {
         name: 'infos',
         description: 'Actualités, nouveautés, événements du mois',
         example:
-          'Nouvelle gamme bio ; salon de Lyon le 12 ; horaires d’hiver à partir du 1er novembre',
+          'Nouvelle gamme biologique ; salon de Québec le 12 ; horaires d’hiver à partir du 1er novembre',
       },
       { name: 'cible', description: 'À qui s’adresse la lettre', example: 'clients particuliers' },
     ],
     steps: [
       {
         name: 'Newsletter',
-        system: `${STYLE} Vous rédigez des newsletters courtes et agréables à lire.`,
-        user: 'Informations du mois : <start.infos>\n\nLecteurs : <start.cible>\n\nÉcrivez la newsletter : trois objets d’e-mail au choix, une introduction chaleureuse, une rubrique par information, puis un mot de la fin avec un appel à l’action.',
+        system: `${STYLE} Vous rédigez des infolettres courtes et agréables à lire.`,
+        user: 'Informations du mois : <start.infos>\n\nLecteurs : <start.cible>\n\nÉcrivez l’infolettre : trois objets de courriel au choix, une introduction chaleureuse, une rubrique par information, puis un mot de la fin avec un appel à l’action.',
       },
     ],
   },
@@ -331,19 +340,19 @@ export const NEXORA_TEMPLATES: readonly NexoraTemplate[] = [
     name: 'Relance de devis sans réponse',
     description: 'Rédige une relance commerciale aimable pour un devis resté sans réponse.',
     inputs: [
-      { name: 'client', description: 'Nom du client', example: 'Cabinet Lefèvre' },
+      { name: 'client', description: 'Nom du client', example: 'Cabinet Lévesque' },
       {
         name: 'devis',
         description: 'Référence et objet du devis',
         example: 'D-2026-041, refonte du site',
       },
-      { name: 'envoi', description: 'Date d’envoi du devis', example: '02/10/2026' },
+      { name: 'envoi', description: 'Date d’envoi du devis', example: '2026-10-02' },
     ],
     steps: [
       {
         name: 'Relance',
         system: `${STYLE} Vous relancez les prospects sans les brusquer.`,
-        user: 'Rédigez un e-mail (objet + corps) pour relancer <start.client> au sujet du devis <start.devis>, envoyé le <start.envoi>. Proposez un échange de 15 minutes, rappelez la durée de validité de 30 jours et laissez une porte de sortie polie.',
+        user: 'Rédigez un courriel (objet + corps) pour relancer <start.client> au sujet du devis <start.devis>, envoyé le <start.envoi>. Proposez un échange de 15 minutes, rappelez la durée de validité de 30 jours et laissez une porte de sortie polie.',
       },
     ],
   },
@@ -356,7 +365,7 @@ export const NEXORA_TEMPLATES: readonly NexoraTemplate[] = [
         name: 'notes',
         description: 'Vos notes en vrac de la semaine',
         example:
-          '3 devis envoyés, 1 signé (4 200 EUR) ; retard fournisseur sur la commande 88 ; recrutement : 2 entretiens',
+          '3 devis envoyés, 1 signé (4 200 $ avant taxes) ; retard du fournisseur sur la commande 88 ; recrutement : 2 entrevues',
       },
     ],
     steps: [
@@ -376,7 +385,7 @@ export const NEXORA_TEMPLATES: readonly NexoraTemplate[] = [
       {
         name: 'texte',
         description: 'Texte à traduire',
-        example: 'Merci pour votre commande. Elle sera expédiée sous 48 heures ouvrées.',
+        example: 'Merci pour votre commande. Elle sera expédiée sous 48 heures ouvrables.',
       },
       { name: 'langue', description: 'Langue cible', example: 'anglais' },
     ],
@@ -384,7 +393,7 @@ export const NEXORA_TEMPLATES: readonly NexoraTemplate[] = [
       {
         name: 'Traduction',
         system: `${STYLE} Vous êtes traducteur professionnel.`,
-        user: 'Traduisez en <start.langue> le texte suivant, en gardant le ton et la mise en forme :\n<start.texte>\n\nAjoutez ensuite, sous le titre « Points d’attention », les expressions dont la traduction est délicate.',
+        user: 'Traduisez en <start.langue> le texte suivant, en gardant le ton et la mise en forme (orthographe canadienne pour l’anglais, vocabulaire du Québec pour le français) :\n<start.texte>\n\nAjoutez ensuite, sous le titre « Points d’attention », les expressions dont la traduction est délicate.',
       },
     ],
   },
@@ -398,14 +407,14 @@ export const NEXORA_TEMPLATES: readonly NexoraTemplate[] = [
         name: 'contrat',
         description: 'Texte du contrat',
         example:
-          'Article 4 : le contrat est reconduit tacitement pour un an, sauf dénonciation trois mois avant l’échéance. Article 7 : pénalité de 15 % du montant annuel en cas de résiliation anticipée.',
+          'Article 4 : le contrat est reconduit tacitement pour un an, sauf avis écrit trois mois avant l’échéance. Article 7 : pénalité de 15 % du montant annuel en cas de résiliation anticipée.',
       },
     ],
     steps: [
       {
         name: 'Resume',
         system: `${STYLE} Vous aidez à comprendre un contrat. Vous ne donnez jamais de conseil juridique : vous résumez et vous signalez.`,
-        user: 'Contrat :\n<start.contrat>\n\nDonnez : un résumé en dix lignes, les dates et délais, les montants, puis la liste des clauses à faire relire par un juriste (reconduction tacite, pénalités, résiliation, responsabilité). Terminez par : « Ce résumé ne remplace pas l’avis d’un juriste. »',
+        user: 'Contrat :\n<start.contrat>\n\nDonnez : un résumé en dix lignes, les dates et délais, les montants, puis la liste des clauses à faire relire par un juriste, avocat ou notaire (reconduction tacite, pénalités, résiliation, responsabilité). Terminez par : « Ce résumé ne remplace pas l’avis d’un juriste. »',
       },
     ],
   },
@@ -413,50 +422,51 @@ export const NEXORA_TEMPLATES: readonly NexoraTemplate[] = [
     slug: 'controle-facture',
     name: 'Contrôle d’une facture fournisseur',
     description:
-      'Extrait les données d’une facture, puis vérifie les calculs et les mentions obligatoires.',
+      'Extrait les données d’une facture, puis vérifie les calculs (TPS, TVQ) et les numéros d’inscription.',
     inputs: [
       {
         name: 'facture',
         description: 'Texte de la facture',
         example:
-          'Facture F-9921 du 12/10/2026, Papeterie Dubois, SIRET 123 456 789 00012. Ramettes : 10 x 4,50 EUR HT = 45,00 EUR HT. TVA 20 % : 9,00 EUR. Total TTC : 54,00 EUR.',
+          'Facture F-9921 du 2026-10-12, Papeterie Bélanger inc. (Trois-Rivières), TPS 123456789 RT 0001, TVQ 1234567890 TQ 0001, NEQ 1123456789. Ramettes : 10 x 4,50 $ = 45,00 $ avant taxes. Sous-total : 45,00 $. TPS (5 %) : 2,25 $. TVQ (9,975 %) : 4,49 $. Total : 51,74 $.',
       },
     ],
     steps: [
       {
         name: 'Extraction',
         system: `${STYLE} Vous lisez des factures avec rigueur.`,
-        user: 'Extrayez de cette facture, en JSON, les clés « fournisseur », « numero », « date », « total_ht », « tva », « total_ttc » et « siret » (null si absent) :\n<start.facture>',
+        user: 'Extrayez de cette facture, en JSON, les clés « fournisseur », « numero », « date », « sous_total » (avant taxes), « tps », « tvq », « total », « numero_tps », « numero_tvq » et « neq » (null si absent) :\n<start.facture>',
       },
       {
         name: 'Controle',
         system: `${STYLE} Vous contrôlez des factures fournisseur avant paiement.`,
-        user: 'Données extraites : <extraction.content>\n\nTexte d’origine :\n<start.facture>\n\nVérifiez : total HT + TVA = total TTC, taux de TVA plausible, SIRET présent, numéro et date présents. Concluez par « À PAYER » ou « À VÉRIFIER », avec la liste des anomalies.',
+        user: 'Données extraites : <extraction.content>\n\nTexte d’origine :\n<start.facture>\n\nVérifiez : sous-total + TPS + TVQ = total (à un cent près), TPS égale à 5 % du sous-total, TVQ égale à 9,975 % du sous-total (la TVQ se calcule sur le sous-total avant taxes, pas sur la TPS), numéros d’inscription à la TPS (neuf chiffres, puis RT et quatre chiffres) et à la TVQ (dix chiffres, puis TQ et quatre chiffres) présents, numéro et date présents. Un petit fournisseur non inscrit peut ne facturer aucune taxe : signalez-le « à vérifier » sans le déclarer fautif. Concluez par « À PAYER » ou « À VÉRIFIER », avec la liste des anomalies.',
       },
     ],
   },
   {
     slug: 'accueil-salarie',
     name: 'Accueil d’un nouveau salarié',
-    description: 'Prépare l’e-mail d’accueil et la liste des choses à faire avant le premier jour.',
+    description:
+      'Prépare le courriel d’accueil et la liste des choses à faire avant le premier jour.',
     inputs: [
       { name: 'prenom', description: 'Prénom du salarié', example: 'Camille' },
       {
         name: 'poste',
         description: 'Poste et service',
-        example: 'Assistante comptable, service finance',
+        example: 'Adjointe comptable, service des finances',
       },
       {
         name: 'arrivee',
         description: 'Date et lieu d’arrivée',
-        example: 'lundi 2 novembre à 9 h, 12 rue des Lilas, Lyon',
+        example: 'lundi 2 novembre à 9 h, 12, rue des Lilas, Sherbrooke',
       },
     ],
     steps: [
       {
         name: 'Accueil',
         system: `${STYLE} Vous préparez l’arrivée de nouveaux collègues.`,
-        user: 'Préparez pour <start.prenom> (<start.poste>), qui arrive le <start.arrivee> : un e-mail d’accueil chaleureux, puis une liste de préparation en deux parties : « À préparer par l’entreprise » (poste de travail, accès, badge, contrat) et « À apporter par le salarié ».',
+        user: 'Préparez pour <start.prenom> (<start.poste>), qui arrive le <start.arrivee> : un courriel d’accueil chaleureux, puis une liste de préparation en deux parties : « À préparer par l’entreprise » (poste de travail, accès, carte d’accès, contrat de travail, inscription à la paie) et « À apporter par le salarié » (pièces d’identité, numéro d’assurance sociale, coordonnées bancaires pour le dépôt direct, formulaires de retenues à la source TD1 et TP-1015.3-V). Terminez la liste par : « Documents de paie à valider par votre conseiller. »',
       },
     ],
   },
@@ -503,7 +513,8 @@ export const NEXORA_TEMPLATES: readonly NexoraTemplate[] = [
   {
     slug: 'reponse-validee',
     name: 'Réponse client validée avant envoi',
-    description: 'Rédige la réponse à un client, la soumet à validation, puis l’envoie par e-mail.',
+    description:
+      'Rédige la réponse à un client, la soumet à validation, puis l’envoie par courriel.',
     inputs: [
       {
         name: 'message',
@@ -512,8 +523,8 @@ export const NEXORA_TEMPLATES: readonly NexoraTemplate[] = [
       },
       {
         name: 'destinataire',
-        description: 'Adresse e-mail du client',
-        example: 'client@exemple.fr',
+        description: 'Adresse courriel du client',
+        example: 'client@exemple.ca',
       },
     ],
     steps: [
@@ -547,7 +558,7 @@ export const NEXORA_TEMPLATES: readonly NexoraTemplate[] = [
         name: 'notes',
         description: 'Notes prises pendant l’entretien',
         example:
-          'Client satisfait du service, demande un tarif dégressif au-delà de 20 commandes, veut une visite en décembre.',
+          'Client satisfait du service, demande un prix dégressif au-delà de 20 commandes, veut une visite en décembre.',
       },
       { name: 'type', description: 'Type d’entretien', example: 'entretien client' },
     ],
@@ -569,20 +580,19 @@ export const NEXORA_TEMPLATES: readonly NexoraTemplate[] = [
         name: 'declaration',
         description: 'Texte de la déclaration de sinistre reçue',
         example:
-          'Bonjour, une fuite sous l’évier de ma cuisine a inondé le sol et abîmé le meuble du dessous, cela s’est produit hier soir vers 22 h. Contrat habitation n° H-45012, Mme Roux, 8 rue des Tilleuls à Villeurbanne. J’ai coupé l’eau et pris des photos.',
+          'Bonjour, une fuite sous l’évier de ma cuisine a inondé le plancher et abîmé le meuble du dessous, cela s’est produit hier soir vers 22 h. Police d’assurance habitation n° H-45012, Mme Roy, 8, rue des Tilleuls à Laval. J’ai fermé l’eau et pris des photos.',
       },
       {
         name: 'garanties',
         description: 'Garanties et franchises du contrat de l’assuré, si vous les avez',
-        example:
-          'Dégâts des eaux garantis ; franchise de 150 EUR ; déclaration sous 5 jours ouvrés.',
+        example: 'Dégât d’eau couvert ; franchise de 500 $ ; déclaration sous 5 jours ouvrables.',
       },
     ],
     steps: [
       {
         name: 'Analyse',
         system: `${STYLE} Vous triez les déclarations de sinistre d’un cabinet d’assurance. Vous ne décidez jamais d’une prise en charge : un gestionnaire s’en charge.`,
-        user: 'Déclaration reçue :\n<start.declaration>\n\nGaranties connues : <start.garanties>\n\nRépondez en JSON avec les clés « categorie » (dégât des eaux, incendie, vol, bris de glace, collision automobile, responsabilité civile ou autre), « urgence » (basse, normale ou haute ; haute si une personne est blessée, si un danger persiste ou si le délai de déclaration est proche), « resume » (deux phrases), « date_sinistre » (null si absente), « pieces_manquantes » (liste des pièces ou informations à demander : photos, devis, constat, coordonnées, numéro de contrat…) et « points_de_vigilance » (liste, par exemple une garantie à vérifier).',
+        user: 'Déclaration reçue :\n<start.declaration>\n\nGaranties connues : <start.garanties>\n\nRépondez en JSON avec les clés « categorie » (dégât d’eau, incendie, vol, bris de vitre, collision automobile, responsabilité civile ou autre), « urgence » (basse, normale ou haute ; haute si une personne est blessée, si un danger persiste ou si le délai de déclaration est proche), « resume » (deux phrases), « date_sinistre » (null si absente), « pieces_manquantes » (liste des pièces ou informations à demander : photos, soumission de réparation, constat, coordonnées, numéro de police…) et « points_de_vigilance » (liste, par exemple une garantie à vérifier).',
       },
       {
         name: 'Reponse',
@@ -611,8 +621,8 @@ export const NEXORA_TEMPLATES: readonly NexoraTemplate[] = [
       },
       {
         name: 'destinataire',
-        description: 'Adresse e-mail à laquelle envoyer le rapport',
-        example: 'qualite@exemple.fr',
+        description: 'Adresse courriel à laquelle envoyer le rapport',
+        example: 'qualite@exemple.ca',
       },
     ],
     steps: [
@@ -640,7 +650,7 @@ export const NEXORA_TEMPLATES: readonly NexoraTemplate[] = [
     slug: 'factures-fournisseurs',
     name: 'Extraction d’une facture fournisseur',
     description:
-      'Extrait les champs d’une facture en JSON (fournisseur, numéro, montants, échéance) et vérifie la cohérence des totaux.',
+      'Extrait les champs d’une facture en JSON (fournisseur, numéro, montants, taxes, échéance) et vérifie la cohérence des totaux, de la TPS et de la TVQ.',
     inputs: [
       {
         name: 'facture',
@@ -652,19 +662,19 @@ export const NEXORA_TEMPLATES: readonly NexoraTemplate[] = [
         name: 'texte',
         description: 'Texte de la facture, tel qu’il apparaît dans le fichier',
         example:
-          'Papeterie Dubois, facture F-9921 du 12/10/2026. Ramettes A4 : 10 x 4,50 EUR HT = 45,00 EUR HT. Port : 8,00 EUR HT. Total HT : 53,00 EUR. TVA 20 % : 10,60 EUR. Total TTC : 63,60 EUR. Échéance : 11/11/2026.',
+          'Papeterie Bélanger inc., facture F-9921 du 2026-10-12. Ramettes A4 : 10 x 4,50 $ = 45,00 $. Port : 8,00 $. Sous-total : 53,00 $. TPS (5 %) : 2,65 $. TVQ (9,975 %) : 5,29 $. Total : 60,94 $. Échéance : 2026-11-11.',
       },
     ],
     steps: [
       {
         name: 'Extraction',
         system: `${STYLE} Vous lisez des factures fournisseur avec rigueur et vous ne recalculez rien : vous recopiez ce qui est écrit.`,
-        user: 'Extrayez de cette facture, en JSON uniquement, les clés « fournisseur », « numero », « date » (format AAAA-MM-JJ), « total_ht », « tva », « total_ttc » (nombres, sans symbole monétaire) et « echeance » (format AAAA-MM-JJ). Mettez null pour toute valeur absente du texte.\n\nTexte de la facture :\n<start.texte>',
+        user: 'Extrayez de cette facture, en JSON uniquement, les clés « fournisseur », « numero », « date » (format AAAA-MM-JJ), « sous_total » (avant taxes), « tps », « tvq », « total » (nombres, sans symbole monétaire ni espace) et « echeance » (format AAAA-MM-JJ). Mettez null pour toute valeur absente du texte.\n\nTexte de la facture :\n<start.texte>',
       },
       {
         name: 'Coherence',
         system: `${STYLE} Vous contrôlez des factures fournisseur avant leur saisie en comptabilité.`,
-        user: 'Données extraites : <extraction.content>\n\nTexte d’origine :\n<start.texte>\n\nVérifiez : total HT + TVA = total TTC (à un centime près), taux de TVA plausible (20 %, 10 %, 5,5 % ou 2,1 %), échéance postérieure à la date de la facture, aucune valeur à null. Affichez le calcul. Concluez par « COHÉRENTE » ou « À VÉRIFIER », avec la liste des anomalies.',
+        user: 'Données extraites : <extraction.content>\n\nTexte d’origine :\n<start.texte>\n\nVérifiez : sous-total + TPS + TVQ = total (à un cent près), TPS égale à 5 % du sous-total, TVQ égale à 9,975 % du sous-total (la TVQ se calcule sur le sous-total avant taxes, pas sur la TPS), échéance postérieure à la date de la facture, aucune valeur à null (l’absence de taxes chez un petit fournisseur non inscrit est à signaler, pas à rejeter). Affichez le calcul. Concluez par « COHÉRENTE » ou « À VÉRIFIER », avec la liste des anomalies.',
       },
     ],
   },
@@ -676,14 +686,14 @@ export const NEXORA_TEMPLATES: readonly NexoraTemplate[] = [
     inputs: [
       {
         name: 'message',
-        description: 'Message reçu du prospect (formulaire, e-mail ou appel noté)',
+        description: 'Message reçu du prospect (formulaire, courriel ou appel noté)',
         example:
-          'Bonjour, je dirige une entreprise de 25 personnes à Grenoble. Nous cherchons un outil pour automatiser nos relances de factures et trier nos e-mails. Nous aimerions démarrer en janvier. Pouvez-vous nous appeler cette semaine ?',
+          'Bonjour, je dirige une entreprise de 25 personnes à Saguenay. Nous cherchons un outil pour automatiser nos relances de factures et trier nos courriels. Nous aimerions démarrer en janvier. Pouvez-vous nous appeler cette semaine ?',
       },
       {
         name: 'criteres',
         description: 'Vos critères de qualification (cible, taille, budget minimum)',
-        example: 'Cible : PME de 10 à 250 salariés en France ; budget minimum 3 000 EUR par an.',
+        example: 'Cible : PME de 10 à 250 employés au Québec ; budget minimum 3 000 $ par année.',
       },
     ],
     steps: [
@@ -703,19 +713,19 @@ export const NEXORA_TEMPLATES: readonly NexoraTemplate[] = [
     slug: 'synthese-projet-hebdo',
     name: 'Synthèse hebdomadaire d’un projet',
     description:
-      'Transforme vos notes de la semaine en synthèse de projet, qui part par e-mail après votre validation.',
+      'Transforme vos notes de la semaine en synthèse de projet, qui part par courriel après votre validation.',
     inputs: [
       { name: 'projet', description: 'Nom du projet', example: 'Refonte du site vitrine' },
       {
         name: 'notes',
         description: 'Vos notes en vrac de la semaine sur le projet',
         example:
-          'Maquettes validées mardi par la direction. Retard de 3 jours sur l’intégration, le prestataire attend les textes. Budget consommé : 6 200 EUR sur 9 000. Il faut décider si on garde le blog dans la première version. Risque : le responsable des contenus part en congé du 20 au 30.',
+          'Maquettes validées mardi par la direction. Retard de 3 jours sur l’intégration, le prestataire attend les textes. Budget consommé : 6 200 $ sur 9 000 $. Il faut décider si on garde le blogue dans la première version. Risque : le responsable des contenus part en congé du 20 au 30.',
       },
       {
         name: 'destinataire',
-        description: 'Adresse e-mail à laquelle envoyer la synthèse',
-        example: 'direction@exemple.fr',
+        description: 'Adresse courriel à laquelle envoyer la synthèse',
+        example: 'direction@exemple.ca',
       },
     ],
     steps: [
@@ -748,19 +758,19 @@ export const NEXORA_TEMPLATES: readonly NexoraTemplate[] = [
       {
         name: 'concurrent',
         description: 'Nom du concurrent suivi',
-        example: 'Atelier Numérique Lyon',
+        example: 'Atelier Numérique Beauce',
       },
       {
         name: 'extraits',
         description: 'Extraits collés (site, communiqué, offre d’emploi, avis clients)',
         example:
-          'Extrait 1 (site, 14/10) : « Nouveau forfait Essentiel à 49 EUR par mois, sans engagement. »\nExtrait 2 (offre d’emploi) : « Nous recrutons deux commerciaux pour ouvrir l’agence de Marseille. »\nExtrait 3 (avis client) : « Support réactif mais délais d’intégration trop longs. »',
+          'Extrait 1 (site, 14 octobre) : « Nouveau forfait Essentiel à 49 $ par mois, sans engagement. »\nExtrait 2 (offre d’emploi) : « Nous recrutons deux représentants pour ouvrir le bureau de Québec. »\nExtrait 3 (avis client) : « Soutien technique réactif mais délais d’intégration trop longs. »',
       },
       {
         name: 'contexte',
         description: 'Votre offre et votre positionnement, en deux phrases',
         example:
-          'Nous vendons des sites vitrines et de la maintenance aux artisans, à partir de 2 400 EUR.',
+          'Nous vendons des sites vitrines et de la maintenance aux artisans, à partir de 2 400 $ avant taxes.',
       },
     ],
     steps: [
@@ -786,13 +796,13 @@ export const NEXORA_TEMPLATES: readonly NexoraTemplate[] = [
         name: 'cahier',
         description: 'Extrait du cahier des charges (exigences, critères de sélection)',
         example:
-          'Exigence 1 : hébergement des données en France. Exigence 2 : assistance par téléphone de 8 h à 18 h en jours ouvrés. Exigence 3 : formation de 10 agents sur site. Exigence 4 : certification ISO 27001. Critères : prix 40 %, valeur technique 40 %, délais 20 %.',
+          'Exigence 1 : hébergement des données au Québec. Exigence 2 : assistance téléphonique de 8 h à 18 h en jours ouvrables. Exigence 3 : formation de 10 employés sur place. Exigence 4 : certification ISO 27001. Critères : prix 40 %, valeur technique 40 %, délais 20 %.',
       },
       {
         name: 'elements',
         description: 'Vos éléments de réponse (offre, références, moyens, prix)',
         example:
-          'Hébergement chez un opérateur français. Assistance du lundi au vendredi de 9 h à 17 h. Formation à distance ou sur site, 1 200 EUR par jour. Trois références dans des collectivités. Délai de mise en service : 6 semaines.',
+          'Hébergement chez un fournisseur établi au Québec. Assistance du lundi au vendredi de 9 h à 17 h. Formation à distance ou sur place, 1 200 $ par jour avant taxes. Trois références dans des municipalités. Délai de mise en service : 6 semaines.',
       },
     ],
     steps: [
@@ -804,7 +814,7 @@ export const NEXORA_TEMPLATES: readonly NexoraTemplate[] = [
       {
         name: 'Reponse',
         system: `${STYLE} Vous rédigez des réponses à appel d’offres claires, précises et honnêtes.`,
-        user: 'Cahier des charges :\n<start.cahier>\n\nÉléments de réponse :\n<start.elements>\n\nAnalyse des exigences :\n<exigences.content>\n\nRédigez la première version de la réponse : compréhension du besoin, solution proposée (exigence par exigence), moyens et références, planning, prix. Pour une exigence non couverte, n’affirmez rien : écrivez « [à compléter : …] ». Terminez par un encadré « Exigences non couvertes » à traiter avant l’envoi.',
+        user: 'Cahier des charges :\n<start.cahier>\n\nÉléments de réponse :\n<start.elements>\n\nAnalyse des exigences :\n<exigences.content>\n\nRédigez la première version de la réponse : compréhension du besoin, solution proposée (exigence par exigence), moyens et références, planning, prix (en dollars canadiens, avant taxes, en précisant que la TPS et la TVQ s’ajoutent). Pour une exigence non couverte, n’affirmez rien : écrivez « [à compléter : …] ». Terminez par un encadré « Exigences non couvertes » à traiter avant l’envoi.',
       },
     ],
   },
@@ -818,7 +828,7 @@ export const NEXORA_TEMPLATES: readonly NexoraTemplate[] = [
         name: 'contrat',
         description: 'Texte du contrat ou des clauses à relire',
         example:
-          'Article 3 : le prestataire est payé à 60 jours fin de mois. Article 5 : le contrat se renouvelle tacitement pour douze mois, sauf résiliation par lettre recommandée trois mois avant l’échéance. Article 8 : la responsabilité du prestataire est limitée à 500 EUR. Article 9 : tout litige relève du tribunal de commerce de Paris.',
+          'Article 3 : le prestataire est payé à 60 jours de la réception de la facture. Article 5 : le contrat se renouvelle tacitement pour douze mois, sauf avis écrit transmis trois mois avant l’échéance. Article 8 : la responsabilité du prestataire est limitée à 500 $. Article 9 : tout litige relève des tribunaux du district judiciaire de Montréal.',
       },
       {
         name: 'contexte',
@@ -828,15 +838,15 @@ export const NEXORA_TEMPLATES: readonly NexoraTemplate[] = [
       },
       {
         name: 'destinataire',
-        description: 'Adresse e-mail à laquelle envoyer le résumé',
-        example: 'juridique@exemple.fr',
+        description: 'Adresse courriel à laquelle envoyer le résumé',
+        example: 'juridique@exemple.ca',
       },
     ],
     steps: [
       {
         name: 'Revue',
         system: `${STYLE} Vous aidez à relire un contrat. Vous ne donnez jamais de conseil juridique : vous relevez, vous expliquez simplement et vous posez des questions.`,
-        user: 'Contrat :\n<start.contrat>\n\nContexte : <start.contexte>\n\nRédigez la revue : 1. Clauses à risque (tableau : article, extrait cité, risque pour nous, niveau faible, moyen ou élevé), 2. Clauses manquantes courantes pour ce type de contrat (confidentialité, réversibilité, protection des données, plafond de responsabilité…), 3. Questions à poser à l’autre partie ou à un juriste. Ne citez que ce qui figure dans le texte fourni. Terminez par : « Cette revue ne constitue pas un avis juridique ; faites relire le contrat par un juriste. »',
+        user: 'Contrat :\n<start.contrat>\n\nContexte : <start.contexte>\n\nRédigez la revue : 1. Clauses à risque (tableau : article, extrait cité, risque pour nous, niveau faible, moyen ou élevé), 2. Clauses manquantes courantes pour ce type de contrat (confidentialité, réversibilité, protection des renseignements personnels, plafond de responsabilité, droit applicable…), 3. Questions à poser à l’autre partie ou à un juriste. Ne citez que ce qui figure dans le texte fourni. Terminez par : « Cette revue ne constitue pas un avis juridique ; faites relire le contrat par un juriste. »',
       },
       {
         kind: 'approval',
@@ -863,22 +873,22 @@ export const NEXORA_TEMPLATES: readonly NexoraTemplate[] = [
       {
         name: 'chiffres',
         description:
-          'Chiffres du mois collés (chiffre d’affaires, ventes par produit ou par commercial)',
+          'Chiffres du mois collés (chiffre d’affaires avant taxes, ventes par produit ou par représentant)',
         example:
-          'Chiffre d’affaires : 84 300 EUR. Commande moyenne : 410 EUR. Ventes par gamme : Bio 31 200 EUR, Épicerie 40 100 EUR, Coffrets 13 000 EUR. Nouveaux clients : 22 ; clients perdus : 5.',
+          'Chiffre d’affaires (avant taxes) : 84 300 $. Commande moyenne : 410 $. Ventes par gamme : Bio 31 200 $, Épicerie 40 100 $, Coffrets 13 000 $. Nouveaux clients : 22 ; clients perdus : 5.',
       },
       {
         name: 'objectifs',
         description: 'Objectifs du mois et chiffres du mois précédent',
         example:
-          'Objectif : 90 000 EUR. Mois précédent : 79 800 EUR (Bio 27 500, Épicerie 41 300, Coffrets 11 000).',
+          'Objectif : 90 000 $. Mois précédent : 79 800 $ (Bio 27 500 $, Épicerie 41 300 $, Coffrets 11 000 $).',
       },
     ],
     steps: [
       {
         name: 'Ecarts',
         system: `${STYLE} Vous analysez des chiffres de vente : vous ne calculez qu’à partir des chiffres fournis et vous montrez chaque calcul.`,
-        user: 'Mois : <start.mois>\n\nChiffres du mois :\n<start.chiffres>\n\nObjectifs et mois précédent :\n<start.objectifs>\n\nDressez un tableau des écarts : pour chaque indicateur, la valeur du mois, l’objectif, l’écart en valeur et en pourcentage par rapport à l’objectif, puis l’évolution par rapport au mois précédent. Si une comparaison est impossible faute de chiffre, écrivez « [donnée manquante] ».',
+        user: 'Mois : <start.mois>\n\nChiffres du mois :\n<start.chiffres>\n\nObjectifs et mois précédent :\n<start.objectifs>\n\nDressez un tableau des écarts : pour chaque indicateur, la valeur du mois, l’objectif, l’écart en valeur et en pourcentage par rapport à l’objectif, puis l’évolution par rapport au mois précédent. Les montants s’entendent avant taxes (TPS et TVQ exclues). Si une comparaison est impossible faute de chiffre, écrivez « [donnée manquante] ».',
       },
       {
         name: 'Rapport',

@@ -33,19 +33,19 @@ import urllib.request
 import zipfile
 
 TEMPLATE_INPUTS = {
-    "Devis client": {"client": "Boulangerie Martin, Lyon", "prestations": "Site vitrine : 1 x 2400 EUR HT"},
-    "Relance de facture impayée": {"client": "Garage Durand", "facture": "F-2026-104", "montant": "1 250 EUR TTC", "echeance": "15/09/2026", "niveau": "2"},
-    "Réponse support (FAQ)": {"question": "Livrez-vous le samedi ?", "faq": "Livraison du lundi au samedi, de 8h à 18h."},
-    "Tri des e-mails entrants": {"email": "De : client@exemple.fr\nObjet : Facture en double\nBonjour, j'ai reçu deux fois la facture F-88."},
+    "Devis client": {"client": "Boulangerie Gagnon, Trois-Rivières", "prestations": "Site vitrine : 1 x 2 400,00 $"},
+    "Relance de facture impayée": {"client": "Garage Tremblay et fils", "facture": "F-2026-104", "montant": "1 437,19 $ (taxes incluses)", "echeance": "2026-09-15", "niveau": "2"},
+    "Réponse support (FAQ)": {"question": "Livrez-vous le samedi ?", "faq": "Livraison du lundi au samedi, de 8 h à 18 h, partout au Québec."},
+    "Tri des courriels entrants": {"email": "De : client@exemple.ca\nObjet : Facture en double\nBonjour, j'ai reçu deux fois la facture F-88."},
     # Run by the « Réunion » check: it starts from a recording, not a text.
     "Compte rendu de réunion": {},
 }
 MEETING_TEMPLATE = "Compte rendu de réunion"
 # The 20 SME templates every new workspace receives (K7); the five first ones are run by the checks below.
 SME_TEMPLATES = [
-    "Devis client", "Relance de facture impayée", "Réponse support (FAQ)", "Tri des e-mails entrants",
+    "Devis client", "Relance de facture impayée", "Réponse support (FAQ)", "Tri des courriels entrants",
     "Compte rendu de réunion", "Offre d’emploi", "Fiche produit", "Publication réseaux sociaux",
-    "Réponse à une réclamation", "Newsletter mensuelle", "Relance de devis sans réponse",
+    "Réponse à une réclamation", "Infolettre mensuelle", "Relance de devis sans réponse",
     "Rapport d’activité hebdomadaire", "Traduction professionnelle", "Résumé d’un contrat",
     "Contrôle d’une facture fournisseur", "Accueil d’un nouveau salarié", "Réponse à un avis client",
     "Ordre du jour de réunion", "Réponse client validée avant envoi", "Compte rendu d’entretien",
