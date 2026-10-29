@@ -175,6 +175,15 @@ export function translatedBlockName(type: string, name: string, t: BlockTranslat
   return t.has(`${type}.name`) ? t(`${type}.name`) : name
 }
 
+/** A block type's one-line description: its French text when translated, the registry's otherwise. */
+export function translatedBlockDescription(
+  type: string,
+  description: string,
+  t: BlockTranslator
+): string {
+  return t.has(`${type}.description`) ? t(`${type}.description`) : description
+}
+
 const SUBFLOW_SOURCE_NAMES = { loop: 'Loop', parallel: 'Parallel' } as const
 
 /**

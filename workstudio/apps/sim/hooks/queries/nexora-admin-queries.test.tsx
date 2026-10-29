@@ -3,11 +3,11 @@
  */
 
 import { act, type ReactNode } from 'react'
+import { flushMicrotasks } from '@sim/testing/helpers/async'
 import {
   apiClientRequestMock,
   apiClientRequestMockFns,
 } from '@sim/testing/mocks/api-client-request.mock'
-import { sleep } from '@sim/utils/helpers'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { createRoot, type Root } from 'react-dom/client'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
@@ -42,7 +42,7 @@ async function mount() {
   )
   await act(async () => {
     root.render(wrapper)
-    await sleep(20)
+    await flushMicrotasks(10)
   })
 }
 

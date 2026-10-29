@@ -288,6 +288,7 @@ describe('requestWorkstudioAccess', () => {
     [403, { error: 'insufficient_scope' }, 'site-refused'],
     [403, { error: 'two_factor_required' }, 'two-factor-required'],
     [403, { error: 'email_not_verified' }, 'email-not-verified'],
+    [403, { error: 'subscription_required' }, 'subscription-required'],
     [403, { error: { code: 'two_factor_required' } }, 'two-factor-required'],
     [403, null, 'site-refused'],
     [500, { error: 'no' }, 'site-unavailable'],

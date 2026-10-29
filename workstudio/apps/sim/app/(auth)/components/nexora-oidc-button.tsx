@@ -6,17 +6,12 @@ import { createLogger } from '@sim/logger'
 import { getErrorMessage } from '@sim/utils/errors'
 import { useTranslations } from 'next-intl'
 import { client } from '@/lib/auth/client'
-import { getEnv } from '@/lib/core/config/env'
 import { NEXORA_OIDC_PROVIDER_ID } from '@/lib/nexora/oidc'
+import { getNexoraOidcName } from '@/lib/nexora/oidc-name'
 import { DEFAULT_POST_AUTH_ROUTE } from '@/app/(auth)/auth-redirect'
 import { AUTH_BUTTON_CLASS } from '@/app/(auth)/components/constants'
 
 const logger = createLogger('NexoraOidcButton')
-
-/** Name of the company identity provider; the button is hidden while it is unset. */
-export function getNexoraOidcName(): string | null {
-  return getEnv('NEXT_PUBLIC_NEXORA_OIDC_NAME')?.trim() || null
-}
 
 interface NexoraOidcButtonProps {
   callbackURL?: string

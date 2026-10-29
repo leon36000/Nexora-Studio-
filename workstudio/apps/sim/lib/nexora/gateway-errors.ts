@@ -1,5 +1,5 @@
 import { toStringOrNull } from '@sim/utils/coerce'
-import { isRecordLike, toRecord } from '@sim/utils/object'
+import { toRecord } from '@sim/utils/object'
 import type { NexoraSiteLinks } from '@/lib/nexora/site-links'
 
 /** Why the site's model gateway refused or could not answer a call. */
@@ -87,7 +87,7 @@ export function gatewayFailureOf(error: unknown): {
   status: number | undefined
   code: string | null
 } {
-  const record = isRecordLike(error) ? error : {}
+  const record = toRecord(error)
   return {
     status: typeof record.status === 'number' ? record.status : undefined,
     code: toStringOrNull(toRecord(record.error).code),

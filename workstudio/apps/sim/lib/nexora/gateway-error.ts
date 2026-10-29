@@ -6,6 +6,7 @@ export type NexoraGatewayFailure =
   | 'site-refused'
   | 'two-factor-required'
   | 'email-not-verified'
+  | 'subscription-required'
   | 'site-unavailable'
   | 'bad-answer'
 
@@ -23,6 +24,8 @@ function failureMessage(code: NexoraGatewayFailure): string {
       return 'Nexora AI exige la double authentification pour ce compte : activez-la dans la sécurité de votre compte Nexora AI, puis reconnectez-vous à WorkStudio.'
     case 'email-not-verified':
       return 'Nexora AI n’a pas encore vérifié votre adresse e-mail : confirmez-la avec le message reçu, puis reconnectez-vous à WorkStudio.'
+    case 'subscription-required':
+      return `Un abonnement WorkStudio est requis pour utiliser les modèles. Choisissez une offre dans votre espace Nexora AI.${links ? ` ${links.billing}` : ''}`
     case 'site-unavailable':
       return 'Nexora AI ne répond pas pour le moment : réessayez dans un instant.'
     case 'bad-answer':

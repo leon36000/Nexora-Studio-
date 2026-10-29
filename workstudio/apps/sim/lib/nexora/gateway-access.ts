@@ -2,6 +2,7 @@ import { db } from '@sim/db'
 import { account, nexoraGatewayKey, workspace } from '@sim/db/schema'
 import { createLogger } from '@sim/logger'
 import { toStringOrNull } from '@sim/utils/coerce'
+import { getErrorMessage } from '@sim/utils/errors'
 import { toRecord } from '@sim/utils/object'
 import { and, eq } from 'drizzle-orm'
 import { decryptSecret, encryptSecret } from '@/lib/core/security/encryption'
@@ -71,6 +72,7 @@ async function refusalOf(response: Response): Promise<NexoraGatewayFailure> {
   const reason = toStringOrNull(body.error) ?? toStringOrNull(toRecord(body.error).code)
   if (reason === 'two_factor_required') return 'two-factor-required'
   if (reason === 'email_not_verified') return 'email-not-verified'
+  if (reason === 'subscription_required') return 'subscription-required'
   return 'site-refused'
 }
 
@@ -212,7 +214,7 @@ export function createNexoraGateway(deps: GatewayDependencies) {
       if (userId) await deps.deleteKey(userId)
     } catch (error) {
       logger.warn('A rejected gateway key could not be dropped', {
-        error: error instanceof Error ? error.message : 'unknown',
+        error: getErrorMessage(error, 'unknown'),
       })
     }
   }

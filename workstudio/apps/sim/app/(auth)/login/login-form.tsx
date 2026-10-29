@@ -23,6 +23,7 @@ import { validateCallbackUrl } from '@/lib/core/security/input-validation'
 import { getBaseUrl } from '@/lib/core/utils/urls'
 import { quickValidateEmail } from '@/lib/messaging/email/validation'
 import { NEXORA_SSO_REQUIRED } from '@/lib/nexora/auth-refusals'
+import { getNexoraOidcName } from '@/lib/nexora/oidc-name'
 import { buildAuthCrossLink, DEFAULT_POST_AUTH_ROUTE } from '@/app/(auth)/auth-redirect'
 import {
   AuthDivider,
@@ -34,7 +35,6 @@ import {
   AuthNavPrompt,
   AuthSubmitButton,
   AuthTextLink,
-  getNexoraOidcName,
   NexoraOidcButton,
   PasswordInput,
   SocialLoginButtons,

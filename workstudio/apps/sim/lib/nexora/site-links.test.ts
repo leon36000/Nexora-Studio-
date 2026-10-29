@@ -1,4 +1,4 @@
-import { afterEach, describe, expect, it, vi } from 'vitest'
+import { describe, expect, it, vi } from 'vitest'
 import {
   deriveNexoraSiteUrl,
   getNexoraSiteUrl,
@@ -61,8 +61,6 @@ describe('nexoraSiteLinks', () => {
 })
 
 describe('getNexoraSiteUrl / publishNexoraSiteUrl', () => {
-  afterEach(() => vi.unstubAllEnvs())
-
   it('reads the public variable the server published at start', () => {
     vi.stubEnv('NEXT_PUBLIC_NEXORA_SITE_URL', 'https://nexora.example')
     expect(getNexoraSiteUrl()).toBe('https://nexora.example')

@@ -2,20 +2,16 @@
  * @vitest-environment jsdom
  */
 import { act } from 'react'
+import { authClientMock } from '@sim/testing/mocks/auth-client.mock'
 import { resetEnvMock, setEnv } from '@sim/testing/mocks/env.mock'
+import { nextNavigationMock, nextNavigationMockFns } from '@sim/testing/mocks/next-navigation.mock'
 import { createRoot, type Root } from 'react-dom/client'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
 const searchParams = new URLSearchParams()
 
-vi.mock('next/navigation', () => ({
-  useRouter: () => ({ push: vi.fn(), replace: vi.fn() }),
-  useSearchParams: () => searchParams,
-  usePathname: () => '/login',
-}))
-vi.mock('@/lib/auth/client', () => ({
-  client: { signIn: { email: vi.fn(), social: vi.fn() } },
-}))
+vi.mock('next/navigation', () => nextNavigationMock)
+vi.mock('@/lib/auth/client', () => authClientMock)
 vi.mock('@/hooks/use-capture-when-ready', () => ({ useCaptureWhenReady: vi.fn() }))
 
 import LoginPage from '@/app/(auth)/login/login-form'
@@ -28,6 +24,7 @@ beforeEach(() => {
   host = document.createElement('div')
   document.body.appendChild(host)
   root = createRoot(host)
+  nextNavigationMockFns.mockUseSearchParams.mockReturnValue(searchParams)
   setEnv({ NEXT_PUBLIC_NEXORA_OIDC_NAME: 'Nexora AI' })
 })
 
