@@ -1,0 +1,23 @@
+import { chromium } from 'playwright'
+const WS = process.env.WS, EMAIL = process.env.EMAIL, PW = process.env.PW
+const out = (n) => `/essais/${n}.png`
+const browser = await chromium.launch()
+const ctx = await browser.newContext({ viewport: { width: 1360, height: 900 }, locale: 'fr-CA' })
+const page = await ctx.newPage()
+await page.goto(`${WS}/login`, { waitUntil: 'domcontentloaded', timeout: 60000 })
+await page.getByRole('button', { name: /Nexora AI/i }).first().click()
+await page.waitForURL(/compte\/connexion/, { timeout: 60000 })
+await page.fill('#email', EMAIL); await page.fill('#password', PW)
+await Promise.all([page.waitForURL((u) => u.toString().startsWith(WS), { timeout: 90000 }), page.locator('form button[type=submit]').click()])
+await page.waitForTimeout(6000)
+await page.screenshot({ path: out('devis-1-accueil') })
+const btn = page.getByRole('button', { name: /Lancer avec l.exemple/i }).first()
+console.log('bouton visible :', await btn.isVisible().catch(() => false))
+await btn.click({ timeout: 15000 })
+await page.waitForTimeout(60000)
+await page.screenshot({ path: out('devis-2-resultat'), fullPage: true })
+const text = (await page.locator('body').innerText()).replace(/\s+/g, ' ')
+console.log('URL :', page.url().slice(0, 110))
+for (const k of ['TPS', 'TVQ', 'TVA', '€']) console.log(k, text.includes(k))
+console.log(text.slice(-700))
+await browser.close()

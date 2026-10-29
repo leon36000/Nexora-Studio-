@@ -1,0 +1,27 @@
+import { chromium } from 'playwright'
+const WS = process.env.WS, EMAIL = process.env.EMAIL, PW = process.env.PW
+const out = (n) => `/essais/${n}.png`
+const browser = await chromium.launch()
+const ctx = await browser.newContext({ viewport: { width: 1360, height: 860 }, locale: 'fr-CA' })
+const page = await ctx.newPage()
+const log = []
+page.on('response', async (r) => { const u = r.url(); if (/\/api\/(copilot|chat|mothership|assistant|workflows)/.test(u) && r.request().method() !== 'GET') log.push(`${r.status()} ${r.request().method()} ${u.slice(0, 140)}`) })
+await page.goto(`${WS}/login`, { waitUntil: 'domcontentloaded', timeout: 60000 })
+await page.getByRole('button', { name: /Nexora AI/i }).first().click()
+await page.waitForURL(/compte\/connexion/, { timeout: 60000 })
+await page.fill('#email', EMAIL); await page.fill('#password', PW)
+await Promise.all([page.waitForURL((u) => u.toString().startsWith(WS), { timeout: 90000 }), page.locator('form button[type=submit]').click()])
+await page.waitForTimeout(5000)
+await page.getByRole('link', { name: /^Assistant$/ }).first().click().catch(async () => { await page.getByText('Assistant', { exact: true }).first().click() })
+await page.waitForTimeout(4000)
+await page.screenshot({ path: out('chat-1-assistant') })
+const box = page.locator('textarea, [contenteditable=true]').first()
+await box.click()
+await page.keyboard.type('Bonjour, réponds en une phrase.')
+await page.keyboard.press('Enter')
+await page.waitForTimeout(25000)
+await page.screenshot({ path: out('chat-2-reponse') })
+console.log('URL :', page.url().slice(0, 120))
+console.log(log.join('\n'))
+console.log('texte visible (fin) :', (await page.locator('body').innerText()).replace(/\s+/g, ' ').slice(-600))
+await browser.close()
