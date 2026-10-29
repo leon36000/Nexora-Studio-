@@ -427,12 +427,17 @@ describe('Ready-to-run SME templates', () => {
 
 /** Everything a person can read in a template: names, descriptions, examples, prompts, subjects. */
 function visibleTexts(template: Template): string[] {
-  return [
-    template.name,
-    template.description,
-    ...template.inputs.flatMap((input) => [input.description, input.example]),
-    ...template.steps.flatMap(stepTexts).filter((text) => !/^<[a-z]+\.[A-Za-z_]+>$/.test(text)),
-  ]
+  return (
+    [
+      template.name,
+      template.description,
+      ...template.inputs.flatMap((input) => [input.description, input.example]),
+      ...template.steps.flatMap(stepTexts),
+    ]
+      // a reference such as <start.email> is an identifier, not a word a person reads
+      .map((text) => text.replace(/<[a-z][a-z0-9]*\.[A-Za-z_]+>/g, ''))
+      .filter((text) => text !== '')
+  )
 }
 
 /** The prompts of a template (the Agent steps), where the instructions to the model are. */
@@ -513,7 +518,7 @@ const FRANCE_MARKERS: readonly [label: string, pattern: RegExp][] = [
   ['Kbis', /\bKbis\b/i],
   ['code du travail', /code du travail/i],
   ['mutuelle', /\bmutuelle\b/i],
-  ['France', /\bFrance\b|\bfrançaise?s?\b/],
+  ['France', /\bFrance\b|\bPME françaises?\b/],
   ['e-mail', /\be-?mails?\b/i],
   ['jours ouvrés', /\bouvrés?\b/i],
   ['villes françaises', /\b(Lyon|Paris|Marseille|Grenoble|Villeurbanne|Bordeaux|Lille)\b/],
@@ -579,8 +584,8 @@ describe('Gabarits adaptés au Québec', () => {
       const prompt = promptsOf(bySlug(slug))
       expect(prompt).toContain('TPS')
       expect(prompt).toContain('TVQ')
-      expect(prompt).toMatch(/5[\s ]%/)
-      expect(prompt).toMatch(/9,975[\s ]%/)
+      expect(prompt).toMatch(/5[\s\u00a0]%/)
+      expect(prompt).toMatch(/9,975[\s\u00a0]%/)
     }
   )
 
@@ -617,12 +622,12 @@ describe('Gabarits adaptés au Québec', () => {
       const cents = (label: RegExp) => {
         const found = example.match(label)
         if (!found) throw new Error(`${slug}: ${label} is missing from the example`)
-        return Math.round(Number(found[1].replace(/ /g, '').replace(',', '.')) * 100)
+        return Math.round(Number(found[1].replace(/\u00a0/g, '').replace(',', '.')) * 100)
       }
-      const subtotal = cents(/Sous-total : ([\d ]+,\d{2}) \$/)
-      const gst = cents(/TPS \(5 %\) : ([\d ]+,\d{2}) \$/)
-      const qst = cents(/TVQ \(9,975 %\) : ([\d ]+,\d{2}) \$/)
-      const total = cents(/Total : ([\d ]+,\d{2}) \$/)
+      const subtotal = cents(/Sous-total : ([\d\u00a0]+,\d{2})\u00a0\$/)
+      const gst = cents(/TPS \(5\u00a0%\) : ([\d\u00a0]+,\d{2})\u00a0\$/)
+      const qst = cents(/TVQ \(9,975\u00a0%\) : ([\d\u00a0]+,\d{2})\u00a0\$/)
+      const total = cents(/Total : ([\d\u00a0]+,\d{2})\u00a0\$/)
       expect(gst).toBe(Math.round((subtotal * 5) / 100))
       expect(qst).toBe(Math.round((subtotal * 9975) / 100000))
       expect(total).toBe(subtotal + gst + qst)
@@ -634,14 +639,14 @@ describe('Gabarits adaptés au Québec', () => {
     for (const template of NEXORA_TEMPLATES) {
       for (const text of visibleTexts(template)) {
         expect(text, `${template.slug}: $ placed before the figure`).not.toMatch(/\$\s?\d/)
-        for (const [, figure] of text.matchAll(/(\d[\d  ]*(?:,\d+)?)[\s ]?\$/g)) {
+        for (const [, figure] of text.matchAll(/(\d[\d\u00a0 ]*?(?:,\d+)?)[\s\u00a0]?\$/g)) {
           amounts += 1
           expect(figure, `${template.slug}: ${figure}`).toMatch(
-            /^(\d{1,3}( \d{3})+|\d+)(,\d{1,3})?$/
+            /^(\d{1,3}(\u00a0\d{3})+|\d+)(,\d{1,3})?$/
           )
         }
-        for (const [whole] of text.matchAll(/\d(?:[\s ])\$/g)) {
-          expect(whole, `${template.slug}: space before $`).toContain(' ')
+        for (const [whole] of text.matchAll(/\d(?:[\s\u00a0])\$/g)) {
+          expect(whole, `${template.slug}: space before $`).toContain('\u00a0')
         }
       }
     }
