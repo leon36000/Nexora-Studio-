@@ -1,0 +1,14 @@
+- [Vision Nexora Studio](nexora-vision-produit.md) — « Mistral pour PME », équivalent de Mistral AI Studio ; dépôt, dossiers, base de connaissances
+- [Workflow superpowers](superpowers-workflow.md) — plugin demandé par le fondateur : brainstorming → plans → TDD → vérification
+- [Profil du fondateur](fondateur-profil.md) — francophone, veut l'exhaustivité, livrables en français
+- [Sources docs Mistral](sources-mistral-docs.md) — llms-full.txt, openapi.yaml, sitemap pour rafraîchir la recherche
+- [Décision bases open source](nexora-decision-bases.md) — Nexora WorkStudio = Sim sans ee/ ; Nexora Connect = OpenConnector ; OpenGateLLM (API) ; LibreChat (assistant)
+- [Nexora WorkStudio v1, v2 et v3](nexora-workstudio-v1.md) — état du dépôt et de pc6 (v2 le 23/10, v3 déployée le 25/10), pièges appris (audits, disque, déploiement, outbox)
+- [GitLab privé seulement](github-workflow.md) — plus rien vers GitHub depuis le 28/10 ; root/nexora-workstudio (5) et root/nexora-web (6) sur pc4
+- [Pas de modèle local](feedback-pas-de-modele-local.md) — jamais de 7B local ; vérifier avec les modèles cloud du LiteLLM de pc1
+- [Nouveau site Nexora](nexora-site-v2.md) — ~/Desktop/NexoraSite : état S1–S9, journal ledger.md, pièges (écoute localhost, licence Directus)
+- [Équipe d'agents](feedback-equipe-agents.md) — ≤3 Haïku 5.5 + 3 Sonnet 5.5 (effort élevé), moi orchestrateur et contrôle qualité
+- [Dossier NexoraAI sur pc1](pc1-nexoraai.md) — ~/Bureau/NexoraAI : miroirs des dépôts, image de retour arrière, archives ; pc1 amd64, pc6 arm64 plein
+- [GitLab ou pc1](feedback-gitlab-ou-pc1.md) — GitLab par défaut ; si CI bien plus longue, travailler en parallèle sur pc1 et finaliser via GitLab
+- [Passerelle OpenRouter](nexora-passerelle-openrouter.md) — amont unique OpenRouter, marge 10 %, tranche 1 faite, tranches restantes
+- [WebPilot et Privacy Router](nexora-webpilot-privacy-router.md) — décision produit : deux produits indépendants intégrés, confidentialité incluse par défaut
