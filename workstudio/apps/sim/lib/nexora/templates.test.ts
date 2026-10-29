@@ -16,9 +16,9 @@ describe('Nexora SME workflow templates', () => {
       'tri-emails',
       'compte-rendu',
     ])
-    expect(slugs).toHaveLength(30)
-    expect(new Set(slugs).size).toBe(30)
-    expect(new Set(NEXORA_TEMPLATES.map((t) => t.name)).size).toBe(30)
+    expect(slugs).toHaveLength(29)
+    expect(new Set(slugs).size).toBe(29)
+    expect(new Set(NEXORA_TEMPLATES.map((t) => t.name)).size).toBe(29)
   })
 
   it.each(NEXORA_TEMPLATES.map((t) => [t.slug, t] as const))(
@@ -217,7 +217,6 @@ const READY_TO_RUN_SLUGS = [
   'synthese-projet-hebdo',
   'veille-concurrentielle',
   'reponse-appel-offres',
-  'accueil-employe',
   'revue-contrat',
   'rapport-ventes-mensuel',
 ] as const
@@ -313,7 +312,7 @@ describe('Every SME template, original or ready to run', () => {
 })
 
 describe('Ready-to-run SME templates', () => {
-  it('adds the ten new ones after the twenty that were already there', () => {
+  it('adds the nine new ones after the twenty that were already there', () => {
     const slugs = NEXORA_TEMPLATES.map((template) => template.slug)
     expect(slugs.slice(20)).toEqual([...READY_TO_RUN_SLUGS])
   })

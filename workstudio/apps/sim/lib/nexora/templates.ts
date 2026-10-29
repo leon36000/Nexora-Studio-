@@ -809,38 +809,6 @@ export const NEXORA_TEMPLATES: readonly NexoraTemplate[] = [
     ],
   },
   {
-    slug: 'accueil-employe',
-    name: 'Plan d’intégration à 30 jours',
-    description:
-      'Construit le plan d’intégration d’un nouvel employé sur 30 jours (checklist par semaine, accès, interlocuteurs).',
-    inputs: [
-      {
-        name: 'poste',
-        description: 'Poste, missions principales et date d’arrivée',
-        example:
-          'Technicienne de maintenance, interventions chez les clients ; arrivée le lundi 2 novembre 2026',
-      },
-      {
-        name: 'equipe',
-        description: 'Équipe d’accueil : manager, collègues, outils utilisés',
-        example:
-          'Manager : Paul Girard, responsable d’exploitation. Équipe de 6 techniciens. Outils : logiciel de planification, messagerie, application mobile d’intervention.',
-      },
-    ],
-    steps: [
-      {
-        name: 'Plan',
-        system: `${STYLE} Vous préparez l’intégration des nouveaux collègues dans une PME.`,
-        user: 'Poste : <start.poste>\n\nÉquipe et outils : <start.equipe>\n\nRédigez le plan d’intégration sur 30 jours : 1. Avant le premier jour (à préparer par l’entreprise), 2. Semaine 1, 3. Semaine 2, 4. Semaine 3, 5. Semaine 4 : une checklist à cocher par semaine, avec objectifs et personne référente. Ajoutez ensuite le tableau des accès à demander (outil, niveau d’accès, qui le demande, avant quand) et la liste des interlocuteurs à rencontrer (rôle, sujet, semaine). Écrivez les noms que vous ne connaissez pas entre crochets.',
-      },
-      {
-        name: 'Suivi',
-        system: `${STYLE} Vous aidez les managers à suivre l’intégration de leurs nouveaux collègues.`,
-        user: 'Poste : <start.poste>\n\nPlan d’intégration :\n<plan.content>\n\nPréparez la trame des trois points de suivi du manager (fin de semaine 1, jour 15, jour 30) : questions à poser, indicateurs d’une bonne intégration tirés du plan, et décisions à prendre à l’issue (par exemple ajuster le plan ou prolonger l’accompagnement).',
-      },
-    ],
-  },
-  {
     slug: 'revue-contrat',
     name: 'Revue de contrat',
     description:
