@@ -12,7 +12,9 @@ import {
 } from '@/lib/nexora/data-protection/errors'
 import { guardChatMessages } from '@/lib/nexora/data-protection/guard'
 import type { ProtectionNote } from '@/lib/nexora/data-protection/notes'
-import { resolveGatewayAccess } from '@/lib/nexora/gateway-access'
+import { forgetNexoraGatewayKey, resolveGatewayAccess } from '@/lib/nexora/gateway-access'
+import { NexoraGatewayError } from '@/lib/nexora/gateway-error'
+import { describeGatewayFailure } from '@/lib/nexora/gateway-errors'
 import { gatewayModelName } from '@/lib/nexora/gateway-url'
 import {
   createThinkTagSplitter,
@@ -22,6 +24,7 @@ import {
   readDeltaReasoning,
   readMessageReasoning,
 } from '@/lib/nexora/reasoning'
+import { getNexoraSiteUrl, nexoraSiteLinks } from '@/lib/nexora/site-links'
 import { beginCallTrace, type CallTrace, type CallTraceContext } from '@/lib/nexora/traces/call'
 
 /** How much of an answer (and of its reasoning) a streamed call's trace keeps while it streams. */
@@ -61,6 +64,17 @@ export class NexoraWandRejectedError extends Error {
 }
 
 /**
+ * The site's model gateway refused the call (empty wallet, rejected key, unknown model, rate limit)
+ * or the person's sign-in through the site cannot give a key: `reason` says in French what to do.
+ */
+export class NexoraWandGatewayError extends Error {
+  constructor(readonly reason: string) {
+    super(`The Nexora AI gateway refused the call: ${reason}`)
+    this.name = 'NexoraWandGatewayError'
+  }
+}
+
+/**
  * How a surface answers a failed generation: 422 with the model's reason when it refused the
  * request, 503 when it could not be reached; `null` for any other error.
  */
@@ -69,6 +83,7 @@ export function describeWandFailure(
 ):
   | { status: 422; code: 'rejected'; reason: string }
   | { status: 503; code: 'unavailable' }
+  | { status: 422; code: 'gateway'; reason: string }
   | { status: 403; code: 'personal_data'; reason: string }
   | { status: 503; code: 'personal_data_unavailable'; reason: string }
   | null {
@@ -76,6 +91,9 @@ export function describeWandFailure(
     return { status: 422, code: 'rejected', reason: error.reason }
   }
   if (error instanceof NexoraWandUnavailableError) return { status: 503, code: 'unavailable' }
+  if (error instanceof NexoraWandGatewayError) {
+    return { status: 422, code: 'gateway', reason: error.reason }
+  }
   if (error instanceof PersonalDataRefusedError || error instanceof PersonalDataUnsupportedError) {
     return { status: 403, code: 'personal_data', reason: error.message }
   }
@@ -154,6 +172,11 @@ async function completionTarget(settings: CompletionSettings) {
       userId: settings.trace?.userId,
     })
   } catch (error) {
+    // The person's next step (sign in again, enable two-factor…) is told as it is; a site that
+    // merely does not answer is the model being unavailable.
+    if (error instanceof NexoraGatewayError && error.code !== 'site-unavailable') {
+      throw new NexoraWandGatewayError(error.message)
+    }
     throw new NexoraWandUnavailableError(getErrorMessage(error, 'gateway access'))
   }
   if (gateway) {
@@ -161,9 +184,40 @@ async function completionTarget(settings: CompletionSettings) {
       baseUrl: gateway.baseUrl,
       apiKey: gateway.apiKey,
       model: gatewayModelName(model, gateway.model),
+      viaGateway: true,
     }
   }
-  return { baseUrl: (env.VLLM_BASE_URL ?? '').replace(/\/+$/, ''), apiKey: env.VLLM_API_KEY, model }
+  return {
+    baseUrl: (env.VLLM_BASE_URL ?? '').replace(/\/+$/, ''),
+    apiKey: env.VLLM_API_KEY,
+    model,
+    viaGateway: false,
+  }
+}
+
+/** The gateway's refusal of a failed call, in French (`null`: its own words stand, or it is the service that failed). */
+async function gatewayRefusalOf(
+  response: Response,
+  settings: CompletionSettings
+): Promise<NexoraWandGatewayError | null> {
+  const body = toRecord(
+    await response
+      .clone()
+      .json()
+      .catch(() => null)
+  )
+  const failure = describeGatewayFailure(
+    { status: response.status, code: toStringOrNull(toRecord(body.error).code) },
+    nexoraSiteLinks(getNexoraSiteUrl(), 'fr')
+  )
+  if (!failure || failure.refusal === 'unavailable') return null
+  if (failure.refusal === 'key-rejected') {
+    await forgetNexoraGatewayKey({
+      workspaceId: settings.trace?.workspaceId,
+      userId: settings.trace?.userId,
+    })
+  }
+  return new NexoraWandGatewayError(failure.message)
 }
 
 async function requestCompletion(
@@ -198,6 +252,10 @@ async function requestCompletion(
     throw new NexoraWandUnavailableError(getErrorMessage(error, 'request failed'))
   }
   if (!response.ok) {
+    if (target.viaGateway) {
+      const refusal = await gatewayRefusalOf(response, settings)
+      if (refusal) throw refusal
+    }
     if (response.status < 500 && !SERVICE_FAILURE_STATUSES.has(response.status)) {
       const text = await response.text().catch(() => '')
       if (settings.reasoningEffort && isReasoningEffortRejection(response.status, text)) {
@@ -218,6 +276,7 @@ async function requestCompletion(
 function failureReason(error: unknown): string {
   if (error instanceof NexoraWandRejectedError) return `Refusé par le modèle : ${error.reason}`
   if (error instanceof NexoraWandUnavailableError) return 'Nexora API indisponible'
+  if (error instanceof NexoraWandGatewayError) return error.reason
   return getErrorMessage(error, 'Échec de la génération')
 }
 

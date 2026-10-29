@@ -1,11 +1,13 @@
 import { db } from '@sim/db'
 import { account, nexoraGatewayKey, workspace } from '@sim/db/schema'
 import { createLogger } from '@sim/logger'
+import { toStringOrNull } from '@sim/utils/coerce'
 import { toRecord } from '@sim/utils/object'
 import { and, eq } from 'drizzle-orm'
 import { decryptSecret, encryptSecret } from '@/lib/core/security/encryption'
 import { acquireAdvisoryXactLock, withLockTimeout } from '@/lib/db/advisory-locks'
 import type { DbOrTx } from '@/lib/db/types'
+import { NexoraGatewayError, type NexoraGatewayFailure } from '@/lib/nexora/gateway-error'
 import { gatewayModelName, nexoraGatewayUrl } from '@/lib/nexora/gateway-url'
 import { NEXORA_OIDC_PROVIDER_ID } from '@/lib/nexora/oidc'
 
@@ -20,34 +22,6 @@ const TOKEN_MARGIN_MS = 30_000
 /** The key goes into an Authorization header: printable characters only, no space. */
 const KEY_SHAPE = /^[\x21-\x7e]{16,512}$/
 const MODEL_SHAPE = /^[\x21-\x7e]{1,200}$/
-
-type NexoraGatewayFailure =
-  | 'no-owner'
-  | 'session-expired'
-  | 'site-refused'
-  | 'site-unavailable'
-  | 'bad-answer'
-
-const FAILURE_MESSAGES: Record<NexoraGatewayFailure, string> = {
-  'no-owner': 'Impossible de savoir quel compte Nexora AI facturer pour ce modèle.',
-  'session-expired':
-    'Votre connexion à Nexora AI a expiré : reconnectez-vous pour utiliser les modèles.',
-  'site-refused': 'Nexora AI refuse l’accès aux modèles pour ce compte.',
-  'site-unavailable': 'Nexora AI ne répond pas pour le moment : réessayez dans un instant.',
-  'bad-answer': 'Nexora AI a donné une réponse inattendue : contactez le support.',
-}
-
-/**
- * The person's gateway access could not be settled. The request stops there: it never falls back
- * to the instance's own key, which would put the person's tokens on the operator's bill. The
- * message names the cause and carries neither key nor token.
- */
-export class NexoraGatewayError extends Error {
-  constructor(readonly code: NexoraGatewayFailure) {
-    super(FAILURE_MESSAGES[code])
-    this.name = 'NexoraGatewayError'
-  }
-}
 
 interface NexoraGatewayAccess {
   /** The gateway's OpenAI-compatible address, ending in `/v1`. */
@@ -72,6 +46,7 @@ export interface GatewayDependencies {
   /** The person a workspace's model calls are paid by, `null` for an unknown workspace. */
   billedUserOf: (workspaceId: string) => Promise<string | null>
   readKey: (userId: string, executor?: DbOrTx) => Promise<StoredKey | null>
+  deleteKey: (userId: string) => Promise<void>
   writeKey: (userId: string, row: StoredKey, executor?: DbOrTx) => Promise<void>
   /** The person's sign-in through the site, `null` for an account that never used it. */
   readSignIn: (userId: string, executor?: DbOrTx) => Promise<SignIn | null>
@@ -88,6 +63,15 @@ interface RoutableRequest {
   workspaceId?: string
   userId?: string
   azureEndpoint?: string
+}
+
+/** Why the site answered 403: its `error` (a string, or `{ code }`) names the reason. */
+async function refusalOf(response: Response): Promise<NexoraGatewayFailure> {
+  const body = toRecord(await response.json().catch(() => null))
+  const reason = toStringOrNull(body.error) ?? toStringOrNull(toRecord(body.error).code)
+  if (reason === 'two_factor_required') return 'two-factor-required'
+  if (reason === 'email_not_verified') return 'email-not-verified'
+  return 'site-refused'
 }
 
 /**
@@ -111,9 +95,8 @@ export async function requestWorkstudioAccess(
   } catch {
     throw new NexoraGatewayError('site-unavailable')
   }
-  if (response.status === 401 || response.status === 403) {
-    throw new NexoraGatewayError('site-refused')
-  }
+  if (response.status === 401) throw new NexoraGatewayError('session-expired')
+  if (response.status === 403) throw new NexoraGatewayError(await refusalOf(response))
   if (!response.ok) throw new NexoraGatewayError('site-unavailable')
   const body = toRecord(await response.json().catch(() => null))
   const { key, model } = body
@@ -214,7 +197,27 @@ export function createNexoraGateway(deps: GatewayDependencies) {
     }
   }
 
-  return { resolve, ensure, route }
+  /**
+   * The gateway no longer accepts the key of whoever pays for this call (revoked, expired): drops it
+   * so the next call asks the site for a new one while the person's sign-in lasts, and otherwise
+   * says to sign in again. Never throws: it runs while another failure is being reported.
+   */
+  async function forget(input: {
+    workspaceId?: string | null
+    userId?: string | null
+  }): Promise<void> {
+    try {
+      if (!deps.gatewayUrl()) return
+      const userId = input.workspaceId ? await deps.billedUserOf(input.workspaceId) : input.userId
+      if (userId) await deps.deleteKey(userId)
+    } catch (error) {
+      logger.warn('A rejected gateway key could not be dropped', {
+        error: error instanceof Error ? error.message : 'unknown',
+      })
+    }
+  }
+
+  return { resolve, ensure, route, forget }
 }
 
 async function readKeyRow(userId: string, executor: DbOrTx = db): Promise<StoredKey | null> {
@@ -228,6 +231,9 @@ async function readKeyRow(userId: string, executor: DbOrTx = db): Promise<Stored
 
 const gateway = createNexoraGateway({
   gatewayUrl: nexoraGatewayUrl,
+  deleteKey: async (userId) => {
+    await db.delete(nexoraGatewayKey).where(eq(nexoraGatewayKey.userId, userId))
+  },
   billedUserOf: async (workspaceId) => {
     const [row] = await db
       .select({ userId: workspace.billedAccountUserId })
@@ -268,7 +274,10 @@ const gateway = createNexoraGateway({
   decrypt: async (value) => (await decryptSecret(value)).decrypted,
 })
 
+export { NexoraGatewayError }
+
 /** See {@link createNexoraGateway}. */
 export const resolveGatewayAccess = gateway.resolve
 export const ensureNexoraGatewayKey = gateway.ensure
 export const routeThroughNexoraGateway = gateway.route
+export const forgetNexoraGatewayKey = gateway.forget

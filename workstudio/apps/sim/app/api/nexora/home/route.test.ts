@@ -1,12 +1,15 @@
+import { authMockFns, resetEnvMock, setEnv } from '@sim/testing'
 import { emailMailerMock, emailMailerMockFns } from '@sim/testing/mocks/email-mailer.mock'
 import {
   nexoraAdminAccessMock,
   nexoraAdminAccessMockFns,
 } from '@sim/testing/mocks/nexora-admin-access.mock'
 import { NextRequest } from 'next/server'
-import { beforeEach, describe, expect, it, vi } from 'vitest'
+import { afterAll, beforeEach, describe, expect, it, vi } from 'vitest'
+import { NexoraGatewayError } from '@/lib/nexora/gateway-error'
 
 const fns = vi.hoisted(() => ({
+  resolveGateway: vi.fn(),
   defaultModel: vi.fn(),
   read: vi.fn(),
   update: vi.fn(),
@@ -14,6 +17,9 @@ const fns = vi.hoisted(() => ({
 
 vi.mock('@/lib/nexora/admin-access', () => nexoraAdminAccessMock)
 vi.mock('@/lib/messaging/email/mailer', () => emailMailerMock)
+vi.mock('@/lib/nexora/gateway-access', () => ({
+  resolveGatewayAccess: (...args: unknown[]) => fns.resolveGateway(...args),
+}))
 vi.mock('@/lib/nexora/default-model', () => ({ fetchModelStatus: fns.defaultModel }))
 vi.mock('@/lib/nexora/onboarding', () => ({
   readOnboarding: fns.read,
@@ -60,6 +66,7 @@ describe('Nexora home routes', () => {
       onboarding: null,
       organizationId: null,
       emailConfigured: false,
+      viaSite: false,
     })
     expect(fns.read).not.toHaveBeenCalled()
   })
@@ -73,6 +80,7 @@ describe('Nexora home routes', () => {
       onboarding: progress,
       organizationId: 'org-1',
       emailConfigured: false,
+      viaSite: false,
     })
     expect(fns.read).toHaveBeenCalledWith('org-1')
   })
@@ -81,6 +89,52 @@ describe('Nexora home routes', () => {
     emailMailerMockFns.mockHasEmailService.mockReturnValue(true)
     const body = await (await GET(new NextRequest('http://localhost/api/nexora/home'), {})).json()
     expect(body.emailConfigured).toBe(true)
+  })
+
+  describe('with the site’s model gateway', () => {
+    const homeOf = async () =>
+      (await GET(new NextRequest('http://localhost/api/nexora/home'), {})).json()
+
+    beforeEach(() => {
+      setEnv({ NEXORA_GATEWAY_URL: 'https://nexora.example/v1' })
+      authorize.mockResolvedValue({ ok: false, status: 403 })
+      authMockFns.mockGetSession.mockResolvedValue({ user: { id: 'user-1' } })
+      fns.resolveGateway.mockReset().mockResolvedValue({
+        baseUrl: 'https://nexora.example/v1',
+        apiKey: 'nxk_payer_0123456789',
+        model: 'nexora/payer-default',
+      })
+    })
+    afterAll(resetEnvMock)
+
+    it('shows the person’s own default model, never the instance’s, and says they came by the site', async () => {
+      const body = await homeOf()
+      expect(fns.resolveGateway).toHaveBeenCalledWith({ userId: 'user-1' })
+      expect(body.defaultModel).toBe('nexora/payer-default')
+      expect(body.viaSite).toBe(true)
+      expect(body.modelUsages).toEqual(usages)
+      expect(JSON.stringify(body)).not.toContain('nxk_payer')
+    })
+
+    it('shows the model as unavailable, not the instance’s, when the sign-in through the site has ended', async () => {
+      fns.resolveGateway.mockRejectedValue(new NexoraGatewayError('session-expired'))
+      const body = await homeOf()
+      expect(body.defaultModel).toBeNull()
+      expect(body.viaSite).toBe(true)
+    })
+
+    it('keeps the instance’s model for an operator account that never used the site', async () => {
+      fns.resolveGateway.mockResolvedValue(null)
+      const body = await homeOf()
+      expect(body.defaultModel).toBe('qwen2.5:7b')
+      expect(body.viaSite).toBe(false)
+    })
+
+    it('asks the gateway for the admin’s own key too', async () => {
+      authorize.mockResolvedValue({ ok: true, userId: 'u-1', organizationId: 'org-1' })
+      await homeOf()
+      expect(fns.resolveGateway).toHaveBeenCalledWith({ userId: 'u-1' })
+    })
   })
 
   it('lets only an admin record progress, and only known steps', async () => {

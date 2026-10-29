@@ -112,6 +112,12 @@ describe('streamPlaygroundAnswer', () => {
     expect((await run()).outcome).toEqual({ status: 'error', code: 'policy', reason })
   })
 
+  it('shows as is what to do when the site’s gateway refuses the call (wallet, key, sign-in)', async () => {
+    const reason = 'Le solde de votre portefeuille Nexora AI est insuffisant pour cette demande.'
+    fetchMock.mockResolvedValueOnce(jsonResponse({ error: 'gateway', reason }, 422))
+    expect((await run()).outcome).toEqual({ status: 'error', code: 'policy', reason })
+  })
+
   it('ends as stopped, not failed, when the answer is aborted', async () => {
     const controller = new AbortController()
     fetchMock.mockImplementationOnce(async () => {

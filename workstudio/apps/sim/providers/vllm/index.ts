@@ -5,10 +5,13 @@ import OpenAI from 'openai'
 import type { ChatCompletionCreateParamsStreaming } from 'openai/resources/chat/completions'
 import { env } from '@/lib/core/config/env'
 import { createPinnedFetch, validateUrlWithDNS } from '@/lib/core/security/input-validation.server'
+import { forgetNexoraGatewayKey } from '@/lib/nexora/gateway-access'
+import { describeGatewayFailure, gatewayFailureOf } from '@/lib/nexora/gateway-errors'
 import { isNexoraGatewayEndpoint } from '@/lib/nexora/gateway-url'
 import { nexoraLongFetch } from '@/lib/nexora/long-fetch.server'
 import { listedModelIds } from '@/lib/nexora/model-ids'
 import { isReasoningEffortRejection, readMessageReasoning } from '@/lib/nexora/reasoning'
+import { getNexoraSiteUrl, nexoraSiteLinks } from '@/lib/nexora/site-links'
 import type { StreamingExecution } from '@/executor/types'
 import { MAX_TOOL_ITERATIONS } from '@/providers'
 import { formatMessagesForProvider } from '@/providers/attachments'
@@ -826,6 +829,23 @@ export const vllmProvider: ProviderConfig = {
           errorMessage = vllmError.message || errorMessage
           errorType = vllmError.type
           errorCode = vllmError.code
+        }
+      }
+
+      // Nexora edition: the site's gateway refused the call (wallet, key, model, rate): say in French what to do.
+      if (request.azureEndpoint && isNexoraGatewayEndpoint(request.azureEndpoint)) {
+        const refused = describeGatewayFailure(
+          gatewayFailureOf(error),
+          nexoraSiteLinks(getNexoraSiteUrl(), 'fr')
+        )
+        if (refused) {
+          errorMessage = refused.message
+          if (refused.refusal === 'key-rejected') {
+            await forgetNexoraGatewayKey({
+              workspaceId: request.workspaceId,
+              userId: request.userId,
+            })
+          }
         }
       }
 

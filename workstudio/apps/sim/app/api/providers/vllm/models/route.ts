@@ -9,6 +9,7 @@ import { getSession } from '@/lib/auth'
 import { env } from '@/lib/core/config/env'
 import { withRouteHandler } from '@/lib/core/utils/with-route-handler'
 import { resolveGatewayAccess } from '@/lib/nexora/gateway-access'
+import { getCachedGatewayModels } from '@/lib/nexora/gateway-models-cache'
 import { nexoraGatewayUrl } from '@/lib/nexora/gateway-url'
 import { DEFAULT_MODEL_ALIAS, listedModelIds } from '@/lib/nexora/model-ids'
 import { getOpenAICompatibleApiBaseUrl } from '@/providers/openai-compat/base-url'
@@ -16,11 +17,16 @@ import { filterBlacklistedModels, isProviderBlacklisted } from '@/providers/util
 
 const logger = createLogger('VLLMModelsAPI')
 
+/** The model service answered with an error status: an empty list is shown, and nothing is kept. */
+class ModelListUnavailableError extends Error {}
+
 interface ModelListTarget {
   baseUrl: string | undefined
   apiKey: string | undefined
   /** The list is the signed-in person's own at the site's gateway. */
   viaGateway: boolean
+  /** Whose list it is, to keep it for a minute (gateway only). */
+  userId?: string
 }
 
 /**
@@ -39,7 +45,9 @@ async function modelListTarget(): Promise<ModelListTarget | null> {
   if (!userId) return null
   try {
     const access = await resolveGatewayAccess({ userId })
-    return access ? { baseUrl: access.baseUrl, apiKey: access.apiKey, viaGateway: true } : instance
+    return access
+      ? { baseUrl: access.baseUrl, apiKey: access.apiKey, viaGateway: true, userId }
+      : instance
   } catch (error) {
     logger.warn('Gateway access unavailable for the model list', {
       error: getErrorMessage(error, 'Unknown error'),
@@ -80,37 +88,46 @@ export const GET = withRouteHandler(async (_request: NextRequest) => {
       headers.Authorization = `Bearer ${target.apiKey}`
     }
 
-    const response = await fetch(`${apiBaseUrl}/models`, {
-      headers,
-      // Nexora edition: models are added and the default changes in Réglages › Modèles.
-      cache: 'no-store',
-    })
-
-    if (!response.ok) {
-      logger.warn('vLLM service is not available', {
-        status: response.status,
-        statusText: response.statusText,
+    const loadModels = async (): Promise<string[]> => {
+      const response = await fetch(`${apiBaseUrl}/models`, {
+        headers,
+        // Nexora edition: models are added and the default changes in Réglages › Modèles.
+        cache: 'no-store',
       })
-      return NextResponse.json({ models: [] })
+
+      if (!response.ok) {
+        logger.warn('vLLM service is not available', {
+          status: response.status,
+          statusText: response.statusText,
+        })
+        throw new ModelListUnavailableError()
+      }
+
+      const data = vllmUpstreamResponseSchema.parse(await response.json())
+      const defaultAlias = `vllm/${DEFAULT_MODEL_ALIAS}`
+      const listed = listedModelIds(data.data)
+      // The gateway does not know the alias: each person's default model answers to it.
+      const allModels = target.viaGateway
+        ? [defaultAlias, ...listed.filter((model) => model !== defaultAlias)]
+        : listed
+      const filtered = filterBlacklistedModels(allModels)
+
+      logger.info('Successfully fetched vLLM models', {
+        count: filtered.length,
+        filtered: allModels.length - filtered.length,
+        models: filtered,
+      })
+      return filtered
     }
 
-    const data = vllmUpstreamResponseSchema.parse(await response.json())
-    const defaultAlias = `vllm/${DEFAULT_MODEL_ALIAS}`
-    const listed = listedModelIds(data.data)
-    // The gateway does not know the alias: each person's default model answers to it.
-    const allModels = target.viaGateway
-      ? [defaultAlias, ...listed.filter((model) => model !== defaultAlias)]
-      : listed
-    const models = filterBlacklistedModels(allModels)
-
-    logger.info('Successfully fetched vLLM models', {
-      count: models.length,
-      filtered: allModels.length - models.length,
-      models,
-    })
+    // Nexora edition: a person's gateway list is kept for a minute, since every page asks for it.
+    const models = target.userId
+      ? await getCachedGatewayModels(target.userId, loadModels)
+      : await loadModels()
 
     return NextResponse.json(providerModelsResponseSchema.parse({ models }))
   } catch (error) {
+    if (error instanceof ModelListUnavailableError) return NextResponse.json({ models: [] })
     logger.error('Failed to fetch vLLM models', {
       error: getErrorMessage(error, 'Unknown error'),
       baseUrl,
