@@ -15,3 +15,4 @@
 - [Organisation GitLab seulement](nexora-organisation-gitlab.md) — GitLab = seule source ; pc6 vidé de WorkStudio ; piège : la démo du site tourne sur pc6 (gx10)
 - [Vision Nexora AI (29/10)](nexora-vision-ai.md) — portail IA : tous les produits et l ordre voulu ; réponses courtes
 - [État Nexora 29/10 soir](nexora-essai-sso-demo.md) — tout fusionné sur GitLab ; montage d'essai (ponts, adresses, pièges), reste à faire du fondateur
+- [Catalogue DeepInfra (29/10 soir)](nexora-deepinfra-catalogue.md) — DeepInfra = serveur de modèles ; sélection triée, pages publiques façon OpenRouter, mode aperçu sans clé
