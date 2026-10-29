@@ -8,6 +8,7 @@ import {
   isSourceSearchTool,
   withCitationInstructions,
 } from '@/lib/nexora/citations'
+import { routeThroughNexoraGateway } from '@/lib/nexora/gateway-access'
 import { passesReasoningEffortThrough } from '@/lib/nexora/reasoning'
 import type { ToolConfirmationSpec } from '@/lib/nexora/tool-confirmation/policy'
 import { filterModelSafeWorkspaceFileAttachments } from '@/lib/uploads/contexts/workspace/file-secret-provenance'
@@ -43,6 +44,7 @@ import {
   uploadLargeFilesToProvider,
 } from '@/providers/file-attachments.server'
 import { isEvaluationModel, isKnownModelId, supportsTemperature } from '@/providers/models'
+import { NEXORA_MODEL_PROVIDER } from '@/providers/nexora'
 import { getProviderExecutor } from '@/providers/registry'
 import { addSettledCost, recordJournaledModelCost } from '@/providers/run-usage-limit'
 import {
@@ -292,6 +294,11 @@ export async function executeProviderRequest(
       })
       throw error
     }
+  }
+
+  // Nexora edition: with the site's gateway, the person who pays for the workspace pays for the model.
+  if (providerId === NEXORA_MODEL_PROVIDER) {
+    resolvedRequest = await routeThroughNexoraGateway(resolvedRequest)
   }
 
   resolvedRequest.isBYOK = isBYOK

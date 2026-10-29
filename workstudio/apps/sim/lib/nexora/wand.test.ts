@@ -20,6 +20,13 @@ import {
   nexoraWandStream,
 } from '@/lib/nexora/wand'
 
+const { mockResolveGatewayAccess } = vi.hoisted(() => ({
+  mockResolveGatewayAccess: vi.fn(async () => null as unknown),
+}))
+
+vi.mock('@/lib/nexora/gateway-access', () => ({
+  resolveGatewayAccess: (...args: unknown[]) => mockResolveGatewayAccess(...(args as [])),
+}))
 vi.mock('@/lib/nexora/traces/record', () => ({ recordTrace: vi.fn(() => Promise.resolve()) }))
 vi.mock('@/lib/nexora/data-protection/policy', () => nexoraDataProtectionMock)
 vi.mock('@/lib/nexora/data-protection/model-location', () => ({
@@ -560,5 +567,88 @@ describe('Nexora wand under a personal-data policy', () => {
       status: 503,
       code: 'personal_data_unavailable',
     })
+  })
+})
+
+describe('Nexora wand — Nexora AI gateway', () => {
+  const fetchMock = vi.fn()
+  const trace = {
+    source: 'playground' as const,
+    workspaceId: 'ws-1',
+    userId: 'user-1',
+    name: 'Playground',
+  }
+  const access = {
+    baseUrl: 'https://nexora.example/v1',
+    apiKey: 'nxk_payer_0123456789',
+    model: 'nexora/payer-default',
+  }
+
+  beforeEach(() => {
+    mockEnvObject.VLLM_BASE_URL = 'http://nexora-api:8000/v1'
+    mockEnvObject.VLLM_API_KEY = 'sk-workstudio'
+    vi.stubGlobal('fetch', fetchMock)
+    mockResolveGatewayAccess.mockReset().mockResolvedValue(null)
+    fetchMock.mockImplementation(async () =>
+      Response.json({ choices: [{ message: { content: 'ok' } }], usage: { prompt_tokens: 1 } })
+    )
+  })
+  afterEach(() => {
+    fetchMock.mockReset()
+  })
+
+  it('asks the gateway with the key of whoever pays for the workspace, and their default model', async () => {
+    mockResolveGatewayAccess.mockResolvedValue(access)
+    await nexoraWandComplete({ messages, trace })
+    expect(mockResolveGatewayAccess).toHaveBeenCalledWith({
+      workspaceId: 'ws-1',
+      userId: 'user-1',
+    })
+    const [url, init] = fetchMock.mock.calls[0]
+    expect(url).toBe('https://nexora.example/v1/chat/completions')
+    expect(init.headers.Authorization).toBe('Bearer nxk_payer_0123456789')
+    expect(JSON.parse(init.body).model).toBe('nexora/payer-default')
+  })
+
+  it('keeps the model the Playground picked, on the gateway too', async () => {
+    mockResolveGatewayAccess.mockResolvedValue(access)
+    fetchMock.mockResolvedValue(
+      new Response('data: {"choices":[{"delta":{"content":"Oui"}}]}\n\ndata: [DONE]\n\n', {
+        status: 200,
+        headers: { 'Content-Type': 'text/event-stream' },
+      })
+    )
+    await readAll(await nexoraWandStream({ messages, model: 'nexora/other', trace }))
+    const [url, init] = fetchMock.mock.calls[0]
+    expect(url).toBe('https://nexora.example/v1/chat/completions')
+    expect(JSON.parse(init.body).model).toBe('nexora/other')
+  })
+
+  it('goes to the instance’s Nexora API with its own key when there is no gateway access', async () => {
+    await nexoraWandComplete({ messages, trace })
+    const [url, init] = fetchMock.mock.calls[0]
+    expect(url).toBe('http://nexora-api:8000/v1/chat/completions')
+    expect(init.headers.Authorization).toBe('Bearer sk-workstudio')
+  })
+
+  it('answers unavailable, and calls nothing, when the gateway cannot say who pays', async () => {
+    mockResolveGatewayAccess.mockRejectedValue(new Error('Nexora AI ne répond pas'))
+    await expect(nexoraWandComplete({ messages, trace })).rejects.toBeInstanceOf(
+      NexoraWandUnavailableError
+    )
+    expect(fetchMock).not.toHaveBeenCalled()
+  })
+
+  it('never repeats a gateway key in the reason of a refusal', async () => {
+    mockResolveGatewayAccess.mockResolvedValue(access)
+    fetchMock.mockResolvedValueOnce(
+      Response.json(
+        { error: { message: 'Bad model for key nxk_payer_0123456789.' } },
+        { status: 400 }
+      )
+    )
+    const refused = await nexoraWandComplete({ messages, trace }).catch((error: unknown) => error)
+    expect(refused).toBeInstanceOf(NexoraWandRejectedError)
+    expect((refused as NexoraWandRejectedError).reason).not.toContain('nxk_payer_0123456789')
   })
 })

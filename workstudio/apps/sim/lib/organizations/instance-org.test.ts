@@ -1,3 +1,4 @@
+import { organization, user } from '@sim/db/schema'
 import { dbChainMockFns, resetDbChainMock, resetEnvFlagsMock, setEnvFlags } from '@sim/testing'
 import {
   organizationMembershipMock,
@@ -133,6 +134,86 @@ describe('instance organization', () => {
       mockEnsureUserInOrganization.mockRejectedValue(new Error('database unavailable'))
 
       await expect(joinInstanceOrganization('user-2')).resolves.toBeUndefined()
+    })
+
+    it('places every new account in it when the instance has no site gateway', async () => {
+      queueRows([{ id: 'org_existing' }])
+      mockEnsureUserInOrganization.mockResolvedValue({ success: true, alreadyMember: false })
+
+      await joinInstanceOrganization('user-2')
+
+      expect(mockEnsureUserInOrganization).toHaveBeenCalledWith(
+        expect.objectContaining({ userId: 'user-2', organizationId: 'org_existing' })
+      )
+    })
+
+    describe('with the site\u2019s model gateway', () => {
+      /** Each table answers with its own rows, whatever the order of the questions. */
+      function answerByTable(rows: Map<unknown, unknown[]>): void {
+        mockSelect.mockImplementation(() => {
+          let table: unknown
+          const chain: Record<string, unknown> = {}
+          chain.from = vi.fn((from: unknown) => {
+            table = from
+            return chain
+          })
+          for (const method of ['where', 'innerJoin', 'leftJoin', 'orderBy']) {
+            chain[method] = vi.fn(() => chain)
+          }
+          chain.limit = vi.fn(() => Promise.resolve(rows.get(table) ?? []))
+          return chain
+        })
+      }
+
+      beforeEach(() => {
+        setInstanceEnv({
+          NEXORA_GATEWAY_URL: 'https://nexora.example/v1',
+          INSTANCE_ORG_OWNER_EMAIL: 'Fondateur@Nexora.example',
+        })
+        mockEnsureUserInOrganization.mockResolvedValue({ success: true, alreadyMember: false })
+      })
+
+      it('keeps a customer out: the organization\u2019s owner would pay for their workspaces', async () => {
+        answerByTable(
+          new Map<unknown, unknown[]>([
+            [user, [{ email: 'cliente@pme.example' }]],
+            [organization, [{ id: 'org_existing' }]],
+          ])
+        )
+
+        await joinInstanceOrganization('user-2')
+
+        expect(mockEnsureUserInOrganization).not.toHaveBeenCalled()
+      })
+
+      it('still places the owner in it, whatever the case of the address', async () => {
+        answerByTable(
+          new Map<unknown, unknown[]>([
+            [user, [{ email: 'fondateur@nexora.example' }]],
+            [organization, [{ id: 'org_existing' }]],
+          ])
+        )
+
+        await joinInstanceOrganization('user-1')
+
+        expect(mockEnsureUserInOrganization).toHaveBeenCalledWith(
+          expect.objectContaining({ userId: 'user-1', organizationId: 'org_existing' })
+        )
+      })
+
+      it('places nobody when no owner is named, rather than guess who it is', async () => {
+        setInstanceEnv({ INSTANCE_ORG_OWNER_EMAIL: undefined })
+        answerByTable(
+          new Map<unknown, unknown[]>([
+            [user, [{ email: 'cliente@pme.example' }]],
+            [organization, [{ id: 'org_existing' }]],
+          ])
+        )
+
+        await joinInstanceOrganization('user-1')
+
+        expect(mockEnsureUserInOrganization).not.toHaveBeenCalled()
+      })
     })
   })
 })

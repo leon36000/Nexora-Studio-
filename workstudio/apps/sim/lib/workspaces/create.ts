@@ -8,6 +8,7 @@ import type { DbTransaction } from '@/lib/db/types'
 import { requestLocale } from '@/lib/i18n/request-locale.server'
 import { ensureNexoraConnectServer } from '@/lib/nexora/connect'
 import { starterWorkflowCopy } from '@/lib/nexora/default-workflow'
+import { ensureNexoraGatewayKey } from '@/lib/nexora/gateway-access'
 import { seedNexoraTemplates } from '@/lib/nexora/seed-templates'
 import { defaultWorkspaceName } from '@/lib/nexora/workspace-name'
 import { createProjectRecord } from '@/lib/projects/membership'
@@ -67,7 +68,8 @@ export interface CreatedWorkspace {
 /**
  * Emits the canonical best-effort workspace-created platform event after commit.
  * Nexora edition: also registers Nexora Connect and adds the SME workflow templates to the
- * new workspace, in the background.
+ * new workspace, in the background, and makes the gateway key of the person who just arrived
+ * (their first visit, right after signing in through the site, is what creates the workspace).
  */
 export function emitWorkspaceCreatedPlatformEvent(params: {
   workspaceId: string
@@ -79,6 +81,7 @@ export function emitWorkspaceCreatedPlatformEvent(params: {
   } catch {}
   void ensureNexoraConnectServer({ workspaceId: params.workspaceId, userId: params.userId })
   void seedNexoraTemplates({ workspaceId: params.workspaceId, userId: params.userId })
+  void ensureNexoraGatewayKey(params.userId)
 }
 
 /** {@link CreateWorkspaceParams} plus the pre-transaction entitlement answer. */

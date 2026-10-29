@@ -5,6 +5,7 @@ import OpenAI from 'openai'
 import type { ChatCompletionCreateParamsStreaming } from 'openai/resources/chat/completions'
 import { env } from '@/lib/core/config/env'
 import { createPinnedFetch, validateUrlWithDNS } from '@/lib/core/security/input-validation.server'
+import { isNexoraGatewayEndpoint } from '@/lib/nexora/gateway-url'
 import { nexoraLongFetch } from '@/lib/nexora/long-fetch.server'
 import { listedModelIds } from '@/lib/nexora/model-ids'
 import { isReasoningEffortRejection, readMessageReasoning } from '@/lib/nexora/reasoning'
@@ -178,10 +179,13 @@ export const vllmProvider: ProviderConfig = {
      * at all: over plain HTTP, which these deployments usually are, and at a
      * private address once the operator names it in the egress allowlist.
      * Anything they have not named stays blocked.
+     *
+     * Nexora edition: the address of the site's model gateway (`NEXORA_GATEWAY_URL`) is the
+     * operator's too. It is reached over the public internet with the long wait slow models need.
      */
     let pinnedFetch: typeof fetch | undefined
     let pinnedIP: string | undefined
-    if (userProvidedEndpoint) {
+    if (userProvidedEndpoint && !isNexoraGatewayEndpoint(userProvidedEndpoint)) {
       const validation = await validateUrlWithDNS(
         userProvidedEndpoint,
         'vLLM endpoint',

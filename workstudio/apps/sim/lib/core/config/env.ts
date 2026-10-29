@@ -296,6 +296,7 @@ export const env = createEnv({
     NEXORA_OIDC_CLIENT_ID:                 z.string().min(1).optional(),           // Nexora edition: OIDC client id registered for WorkStudio
     NEXORA_OIDC_CLIENT_SECRET:             z.string().min(1).optional(),           // Nexora edition: OIDC client secret
     NEXORA_OIDC_REQUIRED:                  z.boolean().optional(),                 // Nexora edition: members sign in through the OIDC provider only (owners and admins keep their password)
+    NEXORA_GATEWAY_URL:                    z.string().url().optional(),            // Nexora edition: address (ending in /v1) of the Nexora AI site's model gateway; set, each person's chat models are paid from their own key and wallet there
     NEXORA_SETTINGS_FROM_DB:               z.string().optional(),                  // Nexora edition: set by the container bootstrap — groups it filled from Réglages (sso,smtp,domains)
     NEXORA_SETTINGS_REVISION:              z.string().optional(),                  // Nexora edition: set by the container bootstrap — settings revision the process started with
     NEXORA_DEFAULT_MODEL:                  z.string().optional(),                  // Nexora edition: Nexora API model the SME templates start with (default nexora-default)

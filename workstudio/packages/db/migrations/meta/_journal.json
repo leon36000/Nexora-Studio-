@@ -3137,6 +3137,13 @@
       "when": 1793164717763,
       "tag": "0453_better_auth_1_7_sso_config",
       "breakpoints": true
+    },
+    {
+      "idx": 454,
+      "version": "7",
+      "when": 1793255579451,
+      "tag": "0454_nexora_gateway_key",
+      "breakpoints": true
     }
   ]
 }

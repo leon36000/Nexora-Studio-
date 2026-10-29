@@ -12,6 +12,8 @@ import {
 } from '@/lib/nexora/data-protection/errors'
 import { guardChatMessages } from '@/lib/nexora/data-protection/guard'
 import type { ProtectionNote } from '@/lib/nexora/data-protection/notes'
+import { resolveGatewayAccess } from '@/lib/nexora/gateway-access'
+import { gatewayModelName } from '@/lib/nexora/gateway-url'
 import {
   createThinkTagSplitter,
   isReasoningEffortRejection,
@@ -105,6 +107,7 @@ function rejectionReason(status: number, text: string): string {
   const key = env.VLLM_API_KEY
   const keyless = (key ? message.replace(new RegExp(escapeRegExp(key), 'g'), '***') : message)
     .replace(/Bearer\s+\S+/gi, 'Bearer ***')
+    .replace(/\bnxk_[\w-]+/g, '***')
     .replace(/\s+/g, ' ')
     .trim()
   return truncate(keyless, MAX_REASON_LENGTH)
@@ -137,24 +140,50 @@ interface CompletionResponse {
   effortIgnored: boolean
 }
 
+/**
+ * Where a request goes and with which key. With the site's gateway, the key of whoever pays for the
+ * workspace (the Playground's trace names it); otherwise this instance's Nexora API and key. A
+ * gateway that cannot say who pays stops the request: the instance key never pays in its place.
+ */
+async function completionTarget(settings: CompletionSettings) {
+  const model = settings.model ?? NEXORA_DEFAULT_MODEL_ALIAS
+  let gateway: Awaited<ReturnType<typeof resolveGatewayAccess>>
+  try {
+    gateway = await resolveGatewayAccess({
+      workspaceId: settings.trace?.workspaceId,
+      userId: settings.trace?.userId,
+    })
+  } catch (error) {
+    throw new NexoraWandUnavailableError(getErrorMessage(error, 'gateway access'))
+  }
+  if (gateway) {
+    return {
+      baseUrl: gateway.baseUrl,
+      apiKey: gateway.apiKey,
+      model: gatewayModelName(model, gateway.model),
+    }
+  }
+  return { baseUrl: (env.VLLM_BASE_URL ?? '').replace(/\/+$/, ''), apiKey: env.VLLM_API_KEY, model }
+}
+
 async function requestCompletion(
   messages: WandMessage[],
   stream: boolean,
   signal?: AbortSignal,
   settings: CompletionSettings = {}
 ): Promise<CompletionResponse> {
-  const baseUrl = (env.VLLM_BASE_URL ?? '').replace(/\/+$/, '')
+  const target = await completionTarget(settings)
   let response: Response
   try {
     // boundary-raw-fetch: Nexora API is a separate OpenAI-compatible service, not a same-origin route
-    response = await fetch(`${baseUrl}/chat/completions`, {
+    response = await fetch(`${target.baseUrl}/chat/completions`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        ...(env.VLLM_API_KEY ? { Authorization: `Bearer ${env.VLLM_API_KEY}` } : {}),
+        ...(target.apiKey ? { Authorization: `Bearer ${target.apiKey}` } : {}),
       },
       body: JSON.stringify({
-        model: settings.model ?? NEXORA_DEFAULT_MODEL_ALIAS,
+        model: target.model,
         messages,
         temperature: settings.temperature ?? 0.2,
         max_tokens: settings.maxTokens ?? 4000,
@@ -255,6 +284,7 @@ export async function nexoraWandComplete(
       model: input.model,
       temperature: input.temperature,
       maxTokens: input.maxTokens,
+      trace: input.trace,
     })
     const body = (await response.json()) as {
       choices?: { message?: unknown }[]

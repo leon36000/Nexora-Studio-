@@ -61,6 +61,12 @@ required_env="$(mktemp)"; cp "$env_file" "$required_env"; printf "NEXORA_OIDC_RE
 required="$(dc compose -f "$ROOT/deploy/compose.yml" --env-file "$required_env" config --format json 2>/dev/null | python3 -I -c 'import json,sys; print(json.load(sys.stdin)["services"]["workstudio"]["environment"].get("NEXORA_OIDC_REQUIRED") or "")')"; rm -f "$required_env"
 [ "$required" = "true" ] && ok "« connexion obligatoire » set in deploy/.env reaches WorkStudio" || ko "« connexion obligatoire » set in deploy/.env reaches WorkStudio (got: $required)"
 
+# WorkStudio intégré au site: the site's model gateway is opt-in (off on a fresh install) and reaches WorkStudio when set.
+[ -z "$(value NEXORA_GATEWAY_URL)" ] && ok "the site's model gateway is off by default" || ko "the site's model gateway is off by default (got: $(value NEXORA_GATEWAY_URL))"
+gateway_env="$(mktemp)"; cp "$env_file" "$gateway_env"; printf "NEXORA_GATEWAY_URL=https://nexora.example/v1\n" >> "$gateway_env"
+gateway="$(dc compose -f "$ROOT/deploy/compose.yml" --env-file "$gateway_env" config --format json 2>/dev/null | python3 -I -c 'import json,sys; print(json.load(sys.stdin)["services"]["workstudio"]["environment"].get("NEXORA_GATEWAY_URL") or "")')"; rm -f "$gateway_env"
+[ "$gateway" = "https://nexora.example/v1" ] && ok "the site's model gateway set in deploy/.env reaches WorkStudio" || ko "the site's model gateway set in deploy/.env reaches WorkStudio (got: $gateway)"
+
 # Intégration au site: every site may frame the chat by default; NEXORA_EMBED_ORIGINS limits it (read at runtime).
 embed_default="$(python3 -I -c 'import json,sys; e=json.load(sys.stdin)["services"]["workstudio"]["environment"]; print("present" if "NEXORA_EMBED_ORIGINS" in e else "absent", repr(e.get("NEXORA_EMBED_ORIGINS") or ""))' <<< "$rendered")"
 [ "$embed_default" = "present ''" ] && ok "no site restriction by default (NEXORA_EMBED_ORIGINS empty)" || ko "no site restriction by default (got: $embed_default)"

@@ -19,6 +19,7 @@ import { db } from '@sim/db'
 import { member, organization, user } from '@sim/db/schema'
 import { createLogger } from '@sim/logger'
 import { getErrorMessage } from '@sim/utils/errors'
+import { normalizeEmail } from '@sim/utils/string'
 import { eq, sql } from 'drizzle-orm'
 import {
   createOrganizationWithOwnerTx,
@@ -28,6 +29,7 @@ import { env } from '@/lib/core/config/env'
 import { isBillingEnabled } from '@/lib/core/config/env-flags'
 import { acquireAdvisoryXactLock } from '@/lib/db/advisory-locks'
 import type { DbOrTx } from '@/lib/db/types'
+import { nexoraGatewayUrl } from '@/lib/nexora/gateway-url'
 import { deriveInstanceOrganizationSlug } from '@/lib/nexora/instance-settings-env'
 
 const logger = createLogger('InstanceOrganization')
@@ -275,6 +277,30 @@ export async function ensureInstanceOrganization(
 }
 
 /**
+ * Nexora edition: with the site's model gateway (`NEXORA_GATEWAY_URL`) the instance is shared by
+ * the site's customers, each in a personal workspace paid from their own wallet. Joining the
+ * instance organization would make its owner pay for their workspaces (an organization workspace
+ * is billed to the organization's owner) and show them every other member, so only the owner
+ * (`INSTANCE_ORG_OWNER_EMAIL`) joins it.
+ */
+async function mayJoinInstanceOrganization(userId: string): Promise<boolean> {
+  if (!nexoraGatewayUrl()) return true
+  const ownerEmail = getInstanceOrganizationConfig()?.ownerEmail
+  if (!ownerEmail) {
+    logger.error(
+      'NEXORA_GATEWAY_URL needs INSTANCE_ORG_OWNER_EMAIL: nobody joins the instance organization'
+    )
+    return false
+  }
+  const [person] = await db
+    .select({ email: user.email })
+    .from(user)
+    .where(eq(user.id, userId))
+    .limit(1)
+  return person !== undefined && normalizeEmail(person.email) === normalizeEmail(ownerEmail)
+}
+
+/**
  * Adds a user to the instance organization, provisioning it if needed.
  *
  * Called from the signup hook, so it never throws: a deployment must not become
@@ -292,6 +318,7 @@ export async function joinInstanceOrganization(userId: string): Promise<void> {
   if (!isInstanceOrganizationMode()) return
 
   try {
+    if (!(await mayJoinInstanceOrganization(userId))) return
     const organizationId = await ensureInstanceOrganization(userId)
     if (!organizationId) return
 
