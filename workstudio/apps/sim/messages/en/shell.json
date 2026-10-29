@@ -660,5 +660,8 @@
     "thisWorkspace": "this workspace",
     "leaveConfirmSuffix": "? You will lose access to all workflows and data in this workspace. This action cannot be undone.",
     "leaving": "Leaving..."
+  },
+  "featureUnavailable": {
+    "dashboards": "Dashboards are not enabled"
   }
 }

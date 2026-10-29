@@ -9,6 +9,7 @@ import {
   getWorkspaceSettingsHref,
   isOrganizationSettingsSectionAvailable,
   isSelfHostedOverrideEnabled,
+  NEXORA_INSTANCE_SECTIONS,
   ORGANIZATION_SETTINGS_ITEMS,
   parseSettingsPathSection,
   resolveOrganizationSectionAccess,
@@ -245,4 +246,22 @@ describe('settings navigation messages', () => {
       }
     }
   )
+})
+
+describe('instance-wide sections', () => {
+  it('are the six pages that mean nothing outside the instance organization', () => {
+    expect([...NEXORA_INSTANCE_SECTIONS].sort()).toEqual([
+      'code-execution',
+      'connectors',
+      'data-protection',
+      'email',
+      'models',
+      'status',
+    ])
+  })
+
+  it('all exist in the catalog, so none can be missed by a rename', () => {
+    const ids = new Set(buildUnifiedSettingsCatalog().map((item) => item.id))
+    for (const id of NEXORA_INSTANCE_SECTIONS) expect(ids.has(id)).toBe(true)
+  })
 })

@@ -994,6 +994,21 @@ export const ORGANIZATION_PLANE_UNIFIED_SECTIONS: ReadonlySet<UnifiedSettingsSec
   )
 )
 
+/**
+ * Nexora edition: the sections that concern the whole instance (models, the connectors' OAuth apps,
+ * outgoing e-mail, instance status, code execution, personal-data policy). Only the instance
+ * organization's owners and admins see them; a person in a personal workspace has no organization
+ * and would open a page with nothing on it.
+ */
+export const NEXORA_INSTANCE_SECTIONS: ReadonlySet<UnifiedSettingsSection> = new Set([
+  'models',
+  'connectors',
+  'email',
+  'status',
+  'code-execution',
+  'data-protection',
+])
+
 export const ORGANIZATION_SETTINGS_GROUPS = [
   { key: 'account', title: NAV.groups.account },
   { key: 'organization', title: NAV.groups.organization },

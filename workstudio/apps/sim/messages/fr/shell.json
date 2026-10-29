@@ -660,5 +660,8 @@
     "thisWorkspace": "cet espace de travail",
     "leaveConfirmSuffix": " ? Vous perdrez l’accès à tous les workflows et données de cet espace de travail. Cette action est irréversible.",
     "leaving": "Départ en cours…"
+  },
+  "featureUnavailable": {
+    "dashboards": "Les tableaux de bord ne sont pas disponibles sur cette instance."
   }
 }

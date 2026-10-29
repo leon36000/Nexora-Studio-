@@ -22,6 +22,7 @@ import {
   testTraceExportContract,
   updateTraceSettingsContract,
 } from '@/lib/api/contracts/nexora-traces'
+import { useNexoraHome } from '@/hooks/queries/nexora-home'
 
 /** Traces arrive as people use the product: the list refreshes itself while the page is open. */
 const TRACES_REFRESH_MS = 10_000
@@ -97,6 +98,7 @@ export function useNexoraTraceFacets(workspaceId: string) {
  * answers 403), so the settings button stays hidden for them.
  */
 export function useNexoraTraceSettings() {
+  const { data: home } = useNexoraHome()
   return useQuery({
     queryKey: nexoraTraceKeys.settings(),
     queryFn: async ({ signal }) => {
@@ -108,6 +110,8 @@ export function useNexoraTraceSettings() {
       }
     },
     staleTime: TRACE_SETTINGS_STALE_TIME,
+    // Only an instance administrator may read them: the others never send the request.
+    enabled: home?.isInstanceAdmin === true,
   })
 }
 

@@ -193,25 +193,26 @@ export const BUILTIN_SKILLS: readonly BuiltinSkill[] = [
   {
     id: 'builtin-connect-integration',
     name: 'connect-integration',
-    description: 'How to connect a service and choose the right account credential.',
+    description: 'Comment connecter un service et choisir le bon compte à utiliser.',
     content: CONNECT_INTEGRATION_CONTENT,
   },
   {
     id: 'builtin-research',
     name: 'research',
-    description: 'How to research well and come back with something genuinely useful.',
+    description: 'Comment mener une recherche et rapporter quelque chose de vraiment utile.',
     content: RESEARCH_CONTENT,
   },
   {
     id: 'builtin-create-table',
     name: 'create-table',
-    description: "How to set up structured data so it's actually useful later, not just a dump.",
+    description:
+      'Comment structurer des données pour qu’elles servent vraiment ensuite, et pas seulement s’accumuler.',
     content: CREATE_TABLE_CONTENT,
   },
   {
     id: 'builtin-deploy-workflow',
     name: 'deploy-workflow',
-    description: 'How to take a finished workflow and make it usable by the outside world.',
+    description: 'Comment publier un workflow terminé pour qu’il soit utilisable de l’extérieur.',
     content: DEPLOY_WORKFLOW_CONTENT,
   },
 ] as const

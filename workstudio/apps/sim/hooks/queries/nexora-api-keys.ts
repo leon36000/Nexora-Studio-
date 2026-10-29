@@ -13,6 +13,7 @@ import {
   revokeInstanceNexoraApiKeyContract,
   revokeWorkspaceNexoraApiKeyContract,
 } from '@/lib/api/contracts/nexora-api-keys'
+import { useNexoraHome } from '@/hooks/queries/nexora-home'
 
 /** Usage figures move with every call: refreshed when the page is revisited after a minute. */
 const NEXORA_API_KEYS_STALE_TIME = 60 * 1000
@@ -39,6 +40,7 @@ export function useWorkspaceNexoraApiKeys(workspaceId: string) {
  * answers 403), so the section stays hidden for them.
  */
 export function useInstanceNexoraApiKeys() {
+  const { data: home } = useNexoraHome()
   return useQuery({
     queryKey: nexoraApiKeyKeys.instance(),
     queryFn: async ({ signal }) => {
@@ -50,6 +52,8 @@ export function useInstanceNexoraApiKeys() {
       }
     },
     staleTime: NEXORA_API_KEYS_STALE_TIME,
+    // Only an instance administrator may list them: the others never send the request.
+    enabled: home?.isInstanceAdmin === true,
   })
 }
 
