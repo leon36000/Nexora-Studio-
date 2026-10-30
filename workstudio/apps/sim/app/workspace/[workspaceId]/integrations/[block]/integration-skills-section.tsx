@@ -3,8 +3,9 @@
 import { useMemo, useRef, useState } from 'react'
 import { Chip, toast } from '@sim/emcn'
 import { Check, Plus } from '@sim/emcn/icons'
-import { useTranslations } from 'next-intl'
+import { useLocale, useTranslations } from 'next-intl'
 import { usePostHog } from 'posthog-js/react'
+import { localizedSkillDescription } from '@/lib/integrations/skill-descriptions'
 import { captureEvent } from '@/lib/posthog/client'
 import { SkillTile } from '@/app/workspace/[workspaceId]/components/skill-tile'
 import {
@@ -32,12 +33,13 @@ interface SkillRowProps {
 
 function SkillRow({ skill, added, pending, disabled, onAdd }: SkillRowProps) {
   const t = useTranslations('integrations.skills')
+  const locale = useLocale()
   return (
     <SettingsResourceRow
       iconVariant='custom'
       icon={<SkillTile />}
       title={skill.name}
-      description={skill.description}
+      description={localizedSkillDescription(skill, locale)}
       trailing={
         added ? (
           <Chip leftIcon={Check} disabled>
@@ -65,6 +67,7 @@ export function IntegrationSkillsSection({
   integrationType,
 }: IntegrationSkillsSectionProps) {
   const t = useTranslations('integrations.skills')
+  const locale = useLocale()
   const posthog = usePostHog()
   const { data: existingSkills = [], isPending, isPlaceholderData } = useSkills(workspaceId)
   const createSkill = useCreateSkill()
@@ -80,7 +83,10 @@ export function IntegrationSkillsSection({
     inFlight.add(skill.name)
     setPendingNames((prev) => new Set(prev).add(skill.name))
     try {
-      await createSkill.mutateAsync({ workspaceId, skill })
+      await createSkill.mutateAsync({
+        workspaceId,
+        skill: { ...skill, description: localizedSkillDescription(skill, locale) },
+      })
       captureEvent(posthog, 'integration_skill_added', {
         workspace_id: workspaceId,
         integration_type: integrationType,

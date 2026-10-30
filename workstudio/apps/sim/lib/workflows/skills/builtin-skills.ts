@@ -19,174 +19,174 @@ export interface BuiltinSkill {
   content: string
 }
 
-const DEPLOY_WORKFLOW_CONTENT = `# Deploy Workflow
+const DEPLOY_WORKFLOW_CONTENT = `# Déployer un workflow
 
-How to take a finished workflow and make it usable by the outside world.
+Comment prendre un workflow terminé et le rendre utilisable par le monde extérieur.
 
-## What deploying actually means
+## Ce que déployer signifie vraiment
 
-Deploying publishes a snapshot of a workflow. The version people are editing and the version that's actually live are two separate things — changes to the editable copy don't reach anyone until you deploy again. Every deploy is a saved version you can compare against or roll back to. The same workflow can be published in more than one form at once.
+Déployer publie un instantané d’un workflow. La version que l’on modifie et la version réellement en ligne sont deux choses distinctes : les changements apportés à la copie modifiable n’atteignent personne tant que vous ne déployez pas de nouveau. Chaque déploiement est une version enregistrée, avec laquelle vous pouvez comparer ou à laquelle vous pouvez revenir. Un même workflow peut être publié sous plus d’une forme à la fois.
 
-## The three ways to publish
+## Les trois façons de publier
 
-- **As an API** — when the workflow is a behind-the-scenes pipeline that other software calls: data goes in, a result comes back. Best for transforms, lookups, and functions invoked by code.
-- **As a chat interface** — when a person should talk to the workflow through a shareable link. Best when there's a conversational agent at the center. Note that publishing a chat also publishes an API alongside it, so you end up with both.
-- **As a tool other AI agents can call** — when the workflow should show up as an action inside an AI assistant or coding environment. This needs a place for the tool to live, which can be an existing one or a new one created for it.
+- **Comme une API** : lorsque le workflow est un pipeline en arrière-plan que d’autres logiciels appellent : des données entrent, un résultat ressort. Idéal pour les transformations, les recherches et les fonctions appelées par du code.
+- **Comme une interface de clavardage** : lorsqu’une personne doit converser avec le workflow au moyen d’un lien partageable. Idéal quand un agent conversationnel est au centre du workflow. À noter : publier un clavardage publie aussi une API en parallèle, de sorte que vous obtenez les deux.
+- **Comme un outil que d’autres agents d’IA peuvent appeler** : lorsque le workflow doit apparaître comme une action dans un assistant d’IA ou un environnement de programmation. Cela demande un endroit où l’outil peut loger, soit un endroit existant, soit un nouveau créé pour lui.
 
-If the user doesn't specify: a workflow where a person sends input and an agent replies is a chat; a pure input-to-output transform with no conversation is an API; a single-purpose action meant for another AI to trigger is a tool.
+Si l’utilisateur ne précise rien : un workflow où une personne envoie une entrée et où un agent répond est un clavardage; une pure transformation d’une entrée en une sortie, sans conversation, est une API; une action à usage unique destinée à être déclenchée par une autre IA est un outil.
 
-## Before you deploy
+## Avant de déployer
 
-- Make sure the workflow is complete and wired — it has a clear starting point and a clear ending point.
-- Make sure every service it touches is connected. If a credential is missing, sort that out first rather than shipping something that breaks at runtime.
-- Make sure it actually runs. Don't tell the user it works if it's never been tested.
-- If it's already live, understand exactly what's changed since last time so you're deploying on purpose, not by accident.
+- Assurez-vous que le workflow est complet et bien relié : il a un point de départ clair et un point d’arrivée clair.
+- Assurez-vous que chaque service qu’il utilise est connecté. S’il manque un identifiant d’accès, réglez-le d’abord plutôt que de livrer quelque chose qui plantera à l’exécution.
+- Assurez-vous qu’il s’exécute réellement. Ne dites pas à l’utilisateur que ça fonctionne si ça n’a jamais été testé.
+- S’il est déjà en ligne, comprenez exactement ce qui a changé depuis la dernière fois, afin de déployer volontairement et non par accident.
 
-## Doing it well per type
+## Bien faire selon le type
 
-- **API:** publish it, then hand back the real endpoint and a working example of how to call it. Don't invent the URL.
-- **Chat:** figure out which block's output should actually be shown to the user, and use the genuine output — not the friendly display label, which often isn't the real field. If the workflow can end at more than one place depending on conditions, make sure every possible ending is included so the user always sees a reply.
-- **Tool for AI agents:** give it a clear name and description, describe each input plainly, and hand back setup instructions for the user's AI client.
+- **API :** publiez-la, puis fournissez le véritable point d’accès et un exemple fonctionnel d’appel. N’inventez pas l’URL.
+- **Clavardage :** déterminez quelle sortie de bloc doit réellement être affichée à l’utilisateur, et utilisez la vraie sortie, et non l’étiquette d’affichage conviviale, qui n’est souvent pas le vrai champ. Si le workflow peut se terminer à plus d’un endroit selon des conditions, assurez-vous que chaque fin possible est incluse afin que l’utilisateur voie toujours une réponse.
+- **Outil pour agents d’IA :** donnez-lui un nom et une description clairs, décrivez chaque entrée simplement et fournissez les instructions de configuration pour le client d’IA de l’utilisateur.
 
-## Options worth setting
+## Options à envisager
 
-For chat especially: a clean link slug (keep it lowercase with hyphens), a title, a description, a welcome message, and the access level — open to anyone, password-protected, or limited to specific email addresses. If you choose password or email access, you must actually supply the password or the allowed list, or access won't behave as intended.
+Surtout pour le clavardage : un identifiant d’URL (slug) propre (en minuscules, avec des traits d’union), un titre, une description, un message d’accueil et le niveau d’accès : ouvert à tous, protégé par mot de passe ou limité à des adresses courriel précises. Si vous choisissez l’accès par mot de passe ou par courriel, vous devez effectivement fournir le mot de passe ou la liste des adresses autorisées, sinon l’accès ne se comportera pas comme prévu.
 
-## Keys and access
+## Clés et accès
 
-Calling a published API or AI tool needs an access key. First check whether one already exists — if it does, don't create another; just point the user to it. Only generate a new key when none exists. When you do create one, the full key is shown only once — tell the user to save it, because it can't be recovered later.
+Appeler une API publiée ou un outil d’IA exige une clé d’accès. Vérifiez d’abord si une clé existe déjà : si c’est le cas, n’en créez pas une autre, indiquez simplement où la trouver à l’utilisateur. Ne générez une nouvelle clé que s’il n’en existe aucune. Lorsque vous en créez une, la clé complète n’est affichée qu’une seule fois : dites à l’utilisateur de la conserver, car elle ne pourra pas être récupérée plus tard.
 
-## Ways an API can be called
+## Façons d’appeler une API
 
-It can be called and waited on for the full result, called as a live stream that sends pieces as they're produced, or called as a background job that you check on later. Mention whichever fits how the user plans to use it.
+On peut l’appeler et attendre le résultat complet, l’appeler en flux continu qui envoie des morceaux au fur et à mesure qu’ils sont produits, ou l’appeler comme tâche en arrière-plan dont on vérifie l’état plus tard. Mentionnez celle qui convient à l’usage prévu par l’utilisateur.
 
-## After it's live
+## Une fois en ligne
 
-Confirm the real status rather than assuming it's live just because a link exists. If the live copy has fallen behind the edited copy, that's worth flagging — it means recent changes aren't being served yet. You can refresh the live version to match the latest edits, change its configuration, roll production back to an earlier version, or pull an old version back into the editor to work from.
+Confirmez l’état réel plutôt que de présumer que c’est en ligne du seul fait qu’un lien existe. Si la copie en ligne est en retard sur la copie modifiée, il vaut la peine de le signaler : cela signifie que les changements récents ne sont pas encore servis. Vous pouvez actualiser la version en ligne pour qu’elle corresponde aux dernières modifications, changer sa configuration, ramener la production à une version antérieure, ou rapatrier une ancienne version dans l’éditeur pour travailler à partir d’elle.
 
-## Easy mistakes to avoid
+## Erreurs faciles à éviter
 
-- Showing the wrong thing in a chat because you used a display label instead of the real output — always confirm what actually comes out.
-- A link slug with capitals or spaces.
-- Forgetting to mention that a chat also exposes an API.
-- Claiming "deployed" when the live copy is stale.
-- Choosing protected access but not supplying the password or allowed emails.
-- Deploying with a service still unconnected, so it fails the moment it runs.
-- Generating a new access key when one already exists instead of just pointing to it.
-- Losing the access key (gone for good), or fabricating a URL.
+- Afficher la mauvaise chose dans un clavardage parce qu’on a utilisé une étiquette d’affichage au lieu de la vraie sortie : confirmez toujours ce qui sort réellement.
+- Un slug de lien contenant des majuscules ou des espaces.
+- Oublier de mentionner qu’un clavardage expose aussi une API.
+- Prétendre « déployé » alors que la copie en ligne est périmée.
+- Choisir un accès protégé sans fournir le mot de passe ou les courriels autorisés.
+- Déployer alors qu’un service n’est toujours pas connecté, de sorte que ça échoue dès l’exécution.
+- Générer une nouvelle clé d’accès alors qu’il en existe déjà une, au lieu de simplement l’indiquer.
+- Perdre la clé d’accès (perdue pour de bon), ou fabriquer une URL.
 `
 
-const CONNECT_INTEGRATION_CONTENT = `# Connect an Integration
+const CONNECT_INTEGRATION_CONTENT = `# Connecter une intégration
 
-How to connect a service and choose the right account credential.
+Comment connecter un service et choisir le bon identifiant de compte.
 
-## First, figure out how the service authenticates
+## D’abord, déterminer comment le service s’authentifie
 
-Some services connect by signing in through the provider (the "log in with…" flow). Others connect with an API key you paste in. A few support both. Always check which kind a service is before doing anything — don't assume. If it supports both, mention both routes. If it's not a recognized integration at all, say so honestly instead of pretending.
+Certains services se connectent en ouvrant une session auprès du fournisseur (le parcours « se connecter avec… »). D’autres se connectent avec une clé d’API que l’on colle. Quelques-uns prennent en charge les deux. Vérifiez toujours de quel type est un service avant de faire quoi que ce soit : ne présumez rien. S’il prend en charge les deux, mentionnez les deux voies. S’il ne s’agit pas du tout d’une intégration reconnue, dites-le honnêtement plutôt que de faire semblant.
 
-## For sign-in style services
+## Pour les services avec ouverture de session
 
-First check whether the user already has that account connected. If they do and they didn't ask for a different account, just use the existing connection — don't make them reconnect. If nothing's connected, generate a connect link and surface it so they can authorize in one click.
+Vérifiez d’abord si l’utilisateur a déjà connecté ce compte. Si c’est le cas et qu’il n’a pas demandé un autre compte, utilisez simplement la connexion existante : ne lui faites pas reconnecter. Si rien n’est connecté, générez un lien de connexion et présentez-le pour qu’il puisse autoriser en un clic.
 
-The most important thing here is matching the service to the correct provider identity. Services are often more specific than they look — a single broad provider name can secretly point to several different sub-services, so always connect to the precise one for the service in question rather than the generic parent. Getting this wrong hands the user a link that authorizes the wrong thing.
+Le plus important ici est de faire correspondre le service à la bonne identité de fournisseur. Les services sont souvent plus précis qu’il n’y paraît : un seul nom de fournisseur général peut cacher plusieurs sous-services différents, alors connectez-vous toujours au sous-service exact visé plutôt qu’au parent générique. Se tromper donne à l’utilisateur un lien qui autorise la mauvaise chose.
 
-## For API-key style services
+## Pour les services avec clé d’API
 
-Tell the user plainly what key is needed and where to get it. Check whether they've already saved one. Store it as a workspace setting (use a personal one only if they ask), and from then on the workflow refers to it by name rather than embedding the secret. Don't try to push an API-key service through the sign-in flow — it won't work.
+Dites clairement à l’utilisateur quelle clé est requise et où l’obtenir. Vérifiez s’il en a déjà enregistré une. Stockez-la comme paramètre de l’espace de travail (n’utilisez un paramètre personnel que s’il le demande); dès lors, le workflow y fait référence par son nom plutôt que d’intégrer le secret. N’essayez pas de faire passer un service à clé d’API par le parcours d’ouverture de session : ça ne fonctionnera pas.
 
-## When there's more than one account
+## Quand il y a plus d’un compte
 
-If the user has connected several accounts for the same provider, don't guess which one to use. Show them the choices in human terms — which account, when it was connected — and let them pick. Only auto-select when there's exactly one.
+Si l’utilisateur a connecté plusieurs comptes pour le même fournisseur, ne devinez pas lequel utiliser. Présentez-lui les choix en termes clairs (quel compte, quand il a été connecté) et laissez-le choisir. Ne sélectionnez automatiquement que lorsqu’il n’y en a qu’un seul.
 
-## A separate kind of key
+## Un autre type de clé
 
-There's also a key used to call the user's own published workflows from outside. That's a different thing from connecting a third-party service — don't confuse the two.
+Il existe aussi une clé servant à appeler de l’extérieur les propres workflows publiés de l’utilisateur. C’est une tout autre chose que la connexion d’un service tiers : ne confondez pas les deux.
 
-## Easy mistakes to avoid
+## Erreurs faciles à éviter
 
-- Connecting to a generic provider name when the service needs a specific sub-service — quietly authorizes the wrong thing.
-- Treating the service's own name as its provider identity; they're often different.
-- Routing an API-key service through the sign-in flow, or vice versa.
-- Assuming "connected" when the existing connection doesn't actually cover what this task needs.
-- Auto-picking an account when several exist.
-- Ever showing a raw key, token, or link in plain text — these should always be presented as protected, copyable credentials.
+- Se connecter à un nom de fournisseur générique alors que le service exige un sous-service précis : cela autorise discrètement la mauvaise chose.
+- Traiter le nom du service lui-même comme son identité de fournisseur; les deux diffèrent souvent.
+- Faire passer un service à clé d’API par le parcours d’ouverture de session, ou l’inverse.
+- Présumer que c’est « connecté » alors que la connexion existante ne couvre pas réellement ce dont cette tâche a besoin.
+- Choisir automatiquement un compte quand il y en a plusieurs.
+- Afficher en clair une clé brute, un jeton ou un lien : ils doivent toujours être présentés comme des identifiants protégés et copiables.
 `
 
-const RESEARCH_CONTENT = `# Research
+const RESEARCH_CONTENT = `# Recherche
 
-How to research well and come back with something genuinely useful.
+Comment bien faire de la recherche et en rapporter quelque chose de réellement utile.
 
-## Pick the right kind of source
+## Choisir le bon type de source
 
-- For a known library or framework, go straight to its official documentation — don't web-search what the docs answer authoritatively.
-- For a question about this platform's own features, use the platform documentation.
-- For a general topic, comparison, or anything where recency matters, search the open web; you can bias toward news, research, code, or company sources depending on the question.
-- When you already know the exact pages you need, just read them — and read several at once rather than one at a time.
-- For a single content-heavy page, read that page directly; only crawl across many pages of a site when you genuinely need that breadth, since it's slow and expensive.
+- Pour une bibliothèque ou un cadriciel connu, allez directement à sa documentation officielle : ne cherchez pas sur le Web ce que la documentation tranche de façon faisant autorité.
+- Pour une question sur les fonctionnalités de cette plateforme, utilisez la documentation de la plateforme.
+- Pour un sujet général, une comparaison ou tout ce pour quoi l’actualité compte, cherchez sur le Web ouvert; vous pouvez privilégier les actualités, la recherche, le code ou les sources d’entreprise selon la question.
+- Quand vous connaissez déjà les pages exactes dont vous avez besoin, lisez-les simplement, et lisez-en plusieurs à la fois plutôt qu’une à la fois.
+- Pour une seule page riche en contenu, lisez cette page directement; n’explorez de nombreuses pages d’un site que si vous avez vraiment besoin de cette étendue, car c’est lent et coûteux.
 
-## How to actually do it
+## Comment s’y prendre concrètement
 
-Search broadly to find a handful of authoritative sources, then read them in depth — search snippets are leads, not answers. Favor primary and official sources over SEO blogs. Run independent lookups together instead of in sequence. When the research relates to something the user is building, ground it in their own materials so the findings actually connect to their situation.
+Cherchez largement pour trouver une poignée de sources faisant autorité, puis lisez-les en profondeur : les extraits des résultats de recherche sont des pistes, pas des réponses. Privilégiez les sources primaires et officielles aux blogues optimisés pour le référencement. Lancez les recherches indépendantes ensemble plutôt qu’à la suite. Quand la recherche se rapporte à quelque chose que l’utilisateur construit, appuyez-vous sur ses propres documents pour que les constats se rattachent vraiment à sa situation.
 
-## How to report back
+## Comment rendre compte
 
-Lead with the single most important takeaway, then the supporting findings — each tied to where it came from. If you can't point to a source for a claim, don't make the claim. Cross-check anything important against more than one source. Finish with what it means for the user and what to do with it, not just a pile of facts.
+Commencez par la conclusion la plus importante, puis présentez les constats à l’appui, chacun rattaché à sa provenance. Si vous ne pouvez pas indiquer de source pour une affirmation, ne la faites pas. Recoupez tout ce qui est important avec plus d’une source. Terminez par ce que cela signifie pour l’utilisateur et ce qu’il doit en faire, pas seulement un amas de faits.
 
-## When sources disagree or go stale
+## Quand les sources divergent ou sont périmées
 
-Pay attention to dates. For fast-moving things — pricing, APIs, model versions — trust the most recent reliable source and check it live rather than relying on memory. When there's a real conflict, show both sides and flag it instead of silently picking one. If the user is on a specific version of something, pin your research to that version. Be honest about uncertainty.
+Portez attention aux dates. Pour ce qui évolue vite (tarification, API, versions de modèles), fiez-vous à la source fiable la plus récente et vérifiez-la en direct plutôt que de vous fier à votre mémoire. En cas de véritable conflit, présentez les deux versions et signalez-le au lieu de trancher en silence. Si l’utilisateur utilise une version précise de quelque chose, limitez votre recherche à cette version. Soyez honnête quant à l’incertitude.
 
-## Easy mistakes to avoid
+## Erreurs faciles à éviter
 
-- Defaulting to a web search for everything — libraries and platform features have better canonical sources.
-- Crawling a whole site when reading a few pages would do.
-- Quoting or citing a page you didn't actually read, or inventing a link.
-- Burying the answer under raw information instead of synthesizing it.
-- Wandering off into tangents before answering what was actually asked.
+- Recourir par défaut à une recherche Web pour tout : les bibliothèques et les fonctionnalités de la plateforme ont de meilleures sources de référence.
+- Explorer un site entier alors que la lecture de quelques pages suffirait.
+- Citer ou référencer une page que vous n’avez pas réellement lue, ou inventer un lien.
+- Enfouir la réponse sous de l’information brute au lieu de la synthétiser.
+- Partir dans des digressions avant d’avoir répondu à ce qui était réellement demandé.
 `
 
-const CREATE_TABLE_CONTENT = `# Create a Table
+const CREATE_TABLE_CONTENT = `# Créer une table
 
-How to set up structured data so it's actually useful later, not just a dump.
+Comment structurer des données pour qu’elles soient vraiment utiles par la suite, et non un simple fourre-tout.
 
-## Design the columns first
+## Concevoir d’abord les colonnes
 
-Decide the shape before loading anything. Give each column the narrowest correct type — text, number, true/false, date, or a nested bag for genuinely complex values. Keep numbers as numbers and dates as dates so you can actually sort and compare them later; storing them as plain text quietly breaks filtering. Mark the natural identifier (like an email or an external ID) as unique so duplicates can't sneak in. Don't hide fields you'll want to search inside a nested blob — promote them to real columns.
+Décidez de la forme avant de charger quoi que ce soit. Donnez à chaque colonne le type le plus étroit qui soit exact : texte, nombre, vrai/faux, date, ou un conteneur imbriqué pour les valeurs vraiment complexes. Gardez les nombres comme nombres et les dates comme dates afin de pouvoir réellement les trier et les comparer plus tard; les stocker en texte brut fausse discrètement le filtrage. Marquez l’identifiant naturel (comme un courriel ou un identifiant externe) comme unique pour que les doublons ne puissent pas s’y glisser. Ne cachez pas dans un bloc imbriqué des champs dans lesquels vous voudrez chercher : faites-en de vraies colonnes.
 
-## Getting data in
+## Charger les données
 
-Pick the lightest path:
+Choisissez la voie la plus légère :
 
-- Start empty with a defined structure and fill it in afterward.
-- Build the table directly from an existing data file and let it infer the structure — then sanity-check that dates and yes/no fields came through as the right type.
-- Load a data file into a table that already exists, either adding to what's there or replacing it wholesale.
-- When the incoming data doesn't line up neatly — needs joining, splitting, or computed columns — reshape it first, then load the clean result.
+- Partir d’une table vide à la structure définie, puis la remplir ensuite.
+- Construire la table directement à partir d’un fichier de données existant et laisser le système en déduire la structure, puis vérifier que les dates et les champs oui/non sont bien arrivés avec le bon type.
+- Charger un fichier de données dans une table qui existe déjà, soit en ajoutant à ce qui s’y trouve, soit en le remplaçant en bloc.
+- Quand les données entrantes ne s’alignent pas proprement (jointure, découpage ou colonnes calculées nécessaires), les remodeler d’abord, puis charger le résultat propre.
 
-If there's no real data to load right now, seed the table with a few dummy rows that match the column types, so the structure is visible and obviously correct rather than sitting empty. Make clear they're placeholders the user can clear out.
+S’il n’y a pas de véritables données à charger pour l’instant, remplissez la table de quelques lignes factices qui correspondent aux types des colonnes, afin que la structure soit visible et manifestement correcte plutôt que de rester vide. Précisez qu’il s’agit de données fictives que l’utilisateur peut supprimer.
 
-## Querying and bulk edits
+## Interrogation et modifications en bloc
 
-You can filter, sort, and page through rows with the usual comparisons (equals, greater/less than, "is one of," contains, and/or combinations), and send results straight out to a file when someone needs an export. For mass changes you can update or delete everything matching a condition, or apply different values across many specific rows at once. When exporting, let the format follow the file name rather than hand-building it.
+Vous pouvez filtrer, trier et parcourir les lignes page par page avec les comparaisons habituelles (égal à, plus grand ou plus petit que, « fait partie de », contient, et combinaisons et/ou), et envoyer les résultats directement dans un fichier quand quelqu’un a besoin d’une exportation. Pour les changements en masse, vous pouvez modifier ou supprimer tout ce qui répond à une condition, ou appliquer des valeurs différentes à de nombreuses lignes précises à la fois. Lors d’une exportation, laissez le format découler du nom du fichier plutôt que de le construire à la main.
 
-## Automating per row
+## Automatiser ligne par ligne
 
-You can attach an existing workflow to a table so it runs once for every row, with chosen results landing in their own columns. Some columns act as prerequisites — a row only runs once those are filled. A few things to get right:
+Vous pouvez rattacher un workflow existant à une table pour qu’il s’exécute une fois pour chaque ligne, les résultats choisis atterrissant dans leurs propres colonnes. Certaines colonnes servent de préalables : une ligne ne s’exécute que lorsque celles-ci sont remplies. Quelques points à bien régler :
 
-- Always confirm which real outputs a workflow produces before wiring them into columns, rather than guessing.
-- Newly attached automation stays paused by default — nothing runs until you start it, which is intentional so you're not burning runs while still setting things up. Kick it off deliberately, or only auto-run immediately if the user explicitly asked for that.
-- You can run a single cell, a whole row, or an entire column on demand.
-- When one step should wait on another, make it depend on the column the earlier step fills, not on the step itself.
+- Confirmez toujours quelles sorties réelles un workflow produit avant de les relier à des colonnes, plutôt que de deviner.
+- Une automatisation nouvellement rattachée reste en pause par défaut : rien ne s’exécute avant que vous la démarriez, ce qui est voulu afin de ne pas consommer d’exécutions pendant que vous configurez encore. Lancez-la délibérément, ou ne la démarrez automatiquement tout de suite que si l’utilisateur l’a explicitement demandé.
+- Vous pouvez exécuter à la demande une seule cellule, une ligne entière ou une colonne entière.
+- Quand une étape doit attendre une autre, faites-la dépendre de la colonne que l’étape précédente remplit, et non de l’étape elle-même.
 
-## Easy mistakes to avoid
+## Erreurs faciles à éviter
 
-- Loading data before the structure exists when you're filling it programmatically.
-- Leaving a table completely empty when there's no data yet — seed a few placeholder rows instead.
-- Letting duplicates break a whole import — surface the conflict instead of blindly retrying; switching to a full replace fixes clashes with existing rows but not duplicates within the new data itself.
-- Treating ordinary pre-import warnings (a missing or unmapped required column) as failures — they're usually a quick fix.
-- Overflowing the table's row limit when adding to existing data.
-- Wondering why "nothing ran" — attached automation is paused on purpose until you start it.
-- Wiring columns to outputs you assumed existed instead of confirming them.
-- Acting on rows by name instead of nailing down the exact table and rows first.
+- Charger des données avant que la structure existe quand vous remplissez la table par programmation.
+- Laisser une table complètement vide quand il n’y a pas encore de données : remplissez-la plutôt de quelques lignes fictives.
+- Laisser des doublons faire échouer toute une importation : signalez le conflit au lieu de réessayer à l’aveugle; passer à un remplacement complet règle les conflits avec les lignes existantes, mais pas les doublons à l’intérieur des nouvelles données elles-mêmes.
+- Traiter les avertissements ordinaires d’avant-importation (une colonne obligatoire manquante ou non associée) comme des échecs : ils se règlent généralement vite.
+- Dépasser la limite de lignes de la table en ajoutant à des données existantes.
+- Se demander pourquoi « rien ne s’est exécuté » : l’automatisation rattachée est en pause volontairement jusqu’à ce que vous la démarriez.
+- Relier des colonnes à des sorties que l’on a supposées exister au lieu de les confirmer.
+- Agir sur des lignes par leur nom plutôt que de déterminer d’abord précisément la table et les lignes visées.
 `
 
 export const BUILTIN_SKILLS: readonly BuiltinSkill[] = [
