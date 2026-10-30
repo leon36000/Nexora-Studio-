@@ -294,7 +294,7 @@ export function Playground({ workspaceId }: PlaygroundProps) {
             <div className='w-[200px]'>
               <FormField label={t('reasoningEffort')}>
                 <ChipSelect
-                  aria-label={t('reasoningEffort')}
+                  aria-label={`${t('reasoningEffort')}: ${t(`efforts.${effort}`)}`}
                   fullWidth
                   value={effort}
                   onChange={(value) => {

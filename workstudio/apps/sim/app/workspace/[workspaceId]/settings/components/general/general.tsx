@@ -476,7 +476,7 @@ export function General() {
               <Label>{t('preferences.theme')}</Label>
               <div className={DROPDOWN_TRIGGER_CLASS}>
                 <ChipSelect
-                  aria-label={t('preferences.theme')}
+                  aria-label={`${t('preferences.theme')}: ${t(`preferences.themes.${settings?.theme ?? 'system'}`)}`}
                   align='start'
                   fullWidth
                   dropdownWidth='trigger'
@@ -602,7 +602,7 @@ export function General() {
               <Label>{t('preferences.snapToGrid')}</Label>
               <div className={DROPDOWN_TRIGGER_CLASS}>
                 <ChipSelect
-                  aria-label={t('preferences.snapToGrid')}
+                  aria-label={`${t('preferences.snapToGrid')}: ${snapToGridValue === 0 ? t('preferences.snapOff') : `${snapToGridValue}px`}`}
                   align='start'
                   fullWidth
                   dropdownWidth='trigger'
