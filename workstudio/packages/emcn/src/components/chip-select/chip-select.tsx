@@ -269,7 +269,11 @@ export function ChipSelect({
         <button
           type='button'
           disabled={disabled}
-          aria-label={ariaLabel}
+          aria-label={
+            ariaLabel && (typeof visibleLabel === 'string' || typeof visibleLabel === 'number')
+              ? `${ariaLabel}: ${visibleLabel}`
+              : ariaLabel
+          }
           aria-required={ariaRequired}
           aria-invalid={ariaInvalid}
           aria-describedby={ariaDescribedBy}

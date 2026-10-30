@@ -3,7 +3,7 @@
   "conversations": {
     "label": "Conversations",
     "new": "Nouvelle conversation",
-    "empty": "Aucune conversation pour l'instant.",
+    "empty": "Aucune conversation pour l’instant.",
     "loadFailed": "Impossible de charger vos conversations.",
     "actions": "Actions de « {title} »",
     "rename": "Renommer",
@@ -12,10 +12,10 @@
     "titleField": "Titre",
     "save": "Enregistrer",
     "cancel": "Annuler",
-    "renameFailed": "La conversation n'a pas pu être renommée.",
+    "renameFailed": "La conversation n’a pas pu être renommée.",
     "deleteTitle": "Supprimer la conversation",
     "deleteText": "« {title} » et tous ses messages seront supprimés définitivement.",
-    "deleteFailed": "La conversation n'a pas pu être supprimée."
+    "deleteFailed": "La conversation n’a pas pu être supprimée."
   },
   "agents": {
     "label": "Agent",
@@ -26,8 +26,8 @@
   "thread": {
     "emptyTitle": "Comment puis-je vous aider ?",
     "loadFailed": "Impossible de charger la conversation.",
-    "notFound": "Cette conversation n'existe pas ou a été supprimée.",
-    "unpublished": "Cet agent n'est plus publié : la conversation reste lisible, mais vous ne pouvez plus lui écrire.",
+    "notFound": "Cette conversation n’existe pas ou a été supprimée.",
+    "unpublished": "Cet agent n’est plus publié : la conversation reste lisible, mais vous ne pouvez plus lui écrire.",
     "interrupted": "Réponse interrompue",
     "stopped": "Réponse arrêtée",
     "copy": "Copier la réponse",
@@ -54,24 +54,24 @@
   "attachments": {
     "too-large": "« {name} » dépasse {max} Mo.",
     "empty": "« {name} » est vide.",
-    "unsupported": "« {name} » : ce type de fichier n'est pas pris en charge.",
+    "unsupported": "« {name} » : ce type de fichier n’est pas pris en charge.",
     "duplicate": "« {name} » est déjà joint.",
-    "too-many": "« {name} » n'a pas été joint : {max} fichiers au plus par message."
+    "too-many": "« {name} » n’a pas été joint : {max} fichiers au plus par message."
   },
   "notices": {
-    "save-failed": "Le message n'a pas pu être enregistré. Réessayez.",
-    "agent-unpublished": "Cet agent n'est plus publié : choisissez-en un autre dans une nouvelle conversation.",
-    "upload-failed": "« {name} » n'a pas pu être lu. Réessayez.",
+    "save-failed": "Le message n’a pas pu être enregistré. Réessayez.",
+    "agent-unpublished": "Cet agent n’est plus publié : choisissez-en un autre dans une nouvelle conversation.",
+    "upload-failed": "« {name} » n’a pas pu être lu. Réessayez.",
     "attachments-missing": "Les fichiers joints à cette question ne sont plus disponibles après le rechargement de la page : envoyez la question à nouveau avec ses fichiers."
   },
   "errors": {
-    "agent-unavailable": "Cet agent n'est plus disponible.",
-    "forbidden": "Vous n'avez pas accès à cet agent.",
+    "agent-unavailable": "Cet agent n’est plus disponible.",
+    "forbidden": "Vous n’avez pas accès à cet agent.",
     "rate-limited": "Trop de messages en peu de temps : réessayez dans une minute.",
     "invalid": "Le message a été refusé (fichier trop lourd ou contenu invalide).",
-    "failed": "L'agent n'a pas pu répondre.",
+    "failed": "L’agent n’a pas pu répondre.",
     "interrupted": "La réponse a été interrompue.",
-    "unknown": "L'agent n'a pas pu répondre. Réessayez."
+    "unknown": "L’agent n’a pas pu répondre. Réessayez."
   },
   "voice": {
     "dictationErrors": {
@@ -94,10 +94,10 @@
     }
   },
   "header": {
-    "openEditor": "Ouvrir dans l'éditeur"
+    "openEditor": "Ouvrir dans l’éditeur"
   },
   "tools": {
-    "label": "Outils de l'Assistant",
+    "label": "Outils de l’Assistant",
     "projects": "Projets",
     "tasks": "Tâches planifiées",
     "launch": "Lancer un workflow",
@@ -109,14 +109,14 @@
     "none": "Sans projet",
     "label": "Projet",
     "inProject": "Projet : {name}",
-    "empty": "Aucun projet pour l'instant.",
+    "empty": "Aucun projet pour l’instant.",
     "loadFailed": "Impossible de charger vos projets.",
     "close": "Fermer",
     "create": "Nouveau projet",
     "createConfirm": "Créer",
     "name": "Nom",
     "instructions": "Consignes",
-    "instructionsPlaceholder": "Ce que l'agent doit savoir ou respecter dans toutes les conversations de ce projet",
+    "instructionsPlaceholder": "Ce que l’agent doit savoir ou respecter dans toutes les conversations de ce projet",
     "files": "Fichiers",
     "limits": "10 fichiers au plus, 5 Mo et 100 000 caractères au plus chacun. Seul le texte des fichiers est conservé.",
     "addFile": "Ajouter un fichier",
@@ -128,12 +128,12 @@
     "delete": "Supprimer",
     "deleteTitle": "Supprimer le projet",
     "deleteText": "« {name} » et ses fichiers seront supprimés. Ses conversations restent, hors projet.",
-    "deleteFailed": "Le projet n'a pas pu être supprimé.",
-    "saveFailed": "La modification n'a pas pu être enregistrée.",
-    "fileFailed": "Le fichier n'a pas pu être ajouté.",
+    "deleteFailed": "Le projet n’a pas pu être supprimé.",
+    "saveFailed": "La modification n’a pas pu être enregistrée.",
+    "fileFailed": "Le fichier n’a pas pu être ajouté.",
     "fileCount": "{count, plural, =0 {Aucun fichier} one {# fichier} other {# fichiers}}",
     "refusals": {
-      "unsupported": "Ce format de fichier n'est pas pris en charge.",
+      "unsupported": "Ce format de fichier n’est pas pris en charge.",
       "unreadable": "Ce fichier est illisible ou abîmé.",
       "empty": "Ce fichier ne contient aucun texte.",
       "too-large": "Ce fichier est trop volumineux : 5 Mo et 100 000 caractères au plus.",
@@ -143,7 +143,7 @@
   "tasks": {
     "propose": "Planifier cette tâche ?",
     "schedule": "Planifier",
-    "sendToAgent": "Envoyer à l'agent",
+    "sendToAgent": "Envoyer à l’agent",
     "planTitle": "Planifier une tâche",
     "planning": "Préparation du plan…",
     "warnings": "À vérifier",
@@ -154,27 +154,27 @@
     "empty": "Aucune tâche planifiée. Écrivez par exemple « chaque lundi à 9 h, résume mes courriels ».",
     "loadFailed": "Impossible de charger vos tâches.",
     "deleteTitle": "Supprimer la tâche",
-    "deleteText": "« {title} » et son workflow seront supprimés. Elle ne s'exécutera plus.",
-    "deleteFailed": "La tâche n'a pas pu être supprimée.",
+    "deleteText": "« {title} » et son workflow seront supprimés. Elle ne s’exécutera plus.",
+    "deleteFailed": "La tâche n’a pas pu être supprimée.",
     "delete": "Supprimer",
     "noSchedule": "Planification introuvable",
     "next": "Prochaine exécution : {date}",
     "off": "Désactivée",
     "toggle": "Activer « {title} »",
-    "toggleFailed": "Le changement n'a pas pu être enregistré.",
+    "toggleFailed": "Le changement n’a pas pu être enregistré.",
     "hideRuns": "Masquer les exécutions",
     "showRuns": "Dernières exécutions",
-    "openEditor": "Ouvrir dans l'éditeur",
+    "openEditor": "Ouvrir dans l’éditeur",
     "runsFailed": "Impossible de charger les exécutions.",
-    "noRuns": "Pas encore d'exécution.",
+    "noRuns": "Pas encore d’exécution.",
     "createdMessage": "Tâche planifiée : {title}",
     "errors": {
-      "no-schedule": "Précisez quand la tâche doit s'exécuter, par exemple « chaque lundi à 9 h ».",
-      "deploy-failed": "La tâche n'a pas pu être démarrée. Réessayez.",
-      "plan-invalid": "Le modèle n'a pas produit de plan valide. Reformulez plus simplement.",
+      "no-schedule": "Précisez quand la tâche doit s’exécuter, par exemple « chaque lundi à 9 h ».",
+      "deploy-failed": "La tâche n’a pas pu être démarrée. Réessayez.",
+      "plan-invalid": "Le modèle n’a pas produit de plan valide. Reformulez plus simplement.",
       "rejected": "Le modèle a refusé la demande. Reformulez-la.",
       "unavailable": "Le modèle Nexora est indisponible pour le moment.",
-      "unknown": "La tâche n'a pas pu être préparée. Réessayez."
+      "unknown": "La tâche n’a pas pu être préparée. Réessayez."
     },
     "runStatus": {
       "completed": "Réussie",
@@ -194,16 +194,16 @@
     "back": "Retour",
     "run": "Lancer",
     "runningShort": "Exécution…",
-    "running": "Le workflow s'exécute, cela peut prendre un moment.",
-    "needsFiles": "Ce workflow demande des fichiers : lancez-le depuis l'éditeur.",
+    "running": "Le workflow s’exécute, cela peut prendre un moment.",
+    "needsFiles": "Ce workflow demande des fichiers : lancez-le depuis l’éditeur.",
     "noFields": "Ce workflow ne demande aucune information.",
     "fieldErrors": {
       "required": "Ce champ est obligatoire.",
       "number": "Saisissez un nombre.",
       "json": "Saisissez un JSON valide."
     },
-    "runFailed": "Le workflow n'a pas pu être lancé.",
-    "recordFailed": "Le résultat n'a pas pu être ajouté à la conversation.",
+    "runFailed": "Le workflow n’a pas pu être lancé.",
+    "recordFailed": "Le résultat n’a pas pu être ajouté à la conversation.",
     "yes": "Oui",
     "no": "Non",
     "launchQuestion": "Lancer le workflow « {name} »",
@@ -213,11 +213,11 @@
       "paused": "Workflow « {name} » : en attente de validation."
     },
     "manageTitle": "Workflows publiés",
-    "deployNote": "Publier un workflow le déploie s'il ne l'est pas encore.",
+    "deployNote": "Publier un workflow le déploie s’il ne l’est pas encore.",
     "manageEmpty": "Aucun workflow dans cet espace.",
     "notDeployed": "Non déployé",
     "publishLabel": "Publier « {name} »",
-    "saveFailed": "Le changement n'a pas pu être enregistré."
+    "saveFailed": "Le changement n’a pas pu être enregistré."
   },
   "card": {
     "workflow": {
@@ -231,7 +231,7 @@
       "comment": "Commentaire (facultatif)",
       "approve": "Approuver",
       "refuse": "Refuser",
-      "answerFailed": "La réponse n'a pas pu être envoyée. Réessayez.",
+      "answerFailed": "La réponse n’a pas pu être envoyée. Réessayez.",
       "readerWaits": "En attente de validation par un rédacteur."
     },
     "task": {

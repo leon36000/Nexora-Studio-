@@ -104,7 +104,6 @@ export function Connectors({ workspaceId }: ConnectorsProps) {
               href={`/workspace/${workspaceId}/connecteurs/${encodeURIComponent(service.service)}${
                 scope === 'personal' ? '?scope=personal' : ''
               }`}
-              clickLabel={t('catalog.open', { name: service.displayName })}
               navigable
             />
           ))}

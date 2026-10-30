@@ -29,7 +29,7 @@ import {
 
 const SKELETON_ROWS = [0, 1, 2] as const
 const TEST_REPLY_MAX_LENGTH = 160
-const BADGE_ROW = 'flex flex-wrap items-center justify-end gap-1'
+const BADGE_ROW = 'flex flex-wrap items-center justify-end gap-1 max-md:max-w-[8.5rem]'
 
 /**
  * Réglages › Modèles: the models Nexora API serves to every block, each for one usage (chat,

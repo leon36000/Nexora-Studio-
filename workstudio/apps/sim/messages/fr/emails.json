@@ -15,7 +15,7 @@
     "oneTimeAt100": "Notification unique, envoyée à 100 % de consommation.",
     "expiresIn7Days": "Cette invitation expire dans 7 jours. Si vous ne l’attendiez pas, vous pouvez ignorer cet courriel.",
     "founder": "{brandName}",
-    "founderName": "L'équipe"
+    "founderName": "L’équipe"
   },
   "footer": {
     "questions": "Des questions ?",
@@ -87,15 +87,15 @@
     "body": "Bienvenue sur {brandName} ! Votre compte est prêt. Créez, testez et déployez des workflows d’IA en quelques minutes.",
     "getStarted": "Commencer",
     "feedback": "Pour toute question ou remarque, répondez simplement à cet courriel : nous lisons chaque message.",
-    "call": "Besoin d'aide pour démarrer ? Consultez le <link>guide de Nexora</link>.",
-    "signature": "— L'équipe {brandName}",
+    "call": "Besoin d’aide pour démarrer ? Consultez le <link>guide de Nexora</link>.",
+    "signature": "— L’équipe {brandName}",
     "footnote": "Vous êtes sur le forfait Community, avec 1 000 crédits pour commencer."
   },
   "abandonedCheckout": {
     "preview": "Avez-vous rencontré un problème lors de votre changement de forfait ?",
     "attempt": "J’ai vu que vous avez essayé de changer de forfait {brandName} sans aller jusqu’au bout.",
     "help": "Avez-vous rencontré un problème, ou aviez-vous une question ? Nous sommes là pour vous aider.",
-    "signature": "— L'équipe"
+    "signature": "— L’équipe"
   },
   "proFeatures": {
     "title": "Pro comprend",

@@ -104,7 +104,6 @@ function IntegrationItem({
       title={name}
       description={unavailable ? t('unavailable') : description || undefined}
       href={`/workspace/${workspaceId}/integrations/${slug}`}
-      clickLabel={t('open', { name })}
       navigable={!unavailable}
       disabled={unavailable}
     />
@@ -136,7 +135,6 @@ interface ConnectedItemProps {
 }
 
 function ConnectedItem({ href, blockType, name, description, icon: Icon }: ConnectedItemProps) {
-  const t = useTranslations('integrations.list')
   return (
     <SettingsResourceRow
       iconVariant='custom'
@@ -144,7 +142,6 @@ function ConnectedItem({ href, blockType, name, description, icon: Icon }: Conne
       title={name}
       description={description}
       href={href}
-      clickLabel={t('open', { name })}
       navigable
     />
   )

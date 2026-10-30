@@ -2127,7 +2127,7 @@ it('resolves organization built-in templates without choosing or reading a works
     expect.objectContaining({
       type: 'skill',
       tag: '@research',
-      content: expect.stringContaining('Research'),
+      content: expect.stringContaining('Recherche'),
     }),
   ])
   expect(resolveInvocationWorkspace).not.toHaveBeenCalled()

@@ -323,7 +323,7 @@ export const OrganizationSidebar = memo(function OrganizationSidebar({
           onClick={isCollapsed ? toggleCollapsed : undefined}
           onKeyDown={handleEdgeKeyDown}
           role={isCollapsed ? 'button' : 'separator'}
-          tabIndex={isCollapsed ? 0 : -1}
+          tabIndex={isCollapsed ? 0 : undefined}
           aria-orientation={isCollapsed ? undefined : 'vertical'}
           aria-label={isCollapsed ? 'Expand sidebar' : 'Resize sidebar'}
         />

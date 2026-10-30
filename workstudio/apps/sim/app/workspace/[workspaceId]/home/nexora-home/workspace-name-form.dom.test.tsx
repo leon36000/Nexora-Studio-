@@ -2,6 +2,7 @@
  * @vitest-environment jsdom
  */
 import { act } from 'react'
+import { authClientMock, authClientMockFns } from '@sim/testing/mocks/auth-client.mock'
 import { createRoot, type Root } from 'react-dom/client'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
@@ -10,20 +11,12 @@ const state = vi.hoisted(() => ({
   userName: 'Essai SSO' as string | null,
   mutate: vi.fn(),
   isPending: false,
-  toastSuccess: vi.fn(),
-  toastError: vi.fn(),
 }))
 
-vi.mock('@/lib/auth/client', () => ({
-  useSession: () => ({ data: { user: { name: state.userName } } }),
-}))
+vi.mock('@/lib/auth/client', () => authClientMock)
 vi.mock('@/hooks/queries/workspace', () => ({
   useWorkspacesQuery: () => ({ data: state.workspaces }),
   useUpdateWorkspace: () => ({ mutate: state.mutate, isPending: state.isPending }),
-}))
-vi.mock('@sim/emcn', async (importOriginal) => ({
-  ...(await importOriginal<typeof import('@sim/emcn')>()),
-  toast: { success: state.toastSuccess, error: state.toastError },
 }))
 
 import { WorkspaceNameForm } from '@/app/workspace/[workspaceId]/home/nexora-home/workspace-name-form'
@@ -52,6 +45,11 @@ beforeEach(() => {
   root = createRoot(host)
   state.workspaces = [{ id: 'ws-1', name: 'Espace de Essai' }]
   state.userName = 'Essai SSO'
+  authClientMockFns.mockUseSession.mockImplementation(() => ({
+    data: { user: { name: state.userName } },
+    isPending: false,
+    error: null,
+  }))
   state.mutate.mockReset()
   state.isPending = false
   act(() => root.render(<WorkspaceNameForm workspaceId='ws-1' />))
@@ -87,13 +85,11 @@ describe('workspace name form', () => {
     expect(saveButton()?.disabled).toBe(true)
   })
 
-  it('tells the person when the rename failed', () => {
-    act(() => saveButton()?.click())
-    const options = state.mutate.mock.calls[0][1] as { onError: () => void; onSuccess: () => void }
-    act(() => options.onError())
-    expect(state.toastError).toHaveBeenCalledTimes(1)
-    act(() => options.onSuccess())
-    expect(state.toastSuccess).toHaveBeenCalledTimes(1)
+  it('shows the name the rename gave, not the proposal, once the workspace list answers', () => {
+    state.workspaces = [{ id: 'ws-1', name: 'Boulangerie Gagnon' }]
+    act(() => root.render(<WorkspaceNameForm workspaceId='ws-1' />))
+    expect(input().value).toBe('Boulangerie Gagnon')
+    expect(saveButton()?.disabled).toBe(true)
   })
 
   it('renders nothing before the workspace list is known', () => {

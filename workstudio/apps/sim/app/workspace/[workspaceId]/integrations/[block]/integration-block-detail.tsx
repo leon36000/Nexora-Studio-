@@ -292,7 +292,6 @@ export function IntegrationBlockDetail({ integration, workspaceId }: Integration
                     credential.description || resolveCredentialDisplay(credential).subtitle
                   }
                   href={`/workspace/${workspaceId}/integrations/connected/${credential.id}`}
-                  clickLabel={t('open', { name: credential.displayName })}
                   navigable
                 />
               ))}
@@ -373,7 +372,6 @@ interface TemplateRowProps {
  * than links, and its leading visual is an overlapping block cluster.
  */
 function TemplateRow({ blockTypes, title, prompt, onSelect }: TemplateRowProps) {
-  const t = useTranslations('integrations.detail')
   return (
     <SettingsResourceRow
       iconVariant='custom'
@@ -381,7 +379,6 @@ function TemplateRow({ blockTypes, title, prompt, onSelect }: TemplateRowProps) 
       title={title}
       description={prompt}
       onClick={() => onSelect(prompt)}
-      clickLabel={t('useTemplate', { title })}
       navigable
     />
   )

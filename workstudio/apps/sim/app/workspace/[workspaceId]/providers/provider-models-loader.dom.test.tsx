@@ -2,6 +2,7 @@
  * @vitest-environment jsdom
  */
 import { act } from 'react'
+import { nextNavigationMock, nextNavigationMockFns } from '@sim/testing/mocks/next-navigation.mock'
 import { createRoot, type Root } from 'react-dom/client'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
@@ -9,10 +10,7 @@ const state = vi.hoisted(() => ({
   requests: [] as { provider: string; enabled: boolean | undefined }[],
 }))
 
-vi.mock('next/navigation', () => ({
-  useParams: () => ({ workspaceId: 'ws-1' }),
-  usePathname: () => '/workspace/ws-1/home',
-}))
+vi.mock('next/navigation', () => nextNavigationMock)
 vi.mock('@/hooks/queries/providers', () => ({
   useProviderModels: (provider: string, _workspaceId?: string, options?: { enabled?: boolean }) => {
     state.requests.push({ provider, enabled: options?.enabled })
@@ -41,6 +39,8 @@ beforeEach(() => {
   document.body.appendChild(host)
   root = createRoot(host)
   state.requests = []
+  nextNavigationMockFns.mockUseParams.mockReturnValue({ workspaceId: 'ws-1' })
+  nextNavigationMockFns.mockUsePathname.mockReturnValue('/workspace/ws-1/home')
 })
 
 afterEach(() => {

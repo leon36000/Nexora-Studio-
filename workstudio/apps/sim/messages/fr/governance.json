@@ -3,7 +3,7 @@
     "searchPlaceholder": "Rechercher dans le journal",
     "export": "Exporter (CSV)",
     "loading": "Chargement du journal…",
-    "loadFailed": "Le journal d'audit n'a pas pu être chargé.",
+    "loadFailed": "Le journal d’audit n’a pas pu être chargé.",
     "empty": "Aucun événement pour le moment.",
     "system": "Système",
     "noDetail": "Aucun détail enregistré",
@@ -24,21 +24,21 @@
         "login_succeeded": "Connexion réussie",
         "login_failed": "Échec de connexion",
         "logout": "Déconnexion",
-        "impersonation_started": "Début d'usurpation d'identité (support)",
-        "impersonation_ended": "Fin d'usurpation d'identité (support)",
+        "impersonation_started": "Début d’usurpation d’identité (support)",
+        "impersonation_ended": "Fin d’usurpation d’identité (support)",
         "sessions_revoked": "Sessions révoquées"
       },
       "audit_logs": {
-        "exported": "Journal d'audit exporté"
+        "exported": "Journal d’audit exporté"
       },
       "api_key": {
-        "created": "Clé d'API créée",
-        "updated": "Clé d'API modifiée",
-        "revoked": "Clé d'API révoquée"
+        "created": "Clé d’API créée",
+        "updated": "Clé d’API modifiée",
+        "revoked": "Clé d’API révoquée"
       },
       "personal_api_key": {
-        "created": "Clé d'API personnelle créée",
-        "revoked": "Clé d'API personnelle révoquée"
+        "created": "Clé d’API personnelle créée",
+        "revoked": "Clé d’API personnelle révoquée"
       },
       "oauth_app": {
         "revoked": "Application OAuth révoquée"
@@ -107,8 +107,8 @@
         "excluded": "Document synchronisé exclu"
       },
       "desktop_tool_call": {
-        "claimed": "Appel d'outil (bureau) : pris en charge",
-        "completed": "Appel d'outil (bureau) terminé"
+        "claimed": "Appel d’outil (bureau) : pris en charge",
+        "completed": "Appel d’outil (bureau) terminé"
       },
       "document": {
         "uploaded": "Document déposé",
@@ -116,8 +116,8 @@
         "deleted": "Document supprimé"
       },
       "environment": {
-        "updated": "Variables d'environnement modifiées",
-        "deleted": "Variables d'environnement supprimées"
+        "updated": "Variables d’environnement modifiées",
+        "deleted": "Variables d’environnement supprimées"
       },
       "secret_provenance": {
         "unrecorded": "Origine de secret non enregistrée"
@@ -187,12 +187,12 @@
         "accessed": "Identifiant consulté"
       },
       "credential_member": {
-        "added": "Membre d'identifiant ajouté",
-        "removed": "Membre d'identifiant retiré",
-        "role_changed": "Membre d'identifiant : rôle modifié"
+        "added": "Membre d’identifiant ajouté",
+        "removed": "Membre d’identifiant retiré",
+        "role_changed": "Membre d’identifiant : rôle modifié"
       },
       "credential_group": {
-        "updated": "Groupe d'identifiants modifié"
+        "updated": "Groupe d’identifiants modifié"
       },
       "password": {
         "reset_requested": "Mot de passe réinitialisation demandée",
@@ -214,7 +214,7 @@
           "deleted": "Fournisseur SSO supprimé"
         },
         "sessions": {
-          "revoked": "Sessions de l'organisation révoquées"
+          "revoked": "Sessions de l’organisation révoquées"
         },
         "domain": {
           "added": "Domaine ajouté",
@@ -242,19 +242,19 @@
         }
       },
       "org_member": {
-        "added": "Membre de l'organisation ajouté",
-        "removed": "Membre de l'organisation retiré",
-        "role_changed": "Membre de l'organisation : rôle modifié",
-        "usage_limit_changed": "Membre de l'organisation : limite d'usage modifiée"
+        "added": "Membre de l’organisation ajouté",
+        "removed": "Membre de l’organisation retiré",
+        "role_changed": "Membre de l’organisation : rôle modifié",
+        "usage_limit_changed": "Membre de l’organisation : limite d’usage modifiée"
       },
       "org_invitation": {
-        "created": "Invitation à l'organisation créée",
-        "updated": "Invitation à l'organisation modifiée",
-        "accepted": "Invitation à l'organisation acceptée",
-        "rejected": "Invitation à l'organisation refusée",
-        "cancelled": "Invitation à l'organisation annulée",
-        "revoked": "Invitation à l'organisation révoquée",
-        "resent": "Invitation à l'organisation renvoyée"
+        "created": "Invitation à l’organisation créée",
+        "updated": "Invitation à l’organisation modifiée",
+        "accepted": "Invitation à l’organisation acceptée",
+        "rejected": "Invitation à l’organisation refusée",
+        "cancelled": "Invitation à l’organisation annulée",
+        "revoked": "Invitation à l’organisation révoquée",
+        "resent": "Invitation à l’organisation renvoyée"
       },
       "org_seat": {
         "provisioned": "Siège attribué",
@@ -273,12 +273,12 @@
         "removed": "Membre de groupe de permissions retiré"
       },
       "permission_access_request": {
-        "created": "Demande d'accès créée",
-        "fulfilled": "Demande d'accès accordée",
-        "declined": "Demande d'accès refusée",
-        "cancelled": "Demande d'accès annulée",
-        "closed": "Demande d'accès close",
-        "settings_changed": "Demande d'accès : réglages modifiés"
+        "created": "Demande d’accès créée",
+        "fulfilled": "Demande d’accès accordée",
+        "declined": "Demande d’accès refusée",
+        "cancelled": "Demande d’accès annulée",
+        "closed": "Demande d’accès close",
+        "settings_changed": "Demande d’accès : réglages modifiés"
       },
       "project": {
         "created": "Projet créé",
@@ -405,14 +405,14 @@
     },
     "resourceTypes": {
       "account": "Compte",
-      "api_key": "Clé d'API",
+      "api_key": "Clé d’API",
       "billing": "Facturation",
       "byok_key": "Clé de fournisseur",
       "changelog_release": "Note de version",
       "chat": "Chat",
       "connector": "Connecteur",
       "credential": "Identifiant",
-      "credential_group": "Groupe d'identifiants",
+      "credential_group": "Groupe d’identifiants",
       "custom_block": "Bloc personnalisé",
       "custom_tool": "Outil personnalisé",
       "dashboard": "Tableau de bord",
@@ -429,7 +429,7 @@
       "organization": "Organisation",
       "password": "Mot de passe",
       "permission_group": "Groupe de permissions",
-      "permission_access_request": "Demande d'accès",
+      "permission_access_request": "Demande d’accès",
       "project": "Projet",
       "sandbox": "Bac à sable",
       "schedule": "Planification",

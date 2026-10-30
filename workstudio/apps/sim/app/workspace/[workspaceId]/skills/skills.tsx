@@ -116,7 +116,6 @@ export function Skills() {
                       title={s.name}
                       description={s.description || undefined}
                       onClick={() => router.push(`${skillsHref}/${s.id}`)}
-                      clickLabel={t('open', { name: s.name })}
                       navigable
                     />
                   ))}
