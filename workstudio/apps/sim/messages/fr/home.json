@@ -83,7 +83,7 @@
       "close": "Fermer",
       "resume": "Reprendre le premier lancement",
       "markDone": "Marquer comme fait",
-      "markDoneStep": "Marquer « {step} » comme fait",
+      "markDoneStep": "Marquer comme fait : {step}",
       "stepDone": "fait",
       "saveFailed": "La progression n’a pas pu être enregistrée.",
       "steps": {
@@ -141,11 +141,28 @@
       "openWorkflow": "Ouvrir dans l’éditeur",
       "empty": "Le workflow n’a renvoyé aucun texte.",
       "noModel": "Aucun modèle n’est disponible pour votre compte pour le moment : réessayez dans un instant ou contactez votre administrateur.",
+      "workspace": {
+        "label": "Nom de votre espace",
+        "save": "Renommer",
+        "saved": "L’espace a été renommé.",
+        "failed": "L’espace n’a pas pu être renommé. Réessayez dans un instant."
+      },
       "errors": {
         "timeout": "Le modèle met trop de temps à répondre. Réessayez dans un instant.",
         "forbidden": "Vous n’avez pas les droits nécessaires pour exécuter ce gabarit.",
         "generic": "Le résultat n’a pas pu être généré. Réessayez dans un instant."
       }
+    }
+  },
+  "mothership": {
+    "usage": {
+      "title": "Limite d’utilisation atteinte",
+      "upgradePlan": "Changer de forfait",
+      "increaseLimit": "Augmenter la limite",
+      "opensInNewTab": "{label} (s’ouvre dans un nouvel onglet)",
+      "contactOrganizationAdmin": "Contactez un administrateur de l’organisation pour gérer les limites d’utilisation.",
+      "contactWorkspaceAdmin": "Contactez un administrateur de l’organisation pour gérer les limites d’utilisation de cet espace de travail.",
+      "onlyOwner": "Seul le propriétaire de l’espace de travail peut gérer ses limites d’utilisation."
     }
   }
 }

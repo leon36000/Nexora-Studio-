@@ -20,6 +20,7 @@ import {
   getOrganizationSettingsHref,
   getSettingsPermissionConfigKey,
   isSelfHostedOverrideEnabled,
+  NEXORA_DISABLED_SECTIONS,
   NEXORA_INSTANCE_SECTIONS,
   ORGANIZATION_PLANE_UNIFIED_SECTIONS,
 } from '@/components/settings/navigation'
@@ -150,9 +151,7 @@ export function SettingsSidebar({
       if (NEXORA_INSTANCE_SECTIONS.has(item.id)) {
         return Boolean(hostContext.hostOrganizationId && isOrgAdminOrOwner)
       }
-      if (item.id === 'requests') {
-        return Boolean(hostContext.hostOrganizationId)
-      }
+      if (NEXORA_DISABLED_SECTIONS.has(item.id)) return false
       if (item.id === 'organization') {
         return Boolean(
           hostContext.hostOrganizationId && hostContext.viewer.isHostOrganizationMember

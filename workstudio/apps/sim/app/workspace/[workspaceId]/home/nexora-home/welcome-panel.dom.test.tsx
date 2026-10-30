@@ -40,6 +40,10 @@ vi.mock('@/hooks/queries/nexora-home', () => ({
   }),
 }))
 
+vi.mock('@/app/workspace/[workspaceId]/home/nexora-home/workspace-name-form', () => ({
+  WorkspaceNameForm: () => <div data-testid='workspace-name-form' />,
+}))
+
 import { WelcomePanel } from '@/app/workspace/[workspaceId]/home/nexora-home/welcome-panel'
 
 let host: HTMLDivElement

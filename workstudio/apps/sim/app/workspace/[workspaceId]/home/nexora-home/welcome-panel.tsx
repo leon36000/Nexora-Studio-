@@ -19,6 +19,7 @@ import {
   runFailureReason,
 } from '@/app/workspace/[workspaceId]/home/nexora-home/onboarding-state'
 import { useTemplateWorkflows } from '@/app/workspace/[workspaceId]/home/nexora-home/use-template-workflows'
+import { WorkspaceNameForm } from '@/app/workspace/[workspaceId]/home/nexora-home/workspace-name-form'
 import { useRunWorkflowOnce } from '@/hooks/queries/nexora-home'
 
 /** Loaded on demand: the result is shown only after the run. */
@@ -92,7 +93,11 @@ export function WelcomePanel({ workspaceId, hasModel, onClose }: WelcomePanelPro
         <Chip onClick={onClose}>{text ? t('done') : t('later')}</Chip>
       </div>
 
-      <ol className='mt-3 flex flex-col gap-4'>
+      <div className='mt-3'>
+        <WorkspaceNameForm workspaceId={workspaceId} />
+      </div>
+
+      <ol className='mt-4 flex flex-col gap-4'>
         <li className='flex flex-col gap-2'>
           <span className='text-[var(--text-body)] text-sm'>{t('pick')}</span>
           <div role='group' aria-label={t('pick')} className='flex flex-wrap gap-2'>

@@ -646,6 +646,7 @@
     "expandSidebar": "Expand sidebar",
     "logoAlt": "Workspace logo",
     "switchWorkspace": "Switch workspace",
+    "switchWorkspaceNamed": "{name}: switch workspace",
     "backToOrganization": "Back to organization",
     "searchPlaceholder": "Search workspaces...",
     "noResults": "No results for \"{query}\"",
@@ -662,6 +663,7 @@
     "leaving": "Leaving..."
   },
   "featureUnavailable": {
-    "dashboards": "Dashboards are not enabled"
+    "dashboards": "Dashboards are not enabled",
+    "changelog": "The changelog is not enabled"
   }
 }

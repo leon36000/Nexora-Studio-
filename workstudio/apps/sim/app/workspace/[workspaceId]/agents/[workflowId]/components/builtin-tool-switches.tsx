@@ -3,6 +3,7 @@
 import { Label, Switch } from '@sim/emcn'
 import { useTranslations } from 'next-intl'
 import { useNexoraAgentTools } from '@/hooks/queries/nexora-code-execution'
+import { useNexoraHome } from '@/hooks/queries/nexora-home'
 
 interface BuiltinToolSwitchesProps {
   codeInterpreter: boolean
@@ -24,6 +25,11 @@ export function BuiltinToolSwitches({
 }: BuiltinToolSwitchesProps) {
   const t = useTranslations('agents.editor.builtinTools')
   const { data } = useNexoraAgentTools()
+  const { data: home } = useNexoraHome()
+  const unavailableKey = (field: 'codeInterpreter' | 'webSearch') =>
+    field === 'codeInterpreter' && !home?.isInstanceAdmin
+      ? 'codeInterpreter.unavailableMember'
+      : `${field}.unavailable`
   const items = [
     {
       field: 'codeInterpreter',
@@ -42,7 +48,7 @@ export function BuiltinToolSwitches({
             <p className='text-[var(--text-muted)] text-caption'>
               {item.available || item.checked
                 ? t(`${item.field}.hint`)
-                : t(`${item.field}.unavailable`)}
+                : t(unavailableKey(item.field))}
             </p>
           </div>
           <Switch

@@ -8,6 +8,7 @@ import { getSession } from '@/lib/auth'
 import { getActiveOrganizationId } from '@/lib/auth/session-response'
 import { isChangelogEnabled } from '@/lib/changelog/feature-flag'
 import { isComputerUseAvailable } from '@/lib/computer-use/availability.server'
+import { isNexoraOnlyModels } from '@/lib/core/config/env-flags'
 import { isDashboardsEnabled } from '@/lib/dashboards/feature-flag'
 import {
   hasDesktopBackgroundExecutor,
@@ -168,6 +169,7 @@ async function WorkspaceContent({
           'mothership-computer-use': computerUseEnabled,
           'mothership-plan-mode': planModeEnabled,
           projects: projectsEnabled,
+          'nexora-only-models': isNexoraOnlyModels,
         }}
       >
         <WorkspaceHostProvider workspaceId={workspaceId} initialContext={hostContext}>

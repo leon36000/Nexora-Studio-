@@ -83,7 +83,7 @@
       "close": "Close",
       "resume": "Resume the first launch",
       "markDone": "Mark as done",
-      "markDoneStep": "Mark “{step}” as done",
+      "markDoneStep": "Mark as done: {step}",
       "stepDone": "done",
       "saveFailed": "Progress could not be saved.",
       "steps": {
@@ -141,11 +141,28 @@
       "openWorkflow": "Open in the editor",
       "empty": "The workflow returned no text.",
       "noModel": "No model is available for your account right now: try again in a moment or contact your administrator.",
+      "workspace": {
+        "label": "Your workspace name",
+        "save": "Rename",
+        "saved": "Workspace renamed.",
+        "failed": "The workspace could not be renamed. Try again in a moment."
+      },
       "errors": {
         "timeout": "The model is taking too long to answer. Try again in a moment.",
         "forbidden": "You do not have the rights needed to run this template.",
         "generic": "The result could not be generated. Try again in a moment."
       }
+    }
+  },
+  "mothership": {
+    "usage": {
+      "title": "Usage Limit Reached",
+      "upgradePlan": "Upgrade Plan",
+      "increaseLimit": "Increase Limit",
+      "opensInNewTab": "{label} (opens in a new tab)",
+      "contactOrganizationAdmin": "Contact an organization admin to manage usage limits.",
+      "contactWorkspaceAdmin": "Contact an organization admin to manage this workspace’s usage limits.",
+      "onlyOwner": "Only the workspace owner can manage this workspace’s usage limits."
     }
   }
 }

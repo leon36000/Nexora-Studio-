@@ -152,7 +152,8 @@
       "codeInterpreter": {
         "label": "Code interpreter",
         "hint": "Lets the agent run Python (no network) to compute, analyze files and draw charts.",
-        "unavailable": "Not available: an administrator must install and allow code execution (Settings › Code execution)."
+        "unavailable": "Not available: an administrator must install and allow code execution (Settings › Code execution).",
+        "unavailableMember": "Not available on this instance: contact the instance administrator to turn on code execution."
       },
       "webSearch": {
         "label": "Web search",

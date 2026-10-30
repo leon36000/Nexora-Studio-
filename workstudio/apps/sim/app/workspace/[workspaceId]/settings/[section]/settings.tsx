@@ -3,6 +3,7 @@
 import dynamic from 'next/dynamic'
 import {
   getSettingsPermissionConfigKey,
+  NEXORA_DISABLED_SECTIONS,
   NEXORA_INSTANCE_SECTIONS,
 } from '@/components/settings/navigation'
 import { useSession } from '@/lib/auth/client'
@@ -104,7 +105,8 @@ function SettingsPageContent({ section }: SettingsPageProps) {
     (section as string) === 'subscription' ? 'billing' : section
   // Nexora edition: instance-wide pages need the instance organization; a personal workspace has none.
   const noInstancePage =
-    NEXORA_INSTANCE_SECTIONS.has(normalizedSection) && !hostContext.hostOrganizationId
+    (NEXORA_INSTANCE_SECTIONS.has(normalizedSection) && !hostContext.hostOrganizationId) ||
+    NEXORA_DISABLED_SECTIONS.has(normalizedSection)
   const effectiveSection =
     (!billingEnabled && normalizedSection === 'billing') || noInstancePage
       ? 'general'

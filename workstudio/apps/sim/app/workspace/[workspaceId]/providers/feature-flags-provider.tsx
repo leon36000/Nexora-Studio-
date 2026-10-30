@@ -11,6 +11,8 @@ export interface WorkspaceFeatureFlags {
   'mothership-computer-use'?: boolean
   'mothership-memory-spaces'?: boolean
   projects?: boolean
+  /** Nexora edition: the deployment offers only the models Nexora API serves. */
+  'nexora-only-models'?: boolean
 }
 
 const FeatureFlagsContext = createContext<WorkspaceFeatureFlags | null>(null)
@@ -30,4 +32,9 @@ export function useFeatureFlag(name: keyof WorkspaceFeatureFlags): boolean {
   const flags = useContext(FeatureFlagsContext)
   if (!flags) throw new Error('useFeatureFlag must be used within FeatureFlagsProvider')
   return flags[name] ?? false
+}
+
+/** Like {@link useFeatureFlag}, but `false` outside a provider (surfaces that mount without the workspace layout). */
+export function useOptionalFeatureFlag(name: keyof WorkspaceFeatureFlags): boolean {
+  return useContext(FeatureFlagsContext)?.[name] ?? false
 }

@@ -646,6 +646,7 @@
     "expandSidebar": "Déployer la barre latérale",
     "logoAlt": "Logo de l’espace de travail",
     "switchWorkspace": "Changer d’espace de travail",
+    "switchWorkspaceNamed": "{name} : changer d’espace de travail",
     "backToOrganization": "Retour à l’organisation",
     "searchPlaceholder": "Rechercher un espace de travail…",
     "noResults": "Aucun résultat pour « {query} »",
@@ -662,6 +663,7 @@
     "leaving": "Départ en cours…"
   },
   "featureUnavailable": {
-    "dashboards": "Les tableaux de bord ne sont pas disponibles sur cette instance."
+    "dashboards": "Les tableaux de bord ne sont pas disponibles sur cette instance.",
+    "changelog": "Les nouveautés ne sont pas disponibles sur cette instance."
   }
 }

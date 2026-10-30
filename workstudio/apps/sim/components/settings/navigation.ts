@@ -1009,6 +1009,12 @@ export const NEXORA_INSTANCE_SECTIONS: ReadonlySet<UnifiedSettingsSection> = new
   'data-protection',
 ])
 
+/**
+ * Nexora edition: sections whose page is switched off here (access requests render nothing), so
+ * neither the sidebar lists them nor their address opens an empty page.
+ */
+export const NEXORA_DISABLED_SECTIONS: ReadonlySet<UnifiedSettingsSection> = new Set(['requests'])
+
 export const ORGANIZATION_SETTINGS_GROUPS = [
   { key: 'account', title: NAV.groups.account },
   { key: 'organization', title: NAV.groups.organization },

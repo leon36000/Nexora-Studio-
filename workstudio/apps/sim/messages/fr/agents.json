@@ -152,7 +152,8 @@
       "codeInterpreter": {
         "label": "Interpréteur de code",
         "hint": "Permet à l’agent d’exécuter du Python (sans réseau) pour calculer, analyser des fichiers et tracer des graphiques.",
-        "unavailable": "Indisponible : un administrateur doit installer et autoriser l’exécution de code (Réglages › Exécution de code)."
+        "unavailable": "Indisponible : un administrateur doit installer et autoriser l’exécution de code (Réglages › Exécution de code).",
+        "unavailableMember": "Indisponible sur cette instance : contactez l’administrateur de l’instance pour activer l’exécution de code."
       },
       "webSearch": {
         "label": "Recherche web",

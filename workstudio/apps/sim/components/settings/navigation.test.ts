@@ -9,6 +9,7 @@ import {
   getWorkspaceSettingsHref,
   isOrganizationSettingsSectionAvailable,
   isSelfHostedOverrideEnabled,
+  NEXORA_DISABLED_SECTIONS,
   NEXORA_INSTANCE_SECTIONS,
   ORGANIZATION_SETTINGS_ITEMS,
   parseSettingsPathSection,
@@ -263,5 +264,20 @@ describe('instance-wide sections', () => {
   it('all exist in the catalog, so none can be missed by a rename', () => {
     const ids = new Set(buildUnifiedSettingsCatalog().map((item) => item.id))
     for (const id of NEXORA_INSTANCE_SECTIONS) expect(ids.has(id)).toBe(true)
+  })
+})
+
+describe('sections this edition turns off', () => {
+  it('are the access requests, whose page renders nothing here', () => {
+    expect([...NEXORA_DISABLED_SECTIONS]).toEqual(['requests'])
+  })
+
+  it('all exist in the catalog, so none can be missed by a rename', () => {
+    const ids = new Set(buildUnifiedSettingsCatalog().map((item) => item.id))
+    for (const id of NEXORA_DISABLED_SECTIONS) expect(ids.has(id)).toBe(true)
+  })
+
+  it('are not offered to the instance sections', () => {
+    for (const id of NEXORA_DISABLED_SECTIONS) expect(NEXORA_INSTANCE_SECTIONS.has(id)).toBe(false)
   })
 })

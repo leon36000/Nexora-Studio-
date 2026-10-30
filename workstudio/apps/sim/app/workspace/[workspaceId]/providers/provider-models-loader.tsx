@@ -3,6 +3,7 @@
 import { useEffect } from 'react'
 import { createLogger } from '@sim/logger'
 import { useParams, usePathname } from 'next/navigation'
+import { useOptionalFeatureFlag } from '@/app/workspace/[workspaceId]/providers/feature-flags-provider'
 import { useProviderModels } from '@/hooks/queries/providers'
 import {
   updateBasetenProviderModels,
@@ -100,14 +101,17 @@ export function ProviderModelsLoader({
   const shouldLoad =
     Boolean(scopedWorkspaceId) || shouldLoadProviderModels(pathname, workspaceId, isSearchModalOpen)
 
-  useSyncProvider('base', shouldLoad)
-  useSyncProvider('ollama', shouldLoad)
-  useSyncProvider('ollama-cloud', shouldLoad, workspaceId)
+  const nexoraOnlyModels = useOptionalFeatureFlag('nexora-only-models')
+  const loadOthers = shouldLoad && !nexoraOnlyModels
+
+  useSyncProvider('base', loadOthers)
+  useSyncProvider('ollama', loadOthers)
+  useSyncProvider('ollama-cloud', loadOthers, workspaceId)
   useSyncProvider('vllm', shouldLoad)
-  useSyncProvider('litellm', shouldLoad)
-  useSyncProvider('openrouter', shouldLoad)
-  useSyncProvider('fireworks', shouldLoad, workspaceId)
-  useSyncProvider('together', shouldLoad, workspaceId)
-  useSyncProvider('baseten', shouldLoad, workspaceId)
+  useSyncProvider('litellm', loadOthers)
+  useSyncProvider('openrouter', loadOthers)
+  useSyncProvider('fireworks', loadOthers, workspaceId)
+  useSyncProvider('together', loadOthers, workspaceId)
+  useSyncProvider('baseten', loadOthers, workspaceId)
   return null
 }

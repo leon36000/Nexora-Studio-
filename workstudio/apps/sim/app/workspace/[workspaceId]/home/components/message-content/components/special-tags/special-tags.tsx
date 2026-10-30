@@ -30,6 +30,7 @@ import {
 } from '@sim/emcn/icons'
 import { isRecordLike, omit } from '@sim/utils/object'
 import { useParams } from 'next/navigation'
+import { useTranslations } from 'next-intl'
 import { getOrganizationSettingsHref } from '@/components/settings/navigation'
 import { useSession } from '@/lib/auth/client'
 import { buildHostedUpgradeUrl, hostedBillingSettingsUrl } from '@/lib/billing/upgrade-reasons'
@@ -3448,7 +3449,8 @@ function UsageUpgradeDisplay({ data }: { data: UsageUpgradeTagData }) {
   const organizationContext = useOptionalOrganizationContext()
   const { getSettingsHref } = useSettingsNavigation()
   const { hosted } = useDeploymentShape()
-  const buttonLabel = data.action === 'upgrade_plan' ? 'Upgrade Plan' : 'Increase Limit'
+  const t = useTranslations('home.mothership.usage')
+  const buttonLabel = data.action === 'upgrade_plan' ? t('upgradePlan') : t('increaseLimit')
 
   // Self-hosted plan and limit both live on the hosted account, so local
   // workspace billing roles say nothing about who may change them.
@@ -3468,10 +3470,10 @@ function UsageUpgradeDisplay({ data }: { data: UsageUpgradeTagData }) {
     data.action === 'increase_limit' && !canManageBilling ? hostContext?.workspace.id : undefined
   )
   const unavailableMessage = organizationContext
-    ? 'Contact an organization admin to manage usage limits.'
+    ? t('contactOrganizationAdmin')
     : hostContext?.hostOrganizationId
-      ? 'Contact an organization admin to manage this workspace’s usage limits.'
-      : 'Only the workspace owner can manage this workspace’s usage limits.'
+      ? t('contactWorkspaceAdmin')
+      : t('onlyOwner')
 
   return (
     <InteractionCard
@@ -3481,7 +3483,7 @@ function UsageUpgradeDisplay({ data }: { data: UsageUpgradeTagData }) {
             aria-hidden
             className='size-[14px] shrink-0 text-[var(--badge-amber-text)]'
           />
-          Usage Limit Reached
+          {t('title')}
         </span>
       }
     >
@@ -3495,7 +3497,7 @@ function UsageUpgradeDisplay({ data }: { data: UsageUpgradeTagData }) {
             rightIcon={hosted ? ArrowRight : SquareArrowUpRight}
             target={hosted ? undefined : '_blank'}
             rel={hosted ? undefined : 'noopener noreferrer'}
-            aria-label={hosted ? undefined : `${buttonLabel} (opens in a new tab)`}
+            aria-label={hosted ? undefined : t('opensInNewTab', { label: buttonLabel })}
             className='mt-2'
           >
             {buttonLabel}
