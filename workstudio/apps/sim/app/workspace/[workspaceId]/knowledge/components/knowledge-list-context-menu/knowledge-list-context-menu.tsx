@@ -33,6 +33,7 @@ export const KnowledgeListContextMenu = memo(function KnowledgeListContextMenu({
     <DropdownMenu open={isOpen} onOpenChange={(open) => !open && onClose()} modal={false}>
       <DropdownMenuTrigger asChild>
         <div
+          role='button'
           style={{
             position: 'fixed',
             left: `${position.x}px`,

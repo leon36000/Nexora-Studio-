@@ -63,13 +63,13 @@ import {
  * {@link chipHoverSurfaceClass}.
  */
 const chipVariants = cva(
-  `group cursor-pointer ${chipGeometryUnroundedClass} transition-colors disabled:cursor-not-allowed disabled:opacity-60 max-md:pointer-coarse:min-h-11 max-md:pointer-coarse:min-w-11`,
+  `group cursor-pointer ${chipGeometryUnroundedClass} transition-colors focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-[var(--text-secondary)] disabled:cursor-not-allowed disabled:opacity-60 max-md:pointer-coarse:min-h-11 max-md:pointer-coarse:min-w-11`,
   {
     variants: {
       variant: {
         default: '',
         filled: chipFilledFillTokens,
-        primary: `${chipPrimaryFillTokens} hover-hover:bg-[var(--text-body)] hover-hover:text-[var(--text-inverse)] dark:hover-hover:bg-[var(--text-secondary)] dark:hover-hover:text-[var(--bg)]`,
+        primary: `${chipPrimaryFillTokens} focus-visible:ring-[var(--text-inverse)] hover-hover:bg-[var(--text-body)] hover-hover:text-[var(--text-inverse)] dark:hover-hover:bg-[var(--text-secondary)] dark:hover-hover:text-[var(--bg)]`,
         destructive:
           'bg-[var(--text-error)] text-white hover-hover:text-white hover-hover:brightness-106',
         'border-shadow':

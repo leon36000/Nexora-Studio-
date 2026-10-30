@@ -76,7 +76,10 @@ interface SettingsResourceRowProps {
    * middle-click, open-in-new-tab.
    */
   href?: string
-  /** Accessible name for the activatable cluster. Required alongside `onClick`/`href`. */
+  /**
+   * Kept so callers stay as they are: the activatable cluster is named by its own visible
+   * title and description (WCAG 2.5.3, label in name), never by a separate label.
+   */
   clickLabel?: string
   /**
    * Appends the canonical navigation chevron after `trailing`. Set it on rows that
@@ -130,12 +133,12 @@ export function SettingsResourceRow({
   badge,
   onClick,
   href,
-  clickLabel,
   navigable = false,
   flush = false,
   disabled = false,
 }: SettingsResourceRowProps) {
   const describedById = useId()
+  const titleId = useId()
   const isTile = iconVariant === 'tile'
   const isActivatable = !disabled && Boolean(onClick || href)
   const cluster = (
@@ -159,13 +162,17 @@ export function SettingsResourceRow({
       )}
       <div className='relative z-10 flex min-w-0 flex-col justify-center gap-[1px] text-left'>
         {typeof title === 'string' ? (
-          <OverflowText
-            label={title}
-            className='text-[var(--text-body)] text-sm'
-            focusTarget={isActivatable ? 'nearest-interactive' : undefined}
-          />
+          <span id={titleId} className='contents'>
+            <OverflowText
+              label={title}
+              className='text-[var(--text-body)] text-sm'
+              focusTarget={isActivatable ? 'nearest-interactive' : undefined}
+            />
+          </span>
         ) : (
-          <span className='truncate text-[var(--text-body)] text-sm'>{title}</span>
+          <span id={titleId} className='truncate text-[var(--text-body)] text-sm'>
+            {title}
+          </span>
         )}
         {description != null &&
           (typeof description === 'string' ? (
@@ -215,6 +222,7 @@ export function SettingsResourceRow({
     )
   }
 
+  const accessibleNameIds = description != null ? `${titleId} ${describedById}` : titleId
   const controlClass = cn(
     clusterClass,
     'min-w-0 flex-1 cursor-pointer focus-visible:outline-hidden',
@@ -230,20 +238,14 @@ export function SettingsResourceRow({
       )}
     >
       {href ? (
-        <Link
-          href={href}
-          aria-label={clickLabel}
-          aria-describedby={description != null ? describedById : undefined}
-          className={controlClass}
-        >
+        <Link href={href} aria-labelledby={accessibleNameIds} className={controlClass}>
           {cluster}
         </Link>
       ) : (
         <button
           type='button'
           onClick={onClick}
-          aria-label={clickLabel}
-          aria-describedby={description != null ? describedById : undefined}
+          aria-labelledby={accessibleNameIds}
           className={controlClass}
         >
           {cluster}

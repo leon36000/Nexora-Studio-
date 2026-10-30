@@ -496,6 +496,7 @@ export function General() {
               <Label>{t('preferences.timezone')}</Label>
               <div className={DROPDOWN_TRIGGER_CLASS}>
                 <ChipCombobox
+                  aria-label={t('preferences.timezone')}
                   align='start'
                   dropdownWidth={240}
                   searchable

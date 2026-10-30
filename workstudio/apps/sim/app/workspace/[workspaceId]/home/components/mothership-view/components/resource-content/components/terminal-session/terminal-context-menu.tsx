@@ -102,6 +102,8 @@ export function TerminalContextMenu({
     <DropdownMenu open={isOpen} onOpenChange={(open) => !open && onClose()} modal={false}>
       <DropdownMenuTrigger asChild>
         <div
+          aria-hidden='true'
+          role='button'
           style={{
             position: 'fixed',
             left: `${position.x}px`,

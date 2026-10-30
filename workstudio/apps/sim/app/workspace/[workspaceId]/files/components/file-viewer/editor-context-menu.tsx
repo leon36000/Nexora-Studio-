@@ -46,6 +46,7 @@ export function EditorContextMenu({
     <DropdownMenu open={isOpen} onOpenChange={(open) => !open && onClose()} modal={false}>
       <DropdownMenuTrigger asChild>
         <div
+          role='button'
           style={{
             position: 'fixed',
             left: `${position.x}px`,

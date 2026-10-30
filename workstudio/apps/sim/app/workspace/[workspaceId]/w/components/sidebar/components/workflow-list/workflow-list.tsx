@@ -557,7 +557,7 @@ export const WorkflowList = memo(function WorkflowList({
   return (
     <SidebarListContext.Provider value={listContextValue}>
       <div
-        role='tree'
+        role='group'
         aria-label={t('sections.workflows')}
         className='flex min-h-full flex-col'
         onClick={handleContainerClick}

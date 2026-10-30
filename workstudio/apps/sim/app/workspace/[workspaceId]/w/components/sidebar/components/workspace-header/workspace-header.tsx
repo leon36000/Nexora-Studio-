@@ -501,7 +501,11 @@ function WorkspaceHeaderImpl({
         >
           <DropdownMenuTrigger asChild>
             <Chip
-              aria-label={t('switchWorkspace')}
+              aria-label={
+                activeWorkspace?.name
+                  ? t('switchWorkspaceNamed', { name: activeWorkspace.name })
+                  : t('switchWorkspace')
+              }
               className='min-w-0 max-w-full'
               onContextMenu={(e) => {
                 if (activeWorkspaceFull) {
@@ -792,7 +796,11 @@ function WorkspaceHeaderImpl({
       ) : (
         <button
           type='button'
-          aria-label={t('switchWorkspace')}
+          aria-label={
+            activeWorkspace?.name
+              ? t('switchWorkspaceNamed', { name: activeWorkspace.name })
+              : t('switchWorkspace')
+          }
           /* Geometry must match the live trigger it stands in for, or the switcher
              shifts when the workspace resolves. Chips carry no margin, so neither
              does this. */

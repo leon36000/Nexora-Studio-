@@ -181,6 +181,7 @@ export function BudgetsEditor({
           options={overview.workspaces
             .filter((workspace) => !capped.has(workspace.id))
             .map((workspace) => ({ label: workspace.name, value: workspace.id }))}
+          aria-label={t('pickWorkspace')}
           placeholder={t('pickWorkspace')}
           searchable
           searchPlaceholder={t('searchWorkspace')}

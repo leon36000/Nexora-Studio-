@@ -24,7 +24,7 @@
 .code-editor-theme.code-editor-theme .token.prolog,
 .code-editor-theme.code-editor-theme .token.doctype,
 .code-editor-theme.code-editor-theme .token.cdata {
-  color: #16a34a;
+  color: #15803d;
 }
 
 .code-editor-theme.code-editor-theme .token.punctuation {
@@ -34,14 +34,14 @@
 .code-editor-theme.code-editor-theme .token.property,
 .code-editor-theme.code-editor-theme .token.attr-name,
 .code-editor-theme.code-editor-theme .token.variable {
-  color: #0891b2;
+  color: #0e7490;
 }
 
 .code-editor-theme.code-editor-theme .token.tag,
 .code-editor-theme.code-editor-theme .token.boolean,
 .code-editor-theme.code-editor-theme .token.number,
 .code-editor-theme.code-editor-theme .token.constant {
-  color: #16a34a;
+  color: #15803d;
 }
 
 .code-editor-theme.code-editor-theme .token.string,
@@ -65,7 +65,7 @@
 
 .code-editor-theme.code-editor-theme .token.function,
 .code-editor-theme.code-editor-theme .token.class-name {
-  color: #ca8a04;
+  color: #a16207;
 }
 
 .code-editor-theme.code-editor-theme .token.regex,

@@ -706,7 +706,7 @@ html[data-sim-desktop-title-bar="inset"]
     --text-primary: #1a1a1a;
     --text-secondary: #525252;
     --text-tertiary: #5c5c5c;
-    --text-muted: #737373;
+    --text-muted: #686868;
     --text-subtle: #8c8c8c;
     --text-body: #434343;
     --text-icon: #5a5a5a;
@@ -784,7 +784,7 @@ html[data-sim-desktop-title-bar="inset"]
     --code-line-number: #737373;
 
     /* Workspace: additional text */
-    --text-placeholder: #8d8d8d;
+    --text-placeholder: #707070;
     --text-success: #22c55e;
 
     /* Status / semantic colors */
@@ -810,27 +810,27 @@ html[data-sim-desktop-title-bar="inset"]
 
     /* Badge semantic colors */
     --badge-success-bg: #bbf7d0;
-    --badge-success-text: #15803d;
+    --badge-success-text: #166534;
     --badge-error-bg: #fecaca;
-    --badge-error-text: #dc2626;
+    --badge-error-text: #b91c1c;
     --badge-gray-bg: #e7e5e4;
     --badge-gray-text: #57534e;
     --badge-blue-bg: #bfdbfe;
     --badge-blue-text: #1d4ed8;
     --badge-blue-secondary-bg: #bae6fd;
-    --badge-blue-secondary-text: #0369a1;
+    --badge-blue-secondary-text: #075985;
     --badge-purple-bg: #e9d5ff;
-    --badge-purple-text: #7c3aed;
+    --badge-purple-text: #6d28d9;
     --badge-orange-bg: #fed7aa;
-    --badge-orange-text: #c2410c;
+    --badge-orange-text: #9a3412;
     --badge-amber-bg: #fde68a;
-    --badge-amber-text: #a16207;
+    --badge-amber-text: #854d0e;
     --badge-teal-bg: #99f6e4;
-    --badge-teal-text: #0f766e;
+    --badge-teal-text: #115e59;
     --badge-cyan-bg: #cffafe;
-    --badge-cyan-text: #0891b2;
+    --badge-cyan-text: #0e7490;
     --badge-pink-bg: #fbcfe8;
-    --badge-pink-text: #be185d;
+    --badge-pink-text: #9d174d;
 
     /* Search/highlight */
     --highlight-search-active: #f6ad55;

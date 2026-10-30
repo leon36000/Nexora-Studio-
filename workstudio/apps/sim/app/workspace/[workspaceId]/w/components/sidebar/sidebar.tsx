@@ -1818,6 +1818,7 @@ export const Sidebar = memo(function Sidebar({ organizationHref, desktopExecutor
                                       aria-label={t('moreActions')}
                                       variant='quiet'
                                       size='icon'
+                                      className='size-6'
                                       disabled={!permissionsLoading && !canEdit}
                                     >
                                       {isImporting || isCreatingFolder ? (
@@ -1860,6 +1861,7 @@ export const Sidebar = memo(function Sidebar({ organizationHref, desktopExecutor
                                     aria-label={tCopilot('sidebarButton')}
                                     variant='quiet'
                                     size='icon'
+                                    className='size-6'
                                     onClick={handleOpenCopilot}
                                   >
                                     <Wand className='size-[14px]' />
@@ -1880,6 +1882,7 @@ export const Sidebar = memo(function Sidebar({ organizationHref, desktopExecutor
                                   }
                                   variant='quiet'
                                   size='icon'
+                                  className='size-6'
                                   onClick={handleCreateWorkflow}
                                   disabled={isCreatingWorkflow || (!permissionsLoading && !canEdit)}
                                 >
@@ -2057,7 +2060,7 @@ export const Sidebar = memo(function Sidebar({ organizationHref, desktopExecutor
             onClick={isCollapsed ? toggleCollapsed : undefined}
             onKeyDown={handleEdgeKeyDown}
             role={isCollapsed ? 'button' : 'separator'}
-            tabIndex={0}
+            tabIndex={isCollapsed ? 0 : -1}
             aria-orientation={isCollapsed ? undefined : 'vertical'}
             aria-label={isCollapsed ? t('expandSidebar') : t('resizeSidebar')}
           />

@@ -174,6 +174,7 @@ export function ExecutionSnapshot({
           <DropdownMenu open={isMenuOpen} onOpenChange={closeMenu} modal={false}>
             <DropdownMenuTrigger asChild>
               <div
+                role='button'
                 style={{
                   position: 'fixed',
                   left: `${menuPosition.x}px`,

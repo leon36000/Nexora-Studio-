@@ -41,6 +41,7 @@ export function ModelPicker({ value, onChange, disabled, className }: ModelPicke
       options={options}
       value={value}
       onChange={onChange}
+      aria-label={t('label')}
       placeholder={t('placeholder')}
       emptyMessage={t('empty')}
       searchPlaceholder={t('search')}

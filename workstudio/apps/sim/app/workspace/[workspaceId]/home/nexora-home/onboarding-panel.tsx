@@ -50,7 +50,7 @@ function StepRow({ title, done, onMarkDone, markDoneDisabled, children }: StepRo
         )}
       />
       <div className='flex min-w-0 flex-1 flex-col gap-2'>
-        <div className='flex items-center justify-between gap-3'>
+        <div className='flex flex-wrap items-center justify-between gap-x-3 gap-y-1'>
           <span className='text-[var(--text-body)] text-sm'>
             {title}
             {done && <span className='sr-only'>{` (${t('stepDone')})`}</span>}
@@ -58,6 +58,7 @@ function StepRow({ title, done, onMarkDone, markDoneDisabled, children }: StepRo
           {!done && onMarkDone && (
             <Chip
               aria-label={t('markDoneStep', { step: title })}
+              className='shrink-0'
               disabled={markDoneDisabled}
               onClick={onMarkDone}
             >

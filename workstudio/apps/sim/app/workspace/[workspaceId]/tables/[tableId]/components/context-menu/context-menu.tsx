@@ -166,6 +166,7 @@ export function ContextMenu({
     >
       <DropdownMenuTrigger asChild>
         <div
+          role='button'
           style={{
             position: 'fixed',
             left: `${contextMenu.position.x}px`,
