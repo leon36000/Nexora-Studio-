@@ -7,6 +7,7 @@ Trois scripts Playwright (Node) qui jouent, avec un compte d'essai du site, la c
 | `sso.mjs` | page de connexion de WorkStudio → « Se connecter avec Nexora AI » → connexion du site → retour dans WorkStudio |
 | `chat.mjs` | idem, puis envoie un message à l'assistant (passe par la passerelle du site, avec la clé de la personne) |
 | `devis.mjs` | idem, puis lance le gabarit « Devis client » avec son exemple et cherche TPS/TVQ dans le résultat |
+| `journaux-mobile.mjs` | idem, puis lit les Journaux (colonne « Jetons », durées en français), l’accueil (champ « Nom de votre espace ») et vérifie qu’il n’y a pas de défilement horizontal à 375 px |
 
 Lancement (depuis une machine qui voit WorkStudio et le site ; le mot de passe vient d'une variable, jamais d'un fichier du dépôt) :
 
