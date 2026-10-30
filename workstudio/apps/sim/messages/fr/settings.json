@@ -59,10 +59,10 @@
     "deleteAccountLabel": "Supprimer le compte",
     "resetPasswordModal": {
       "title": "Réinitialiser le mot de passe",
-      "body": "Un lien de réinitialisation du mot de passe sera envoyé à <b>{email}</b>. Cliquez sur le lien dans l’e-mail pour créer un nouveau mot de passe.",
+      "body": "Un lien de réinitialisation du mot de passe sera envoyé à <b>{email}</b>. Cliquez sur le lien dans le courriel pour créer un nouveau mot de passe.",
       "sending": "Envoi...",
       "sent": "Envoyé",
-      "send": "Envoyer l’e-mail de réinitialisation"
+      "send": "Envoyer le courriel de réinitialisation"
     },
     "signOutOthersModal": {
       "title": "Déconnecter les autres appareils",
@@ -90,13 +90,13 @@
       "confirm": "Supprimer le compte",
       "pending": "Suppression...",
       "resolveFirst": "Résolvez d’abord les points ci-dessus",
-      "enterEmail": "Saisissez l’e-mail de votre compte pour confirmer",
+      "enterEmail": "Saisissez le courriel de votre compte pour confirmer",
       "blocked": "Votre compte ne peut pas encore être supprimé :",
       "warning": "Cette action supprime définitivement <b>{email}</b> ainsi que ses workflows, conversations, fichiers, bases de connaissances et identifiants. <danger>Cette action est irréversible.</danger>",
       "workspacesDeleted": "{count, plural, one {L’espace de travail <b>{names}</b> et tout son contenu seront supprimés.} other {Les espaces de travail <b>{names}</b> et tout leur contenu seront supprimés.}}",
       "workspacesTransferred": "{count, plural, one {La facturation de <b>{names}</b> passe à un autre administrateur. Son contenu reste inchangé.} other {La facturation de <b>{names}</b> passe à un autre administrateur. Leur contenu reste inchangé.}}",
       "planFailed": "Impossible de vérifier si ce compte peut être supprimé. Réessayez.",
-      "confirmEmail": "Confirmez votre e-mail"
+      "confirmEmail": "Confirmez votre courriel"
     },
     "nexoraAccount": {
       "account": "Compte Nexora AI",
@@ -268,11 +268,11 @@
       },
       "sandboxes": {
         "label": "Bacs à sable",
-        "description": "Installez des paquets Python ou npm à importer dans les blocs Function."
+        "description": "Installez des paquets Python ou npm à importer dans les blocs Fonction."
       },
       "inbox": {
         "label": "Nexora Mailer",
-        "description": "Déclenchez et traitez des workflows à partir des e-mails entrants."
+        "description": "Déclenchez et traitez des workflows à partir des courriels entrants."
       },
       "recently-deleted": {
         "label": "Récemment supprimés",
@@ -311,8 +311,8 @@
         "description": "Opérations internes Nexora et gestion des licences."
       },
       "email": {
-        "label": "E-mail",
-        "description": "Choisissez le serveur SMTP des e-mails envoyés"
+        "label": "Courriel",
+        "description": "Choisissez le serveur SMTP des courriels envoyés"
       },
       "status": {
         "label": "État",
@@ -431,18 +431,18 @@
       "webReadingSearch": "Lecture et recherche web",
       "googleCloudApis": "API Translate, Maps, PageSpeed et Books",
       "brandAssets": "Ressources de marque, logos, couleurs et informations sur l’entreprise",
-      "emailFinderDomainSearch": "Recherche d’e-mails, vérification et recherche par domaine",
+      "emailFinderDomainSearch": "Recherche de courriels, vérification et recherche par domaine",
       "personCompanyIdentity": "Enrichissement, recherche et identification de personnes et d’entreprises",
-      "emailFinderPhoneLookup": "Recherche d’e-mails, vérification et recherche de numéros de téléphone",
+      "emailFinderPhoneLookup": "Recherche de courriels, vérification et recherche de numéros de téléphone",
       "personCompanySearch": "Enrichissement et recherche de personnes et d’entreprises",
       "prospectSearch": "Recherche de prospects, révélation de contacts individuels et enrichissement d’entreprises",
-      "emailPhoneEnrichment": "Enrichissement d’e-mails, de téléphones, de personnes et d’entreprises",
-      "gdprContactEnrichment": "Enrichissement de contacts et recherche d’e-mails conformes au RGPD",
-      "emailB2bEnrichment": "Recherche et validation d’e-mails, enrichissement de profils B2B",
-      "emailFindingVerification": "Recherche et vérification d’e-mails",
-      "realtimeValidationDeliverability": "Validation d’e-mails et contrôle de délivrabilité en temps réel",
-      "realtimeVerificationListCleaning": "Vérification d’e-mails et nettoyage de listes en temps réel",
-      "realtimeVerificationDeliverability": "Vérification d’e-mails et contrôle de délivrabilité en temps réel"
+      "emailPhoneEnrichment": "Enrichissement de courriels, de téléphones, de personnes et d’entreprises",
+      "gdprContactEnrichment": "Enrichissement de contacts et recherche de courriels conformes au RGPD",
+      "emailB2bEnrichment": "Recherche et validation de courriels, enrichissement de profils B2B",
+      "emailFindingVerification": "Recherche et vérification de courriels",
+      "realtimeValidationDeliverability": "Validation de courriels et contrôle de délivrabilité en temps réel",
+      "realtimeVerificationListCleaning": "Vérification de courriels et nettoyage de listes en temps réel",
+      "realtimeVerificationDeliverability": "Vérification de courriels et contrôle de délivrabilité en temps réel"
     },
     "addKey": "Ajouter une clé",
     "update": "Modifier",
@@ -482,11 +482,11 @@
   },
   "sandboxes": {
     "upgradeTitle": "Les bacs à sable ne sont pas disponibles sur cette instance",
-    "upgradeDescription": "Cette fonction n’est pas activée ici. Pour ajouter des paquets Python ou npm aux blocs Function, contactez l’administrateur de l’instance.",
+    "upgradeDescription": "Cette fonction n’est pas activée ici. Pour ajouter des paquets Python ou npm aux blocs Fonction, contactez l’administrateur de l’instance.",
     "deleteTitle": "Supprimer le bac à sable",
     "deleteConfirm": {
       "intro": "Cette action supprimera définitivement ",
-      "consequence": " et le retirera de tous les blocs Function qui l’utilisent.",
+      "consequence": " et le retirera de tous les blocs Fonction qui l’utilisent.",
       "irreversible": " Cette action est irréversible."
     },
     "saveFailed": "Impossible d’enregistrer le bac à sable",
@@ -497,11 +497,11 @@
     "loadFailed": "Impossible de charger les bacs à sable",
     "newSandbox": "Nouveau bac à sable",
     "sandboxFallbackTitle": "Bac à sable",
-    "editorDescription": "Dépendances, paquets système et outils CLI gérés disponibles pour vos blocs Function.",
+    "editorDescription": "Dépendances, paquets système et outils CLI gérés disponibles pour vos blocs Fonction.",
     "backLabel": "Bacs à sable",
     "searchPlaceholder": "Rechercher des bacs à sable...",
     "noSearchResults": "Aucun bac à sable ne correspond à votre recherche.",
-    "empty": "Aucun bac à sable pour le moment. Créez-en un pour ajouter des dépendances, des paquets système et des outils CLI gérés aux blocs Function.",
+    "empty": "Aucun bac à sable pour le moment. Créez-en un pour ajouter des dépendances, des paquets système et des outils CLI gérés aux blocs Fonction.",
     "counts": "{dependencies, plural, one {# dépendance} other {# dépendances}} · {systemPackages, plural, one {# paquet système} other {# paquets système}} · {cliTools, plural, one {# CLI gérée} other {# CLI gérées}}",
     "rowDescription": "{language} · {counts}",
     "openSandbox": "Ouvrir {name}",
@@ -907,8 +907,8 @@
   "permissions": {
     "addPeople": {
       "title": "Ajouter des personnes",
-      "emails": "E-mails",
-      "emailsPlaceholder": "Saisissez des e-mails",
+      "emails": "Courriels",
+      "emailsPlaceholder": "Saisissez des courriels",
       "role": "Rôle",
       "rolePlaceholder": "Sélectionnez un rôle",
       "add": "Ajouter",
@@ -1028,22 +1028,22 @@
     "users": {
       "title": "Gestion des utilisateurs",
       "addUser": "Ajouter un utilisateur",
-      "searchPlaceholder": "Rechercher par e-mail ou coller un ID utilisateur...",
+      "searchPlaceholder": "Rechercher par courriel ou coller un ID utilisateur...",
       "searching": "Recherche...",
       "search": "Rechercher",
       "fetchFailed": "Échec de la récupération des utilisateurs",
       "actionFailed": "L’action a échoué. Veuillez réessayer.",
       "onlyAdmins": "Seuls les administrateurs peuvent emprunter l’identité d’un utilisateur.",
-      "sendingReset": "Envoi d’un e-mail de réinitialisation du mot de passe à {email}...",
+      "sendingReset": "Envoi d’un courriel de réinitialisation du mot de passe à {email}...",
       "noUsers": "Aucun utilisateur trouvé.",
       "pageInfo": "Page {page} sur {totalPages} ({total} utilisateurs)",
       "previous": "Précédent",
       "next": "Suivant",
-      "provisionWarning": "{email} a été créé, mais l’e-mail de réinitialisation du mot de passe n’a pas pu être envoyé ({error}). Utilisez Réinitialiser le mot de passe dans le menu d’actions de cette ligne pour réessayer."
+      "provisionWarning": "{email} a été créé, mais le courriel de réinitialisation du mot de passe n’a pas pu être envoyé ({error}). Utilisez Réinitialiser le mot de passe dans le menu d’actions de cette ligne pour réessayer."
     },
     "columns": {
       "name": "Nom",
-      "email": "E-mail",
+      "email": "Courriel",
       "role": "Rôle",
       "status": "Statut",
       "actions": "Actions"
@@ -1058,8 +1058,8 @@
       "switching": "Changement...",
       "actionsAria": "Actions pour {email}",
       "resetPassword": "Réinitialiser le mot de passe",
-      "resetSent": "E-mail de réinitialisation du mot de passe envoyé à {email}",
-      "resetFailed": "Impossible d’envoyer un e-mail de réinitialisation du mot de passe à {email}",
+      "resetSent": "Courriel de réinitialisation du mot de passe envoyé à {email}",
+      "resetFailed": "Impossible d’envoyer un courriel de réinitialisation du mot de passe à {email}",
       "demote": "Rétrograder",
       "promote": "Promouvoir",
       "unban": "Débannir",
@@ -1093,23 +1093,23 @@
       "name": "Nom",
       "namePlaceholder": "Canary Writer",
       "nameRequired": "Le nom est obligatoire",
-      "email": "E-mail",
-      "invalidEmail": "Saisissez un e-mail valide",
+      "email": "Courriel",
+      "invalidEmail": "Saisissez un courriel valide",
       "credentials": "Identifiants",
       "passwordModes": {
         "set": "Définir un mot de passe",
         "email": "Envoyer un lien de réinitialisation"
       },
-      "resetLinkHint": "L’utilisateur choisit son propre mot de passe via le lien de réinitialisation envoyé par e-mail.",
+      "resetLinkHint": "L’utilisateur choisit son propre mot de passe via le lien de réinitialisation envoyé par courriel.",
       "password": "Mot de passe",
       "passwordPlaceholder": "Au moins 8 caractères",
       "passwordTooShort": "Le mot de passe doit comporter au moins 8 caractères",
-      "emailStatus": "Statut de l’e-mail",
+      "emailStatus": "Statut de le courriel",
       "emailStatuses": {
         "verified": "Vérifié",
         "unverified": "Non vérifié"
       },
-      "verifiedHint": "Les utilisateurs vérifiés peuvent se connecter lorsque la vérification de l’e-mail est requise.",
+      "verifiedHint": "Les utilisateurs vérifiés peuvent se connecter lorsque la vérification de le courriel est requise.",
       "addFailed": "Échec de l’ajout de l’utilisateur",
       "adding": "Ajout...",
       "submit": "Ajouter l’utilisateur"
@@ -1251,7 +1251,7 @@
     },
     "usageNotifications": {
       "label": "Notifications d’usage",
-      "emailAt80": "M’envoyer un e-mail lorsque j’atteins 80 % d’usage"
+      "emailAt80": "M’envoyer un courriel lorsque j’atteins 80 % d’usage"
     },
     "subscription": {
       "label": "Abonnement",
@@ -1392,7 +1392,7 @@
       "memberActions": "Actions sur le membre",
       "deactivatedByDirectory": "Désactivé par votre annuaire",
       "joined": "Membre depuis le {date}",
-      "copyEmail": "Copier l’e-mail",
+      "copyEmail": "Copier le courriel",
       "manageCredits": "Gérer les crédits",
       "transferOwnership": "Transférer la propriété",
       "leaveOrganization": "Quitter l’organisation",
@@ -1456,7 +1456,7 @@
     "noMatches": "Aucun collaborateur ne correspond à « {query} »",
     "empty": "Aucun collaborateur pour le moment",
     "actionsLabel": "Actions sur le collaborateur",
-    "copyEmail": "Copier l’e-mail",
+    "copyEmail": "Copier le courriel",
     "resendInvite": "Renvoyer l’invitation",
     "copyInviteLink": "Copier le lien d’invitation",
     "revokeInvite": "Révoquer l’invitation",
@@ -1467,9 +1467,9 @@
   "inbox": {
     "loadFailed": "Impossible de charger les paramètres de la boîte de réception",
     "upgradeTitle": "Nexora Mailer n’est pas disponible sur cette instance",
-    "upgradeDescription": "Cette fonction n’est pas activée ici. Pour recevoir des tâches par e-mail, contactez l’administrateur de l’instance.",
+    "upgradeDescription": "Cette fonction n’est pas activée ici. Pour recevoir des tâches par courriel, contactez l’administrateur de l’instance.",
     "sectionLabel": "Boîte de réception",
-    "sectionDescription": "Tâches reçues par e-mail dans cet espace de travail.",
+    "sectionDescription": "Tâches reçues par courriel dans cet espace de travail.",
     "taskList": {
       "statusFilters": {
         "all": "Tous les statuts",
@@ -1494,25 +1494,25 @@
       },
       "searchPlaceholder": "Rechercher des tâches...",
       "noMatches": "Aucune tâche ne correspond à « {query} »",
-      "emptyWithAddress": "Aucune tâche par e-mail pour le moment. Envoyez un e-mail à {address} pour commencer.",
-      "empty": "Aucune tâche par e-mail pour le moment."
+      "emptyWithAddress": "Aucune tâche par courriel pour le moment. Envoyez un courriel à {address} pour commencer.",
+      "empty": "Aucune tâche par courriel pour le moment."
     },
     "enableToggle": {
       "on": "Activé",
       "off": "Désactivé",
       "updateFailed": "Impossible de mettre à jour la boîte de réception",
-      "enableTitle": "Activer la boîte de réception e-mail",
-      "enableDescription": "Autoriser cet espace de travail à recevoir des tâches par e-mail",
-      "enableModalDescription": "Une adresse e-mail sera créée pour cet espace de travail. Toute personne figurant dans la liste des expéditeurs autorisés pourra y écrire pour créer des tâches.",
-      "emailPrefix": "Préfixe de l’adresse e-mail",
+      "enableTitle": "Activer la boîte de réception courriel",
+      "enableDescription": "Autoriser cet espace de travail à recevoir des tâches par courriel",
+      "enableModalDescription": "Une adresse courriel sera créée pour cet espace de travail. Toute personne figurant dans la liste des expéditeurs autorisés pourra y écrire pour créer des tâches.",
+      "emailPrefix": "Préfixe de l’adresse courriel",
       "emailPrefixPlaceholder": "Facultatif : laissez vide pour une génération automatique",
       "emailPrefixHint": "Laissez vide pour obtenir une adresse générée automatiquement.",
       "enabling": "Activation...",
       "enable": "Activer",
-      "disableTitle": "Désactiver la boîte de réception e-mail",
+      "disableTitle": "Désactiver la boîte de réception courriel",
       "disableConfirmPrefix": "Voulez-vous vraiment désactiver la boîte de réception ",
-      "disableConfirmSuffix": " ? Les e-mails envoyés à cette adresse après la désactivation ne seront pas distribués. Cette action est irréversible.",
-      "disableConfirmNoAddress": "Voulez-vous vraiment désactiver la boîte de réception ? Les e-mails envoyés à cette adresse après la désactivation ne seront pas distribués. Cette action est irréversible.",
+      "disableConfirmSuffix": " ? Les courriels envoyés à cette adresse après la désactivation ne seront pas distribués. Cette action est irréversible.",
+      "disableConfirmNoAddress": "Voulez-vous vraiment désactiver la boîte de réception ? Les courriels envoyés à cette adresse après la désactivation ne seront pas distribués. Cette action est irréversible.",
       "disableInbox": "Désactiver la boîte de réception",
       "disabling": "Désactivation...",
       "historyPreserved": "Vos conversations existantes et l’historique des tâches seront conservés."
@@ -1525,13 +1525,13 @@
       "updateAddressFailed": "Impossible de mettre à jour l’adresse",
       "addSenderFailed": "Impossible d’ajouter l’expéditeur",
       "removeSenderFailed": "Impossible de retirer l’expéditeur",
-      "addressLabel": "Adresse e-mail de Nexora",
-      "addressHint": "Envoyez des e-mails à cette adresse pour créer des tâches.",
+      "addressLabel": "Adresse courriel de Nexora",
+      "addressHint": "Envoyez des courriels à cette adresse pour créer des tâches.",
       "copyAddress": "Copier l’adresse",
       "copiedExclamation": "Copié !",
       "editAddress": "Modifier l’adresse",
       "allowedSenders": "Expéditeurs autorisés",
-      "allowedSendersHint": "Seuls les e-mails provenant de ces adresses peuvent créer des tâches.",
+      "allowedSendersHint": "Seuls les courriels provenant de ces adresses peuvent créer des tâches.",
       "memberBadge": "membre",
       "removeSender": "Retirer l’expéditeur",
       "noSenders": "Aucun expéditeur autorisé configuré.",
@@ -1542,13 +1542,13 @@
       "selectSecrets": "Sélectionner des secrets",
       "updateSecretAccessFailed": "Impossible de mettre à jour l’accès aux secrets",
       "addSenderModalTitle": "Ajouter un expéditeur autorisé",
-      "emailAddress": "Adresse e-mail",
+      "emailAddress": "Adresse courriel",
       "label": "Libellé",
       "labelPlaceholder": "ex. : Jean du marketing",
-      "changeAddressTitle": "Modifier l’adresse e-mail",
-      "changeAddressWarning": "Modifier votre adresse e-mail créera une nouvelle boîte de réception.",
-      "changeAddressWarningEmphasis": "L’ancienne adresse cessera immédiatement de recevoir des e-mails.",
-      "newEmailPrefix": "Nouveau préfixe d’adresse e-mail",
+      "changeAddressTitle": "Modifier l’adresse courriel",
+      "changeAddressWarning": "Modifier votre adresse courriel créera une nouvelle boîte de réception.",
+      "changeAddressWarningEmphasis": "L’ancienne adresse cessera immédiatement de recevoir des courriels.",
+      "newEmailPrefix": "Nouveau préfixe d’adresse courriel",
       "newEmailPrefixPlaceholder": "ex. : nouveau-acme",
       "updating": "Mise à jour...",
       "changeAddress": "Modifier l’adresse"
@@ -1946,7 +1946,7 @@
       "enabled": "Connexion avec le fournisseur d’identité de l’entreprise",
       "issuer": "Émetteur OpenID Connect",
       "issuerHint": "L’adresse du domaine (realm) chez le fournisseur ; WorkStudio y lit /.well-known/openid-configuration.",
-      "issuerPlaceholder": "https://sso.entreprise.fr/realms/entreprise",
+      "issuerPlaceholder": "https://sso.entreprise.ca/realms/entreprise",
       "clientId": "Identifiant client",
       "clientSecret": "Secret client",
       "buttonName": "Nom du bouton",
@@ -1976,26 +1976,26 @@
       "title": "Inscription",
       "label": "Domaines autorisés à s’inscrire seuls",
       "hint": "Séparés par des virgules. Les autres adresses doivent être invitées. Vide : toute personne qui atteint WorkStudio peut s’inscrire.",
-      "placeholder": "entreprise.fr, filiale.fr"
+      "placeholder": "entreprise.ca, filiale.ca"
     }
   },
   "instanceEmail": {
-    "loadError": "Impossible de charger les réglages d’e-mail.",
+    "loadError": "Impossible de charger les réglages de courriel.",
     "title": "Serveur SMTP",
-    "enabled": "Envoyer les e-mails par ce serveur",
+    "enabled": "Envoyer les courriels par ce serveur",
     "host": "Serveur",
-    "hostPlaceholder": "smtp.entreprise.fr",
+    "hostPlaceholder": "smtp.entreprise.ca",
     "port": "Port",
     "user": "Utilisateur",
     "password": "Mot de passe",
     "from": "Expéditeur",
-    "fromHint": "Adresse acceptée par le serveur, par exemple « Nexora <nexora@entreprise.fr> ».",
-    "fromPlaceholder": "Nexora <nexora@entreprise.fr>",
+    "fromHint": "Adresse acceptée par le serveur, par exemple « Nexora <nexora@entreprise.ca> ».",
+    "fromPlaceholder": "Nexora <nexora@entreprise.ca>",
     "incomplete": "Renseignez le serveur et un port valide.",
     "test": {
-      "action": "Envoyer un e-mail de test",
+      "action": "Envoyer un courriel de test",
       "sending": "Envoi…",
-      "success": "E-mail de test envoyé à {address}.",
+      "success": "Courriel de test envoyé à {address}.",
       "failures": {
         "not-configured": "Aucun serveur SMTP n’est configuré.",
         "auth": "Le serveur a refusé l’utilisateur ou le mot de passe.",
@@ -2007,10 +2007,10 @@
       }
     },
     "testMessage": {
-      "subject": "Nexora WorkStudio : e-mail de test",
-      "text": "Bonjour,\n\nCet e-mail confirme que Nexora WorkStudio peut envoyer des messages avec le serveur SMTP configuré.\n\nAucune action n’est nécessaire."
+      "subject": "Nexora WorkStudio : courriel de test",
+      "text": "Bonjour,\n\nCet courriel confirme que Nexora WorkStudio peut envoyer des messages avec le serveur SMTP configuré.\n\nAucune action n’est nécessaire."
     },
-    "resendTakesPrecedence": "Une clé Resend (RESEND_API_KEY) est définie dans deploy/.env : les e-mails partent par Resend, ce serveur SMTP ne sert qu’en secours."
+    "resendTakesPrecedence": "Une clé Resend (RESEND_API_KEY) est définie dans deploy/.env : les courriels partent par Resend, ce serveur SMTP ne sert qu’en secours."
   },
   "accessGroups": {
     "adminsOnly": "Réservé aux administrateurs de l’organisation.",
@@ -2226,9 +2226,9 @@
     "inherit": "Comme l’instance ({mode})",
     "service": {
       "title": "Détection",
-      "running": "Le service local de détection répond : noms, IBAN, e-mails, téléphones, cartes et numéros de sécurité sociale sont reconnus.",
+      "running": "Le service local de détection répond : noms, IBAN, courriels, téléphones, cartes et numéros de sécurité sociale sont reconnus.",
       "down": "Le service local de détection ne répond pas : tant qu’il est arrêté, les demandes concernées par une politique « Masquer » ou « Refuser » ne partent pas.",
-      "notInstalled": "Le service local de détection n’est pas installé : seuls les IBAN, e-mails, cartes et téléphones sont reconnus, pas les noms."
+      "notInstalled": "Le service local de détection n’est pas installé : seuls les IBAN, courriels, cartes et téléphones sont reconnus, pas les noms."
     },
     "instance": {
       "title": "Modèles hors instance, par défaut",

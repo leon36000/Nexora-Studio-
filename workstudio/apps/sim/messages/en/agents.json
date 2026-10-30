@@ -6,6 +6,7 @@
     "createFailed": "The agent could not be created."
   },
   "model": {
+    "label": "Model",
     "placeholder": "Choose a model",
     "default": "Default model",
     "empty": "No model available",

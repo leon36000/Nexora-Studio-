@@ -26,7 +26,6 @@ import {
 } from '@sim/emcn'
 import { Download, Workflow } from '@sim/emcn/icons'
 import { getErrorMessage } from '@sim/utils/errors'
-import { formatDuration } from '@sim/utils/formatting'
 import { useQueryClient } from '@tanstack/react-query'
 import { useParams } from 'next/navigation'
 import { useTranslations } from 'next-intl'
@@ -51,7 +50,8 @@ import {
   type TriggerData,
   type WorkflowData,
 } from '@/lib/logs/search-suggestions'
-import { logCostCredits } from '@/lib/nexora/log-cost'
+import { formatLogDuration } from '@/lib/nexora/duration'
+import { logCostCredits, logTokensByExecution } from '@/lib/nexora/log-cost'
 import { SEARCH_DEBOUNCE_MS } from '@/lib/url-state'
 import { LogsEmptyState } from '@/app/workspace/[workspaceId]/components/resource/components/resource-empty-state'
 import type { ResourceAction } from '@/app/workspace/[workspaceId]/components/resource/components/resource-header'
@@ -101,6 +101,7 @@ import {
   useRetryExecution,
 } from '@/hooks/queries/logs'
 import { useNexoraHome } from '@/hooks/queries/nexora-home'
+import { useNexoraTraces } from '@/hooks/queries/nexora-traces'
 import { useWorkflowMap, useWorkflows } from '@/hooks/queries/workflows'
 import { useDateFormat } from '@/hooks/use-date-format'
 import { useDebounce } from '@/hooks/use-debounce'
@@ -248,6 +249,12 @@ export default function Logs() {
   const t = useTranslations('logs')
   const viaSite = useNexoraHome().data?.viaSite ?? false
   const { locale } = useDateFormat()
+  // A person billed by the site sees the tokens a run used (read from its trace), not a cost.
+  const { data: traces } = useNexoraTraces(viaSite ? workspaceId : '', {})
+  const tokensByExecution = useMemo(
+    () => logTokensByExecution(traces?.pages.flatMap((page) => page.traces)),
+    [traces]
+  )
 
   const {
     timeRange,
@@ -805,13 +812,22 @@ export default function Logs() {
 
         const durationMs = parseDuration({ duration: log.duration ?? undefined })
         const durationText =
-          durationMs != null ? (formatDuration(durationMs, { precision: 2 }) ?? '—') : '—'
+          durationMs != null ? (formatLogDuration(durationMs, locale) ?? '—') : '—'
 
         const costCredits = logCostCredits(log.cost?.total, viaSite)
-        const costText =
-          costCredits !== null
-            ? t('list.credits', { count: costCredits, formatted: costCredits.toLocaleString() })
-            : '—'
+        const runTokens = log.executionId ? tokensByExecution.get(log.executionId) : undefined
+        let costText = '—'
+        if (viaSite && runTokens) {
+          costText = t('list.tokens', {
+            count: runTokens.total,
+            formatted: runTokens.total.toLocaleString(locale),
+          })
+        } else if (costCredits !== null) {
+          costText = t('list.credits', {
+            count: costCredits,
+            formatted: costCredits.toLocaleString(),
+          })
+        }
 
         return {
           id: log.id,
@@ -827,7 +843,7 @@ export default function Logs() {
           },
         }
       }),
-    [logs, t, locale, viaSite]
+    [logs, t, locale, viaSite, tokensByExecution]
   )
 
   const hasNextLog = selectedLogIndex >= 0 && selectedLogIndex < logs.length - 1 // i18n-ignore: comparison, not text
@@ -1115,14 +1131,14 @@ export default function Logs() {
       options: [
         { id: 'date', label: t('columns.date') },
         { id: 'duration', label: t('columns.duration') },
-        { id: 'cost', label: t('columns.cost') },
+        ...(viaSite ? [] : [{ id: 'cost', label: t('columns.cost') }]),
         { id: 'status', label: t('columns.status') },
       ],
       active: activeSort,
       onSort,
       onClear: onClearSort,
     }),
-    [activeSort, onSort, onClearSort, t]
+    [activeSort, onSort, onClearSort, t, viaSite]
   )
 
   const searchConfig = useMemo<SearchConfig>(
@@ -1202,8 +1218,12 @@ export default function Logs() {
   )
 
   const logColumns = useMemo<ResourceColumn[]>(
-    () => LOG_COLUMN_IDS.map((id) => ({ id, header: t(`columns.${id}`) })),
-    [t]
+    () =>
+      LOG_COLUMN_IDS.map((id) => ({
+        id,
+        header: t(id === 'cost' && viaSite ? 'columns.tokens' : `columns.${id}`),
+      })),
+    [t, viaSite]
   )
 
   return (

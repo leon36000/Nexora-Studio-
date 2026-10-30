@@ -7,7 +7,7 @@
     "baseUrlNote": "Compatible OpenAI : à mettre dans « base_url » (Python), « baseURL » (TypeScript) ou « Base URL » (n8n).",
     "auth": "Authentification",
     "manageKeys": "Clés API",
-    "authText": "Chaque requête porte l’en-tête « Authorization: Bearer VOTRE_CLÉ ». Créez la clé dans Réglages › Clés API : nom, expiration, modèles autorisés, plafond mensuel et débit ; sa valeur n’est affichée qu’une fois. Une clé expirée ou révoquée reçoit une erreur 401, un modèle non autorisé une erreur 403.",
+    "authText": "Chaque requête porte l’en-tête « Authorization: Bearer VOTRE_CLÉ ». Créez la clé dans Réglages › Clés d’API Nexora : nom, expiration, modèles autorisés, plafond mensuel et débit ; sa valeur n’est affichée qu’une fois. Une clé expirée ou révoquée reçoit une erreur 401, un modèle non autorisé une erreur 403.",
     "models": "Modèles et agents",
     "modelsText": "Modèles de l’instance (« model ») :",
     "agentsText": "Agents publiés de cet espace (clé d’espace seulement) :",

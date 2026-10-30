@@ -607,6 +607,7 @@ function DetailCodeSection({
               >
                 <DropdownMenuTrigger asChild>
                   <div
+                    role='button'
                     style={{
                       position: 'fixed',
                       left: `${contextMenuPosition.x}px`,

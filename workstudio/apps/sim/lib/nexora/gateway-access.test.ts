@@ -305,7 +305,7 @@ describe('requestWorkstudioAccess', () => {
     expect(new NexoraGatewayError('two-factor-required').message).toMatch(
       /double authentification/i
     )
-    expect(new NexoraGatewayError('email-not-verified').message).toMatch(/adresse e-mail/i)
+    expect(new NexoraGatewayError('email-not-verified').message).toMatch(/adresse courriel/i)
     expect(new NexoraGatewayError('site-unavailable').message).toMatch(/réessayez/i)
   })
 

@@ -108,7 +108,7 @@
           "title": "Votre équipe",
           "invite": "Inviter des collègues",
           "teammates": "Ouvrir Collaborateurs",
-          "noEmailHint": "Aucun service d’e-mail : copiez le lien d’invitation et envoyez-le à vos collègues."
+          "noEmailHint": "Aucun service de courriel : copiez le lien d’invitation et envoyez-le à vos collègues."
         },
         "tools": {
           "title": "Vos outils",

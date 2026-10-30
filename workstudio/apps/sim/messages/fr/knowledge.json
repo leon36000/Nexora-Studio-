@@ -52,9 +52,9 @@
     "description": "Description",
     "descriptionPlaceholder": "Décrivez cette base de connaissances (facultatif)",
     "minChunkSize": "Taille min. des fragments (caractères)",
-    "maxChunkSize": "Taille max. des fragments (tokens)",
-    "overlap": "Chevauchement (tokens)",
-    "overlapHint": "1 token ≈ 4 caractères. La taille max. des fragments et le chevauchement sont exprimés en tokens.",
+    "maxChunkSize": "Taille max. des fragments (jetons)",
+    "overlap": "Chevauchement (jetons)",
+    "overlapHint": "1 jeton ≈ 4 caractères. La taille max. des fragments et le chevauchement sont exprimés en jetons.",
     "strategy": "Stratégie de découpage",
     "strategyHint": "Le mode Auto détecte la meilleure stratégie selon le type de contenu du fichier.",
     "strategies": {
@@ -62,7 +62,7 @@
       "text": "Texte (découpage aux limites de mots)",
       "recursive": "Récursif (séparateurs configurables)",
       "sentence": "Phrase",
-      "token": "Token (taille fixe)",
+      "token": "Jeton (taille fixe)",
       "regex": "Regex (motif personnalisé)"
     },
     "regexPattern": "Motif regex",
@@ -92,11 +92,11 @@
       "descriptionTooLong": "La description doit comporter au maximum {descriptionMax} caractères",
       "minChunkTooSmall": "La taille min. des fragments doit être d’au moins 1 caractère",
       "minChunkTooLarge": "La taille min. des fragments doit être inférieure à 2000 caractères",
-      "maxChunkTooSmall": "La taille max. des fragments doit être d’au moins 100 tokens",
-      "maxChunkTooLarge": "La taille max. des fragments doit être inférieure à 4000 tokens",
+      "maxChunkTooSmall": "La taille max. des fragments doit être d’au moins 100 jetons",
+      "maxChunkTooLarge": "La taille max. des fragments doit être inférieure à 4000 jetons",
       "overlapNegative": "Le chevauchement ne peut pas être négatif",
-      "overlapTooLarge": "Le chevauchement doit être inférieur à 500 tokens",
-      "minChunkVsMax": "La taille min. des fragments (caractères) doit être inférieure à la taille max. (tokens × 4)",
+      "overlapTooLarge": "Le chevauchement doit être inférieur à 500 jetons",
+      "minChunkVsMax": "La taille min. des fragments (caractères) doit être inférieure à la taille max. (jetons × 4)",
       "overlapVsMax": "Le chevauchement doit être inférieur à la taille max. des fragments",
       "regexRequired": "Un motif regex est obligatoire avec la stratégie regex",
       "tooManySeparators": "{maxSeparators} séparateurs au maximum sont autorisés",
@@ -113,7 +113,7 @@
     "maxSize": "Taille max.",
     "minSize": "Taille min.",
     "overlap": "Chevauchement",
-    "tokens": "tokens",
+    "tokens": "jetons",
     "chars": "caract.",
     "saving": "Enregistrement…",
     "save": "Enregistrer",
@@ -154,7 +154,7 @@
     "columns": {
       "name": "Nom",
       "documents": "Documents",
-      "tokens": "Tokens",
+      "tokens": "Jetons",
       "connectors": "Connecteurs",
       "created": "Créée le",
       "owner": "Propriétaire",
@@ -219,7 +219,7 @@
   "documentColumns": {
     "name": "Nom",
     "size": "Taille",
-    "tokens": "Tokens",
+    "tokens": "Jetons",
     "chunks": "Fragments",
     "uploaded": "Importé le",
     "status": "Statut",
@@ -290,7 +290,7 @@
     "sort": {
       "filename": "Nom",
       "fileSize": "Taille",
-      "tokenCount": "Tokens",
+      "tokenCount": "Jetons",
       "chunkCount": "Fragments",
       "uploadedAt": "Importé le",
       "enabled": "Statut"
@@ -363,7 +363,7 @@
     "columns": {
       "content": "Contenu",
       "index": "Index",
-      "tokens": "Tokens",
+      "tokens": "Jetons",
       "status": "Statut"
     },
     "newChunk": "Nouveau fragment",
@@ -436,10 +436,10 @@
     "placeholderEdit": "Saisissez le contenu du fragment…",
     "placeholderConnector": "Ce fragment est synchronisé depuis un connecteur et ne peut pas être modifié",
     "placeholderReadOnly": "Lecture seule",
-    "tokenCount": "{count} tokens",
-    "tokenCountWithMax": "{count}/{max} tokens",
+    "tokenCount": "{count} jetons",
+    "tokenCountWithMax": "{count}/{max} jetons",
     "tokenizer": "Tokeniseur",
-    "tokenIndex": "Token n° {index}"
+    "tokenIndex": "Jeton n° {index}"
   },
   "fieldTypes": {
     "text": "Texte",

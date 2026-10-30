@@ -11,6 +11,7 @@
     "date": "Date",
     "status": "Statut",
     "cost": "Coût",
+    "tokens": "Jetons",
     "trigger": "Déclencheur",
     "duration": "Durée"
   },
@@ -67,6 +68,7 @@
   "list": {
     "searchPlaceholder": "Rechercher dans les journaux…",
     "credits": "{count, plural, one {{formatted} crédit} other {{formatted} crédits}}",
+    "tokens": "{count, plural, one {{formatted} jeton} other {{formatted} jetons}}",
     "runStopped": "Exécution arrêtée",
     "stopRunFailed": "Impossible d'arrêter l'exécution",
     "retryStarted": "Nouvelle tentative lancée",

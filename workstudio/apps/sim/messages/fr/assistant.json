@@ -151,7 +151,7 @@
     "create": "Créer la tâche",
     "creating": "Création…",
     "title": "Tâches planifiées",
-    "empty": "Aucune tâche planifiée. Écrivez par exemple « chaque lundi à 9 h, résume mes e-mails ».",
+    "empty": "Aucune tâche planifiée. Écrivez par exemple « chaque lundi à 9 h, résume mes courriels ».",
     "loadFailed": "Impossible de charger vos tâches.",
     "deleteTitle": "Supprimer la tâche",
     "deleteText": "« {title} » et son workflow seront supprimés. Elle ne s'exécutera plus.",

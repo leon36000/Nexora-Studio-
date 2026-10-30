@@ -6,6 +6,7 @@
     "createFailed": "L’agent n’a pas pu être créé."
   },
   "model": {
+    "label": "Modèle",
     "placeholder": "Choisir un modèle",
     "default": "Modèle par défaut",
     "empty": "Aucun modèle disponible",
@@ -182,7 +183,7 @@
     "copy": "Copier le lien",
     "notPublished": "Pas encore publié.",
     "public": "Accessible sans compte (lien public)",
-    "accessSetInEditor": "Accès configuré dans l’éditeur (mot de passe, liste d’e-mails ou SSO) : la publication le conserve.",
+    "accessSetInEditor": "Accès configuré dans l’éditeur (mot de passe, liste de courriels ou SSO) : la publication le conserve.",
     "membersHint": "Réservé aux membres de l’espace connectés à Nexora. Publiez à nouveau pour appliquer un changement.",
     "publicHint": "Toute personne qui a le lien peut discuter avec l’agent (par exemple vos clients) : ne lui donnez pas accès à des documents confidentiels."
   },

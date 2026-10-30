@@ -13,7 +13,7 @@
     "creditsAmount": "{credits} crédits",
     "oneTimeAt80": "Notification unique, envoyée à 80 % de consommation.",
     "oneTimeAt100": "Notification unique, envoyée à 100 % de consommation.",
-    "expiresIn7Days": "Cette invitation expire dans 7 jours. Si vous ne l’attendiez pas, vous pouvez ignorer cet e-mail.",
+    "expiresIn7Days": "Cette invitation expire dans 7 jours. Si vous ne l’attendiez pas, vous pouvez ignorer cet courriel.",
     "founder": "{brandName}",
     "founderName": "L'équipe"
   },
@@ -27,10 +27,10 @@
   },
   "subjects": {
     "signIn": "Connexion à {brandName}",
-    "emailVerification": "Vérifiez votre adresse e-mail pour {brandName}",
-    "changeEmail": "Vérifiez votre nouvelle adresse e-mail pour {brandName}",
+    "emailVerification": "Vérifiez votre adresse courriel pour {brandName}",
+    "changeEmail": "Vérifiez votre nouvelle adresse courriel pour {brandName}",
     "resetPassword": "Réinitialisez votre mot de passe {brandName}",
-    "existingAccount": "Tentative d’inscription avec votre adresse e-mail {brandName}",
+    "existingAccount": "Tentative d’inscription avec votre adresse courriel {brandName}",
     "invitation": "Vous êtes invité à rejoindre une équipe sur {brandName}",
     "enterpriseOwnerInvitation": "Activez votre organisation Enterprise sur {brandName}",
     "batchInvitation": "Vous êtes invité à rejoindre une équipe et des espaces de travail sur {brandName}",
@@ -60,8 +60,8 @@
     "workspaceInvitationMultiple": "Vous êtes invité à rejoindre {count} espaces de travail sur {brandName}"
   },
   "existingAccount": {
-    "preview": "Quelqu’un a tenté de s’inscrire avec votre adresse e-mail {brandName}",
-    "body": "Quelqu’un vient d’essayer de créer un compte {brandName} avec cette adresse e-mail, mais un compte existe déjà. Si c’était vous, connectez-vous plutôt — ou réinitialisez votre mot de passe si vous l’avez oublié.",
+    "preview": "Quelqu’un a tenté de s’inscrire avec votre adresse courriel {brandName}",
+    "body": "Quelqu’un vient d’essayer de créer un compte {brandName} avec cette adresse courriel, mais un compte existe déjà. Si c’était vous, connectez-vous plutôt — ou réinitialisez votre mot de passe si vous l’avez oublié.",
     "signIn": "Se connecter",
     "footnote": "Si ce n’était pas vous, aucune action n’est nécessaire : aucun compte n’a été créé ni modifié."
   },
@@ -76,17 +76,17 @@
     "chatFallback": "Chat",
     "heading": "Votre code de vérification :",
     "expiry": "Ce code expire dans 15 minutes.",
-    "footnote": "Ne communiquez ce code à personne. Si vous n’avez pas demandé ce code, vous pouvez ignorer cet e-mail."
+    "footnote": "Ne communiquez ce code à personne. Si vous n’avez pas demandé ce code, vous pouvez ignorer cet courriel."
   },
   "resetPassword": {
     "body": "Une réinitialisation du mot de passe a été demandée pour votre compte {brandName}. Cliquez ci-dessous pour définir un nouveau mot de passe.",
     "button": "Réinitialiser le mot de passe",
-    "footnote": "Si vous n’êtes pas à l’origine de cette demande, vous pouvez ignorer cet e-mail. Le lien expire dans 24 heures."
+    "footnote": "Si vous n’êtes pas à l’origine de cette demande, vous pouvez ignorer cet courriel. Le lien expire dans 24 heures."
   },
   "welcome": {
     "body": "Bienvenue sur {brandName} ! Votre compte est prêt. Créez, testez et déployez des workflows d’IA en quelques minutes.",
     "getStarted": "Commencer",
-    "feedback": "Pour toute question ou remarque, répondez simplement à cet e-mail : nous lisons chaque message.",
+    "feedback": "Pour toute question ou remarque, répondez simplement à cet courriel : nous lisons chaque message.",
     "call": "Besoin d'aide pour démarrer ? Consultez le <link>guide de Nexora</link>.",
     "signature": "— L'équipe {brandName}",
     "footnote": "Vous êtes sur le forfait Community, avec 1 000 crédits pour commencer."
@@ -136,7 +136,7 @@
     "nextSteps": "Prochaines étapes",
     "inviteTeammates": "• Invitez vos collègues dans votre organisation",
     "startBuilding": "• Commencez à créer vos workflows",
-    "footnote": "Des questions ? Répondez à cet e-mail ou écrivez-nous à <link>{email}</link>"
+    "footnote": "Des questions ? Répondez à cet courriel ou écrivez-nous à <link>{email}</link>"
   },
   "freeTierUpgrade": {
     "preview": "{brandName} : vous avez utilisé {percent} % de vos crédits gratuits",
@@ -242,14 +242,14 @@
     "selected": "Vous avez été désigné comme propriétaire de l’organisation <strong>{organizationName}</strong> sur {brandName}.",
     "review": "Examinez et acceptez l’invitation pour créer l’organisation et démarrer son forfait Enterprise. La facturation ne commence qu’après votre acceptation.",
     "button": "Examiner l’invitation Enterprise",
-    "footnote": "Cette invitation expire dans {days} jours. Si vous ne l’attendiez pas, vous pouvez ignorer cet e-mail."
+    "footnote": "Cette invitation expire dans {days} jours. Si vous ne l’attendiez pas, vous pouvez ignorer cet courriel."
   },
   "invitation": {
     "defaultInviter": "Un membre de l’équipe",
     "defaultOrganization": "une organisation",
     "preview": "Vous êtes invité à rejoindre {organizationName} sur {brandName}",
     "body": "<strong>{inviterName}</strong> vous invite à rejoindre <strong>{organizationName}</strong> sur {brandName}.",
-    "footnote": "Cette invitation expire dans 48 heures. Si vous ne l’attendiez pas, vous pouvez ignorer cet e-mail."
+    "footnote": "Cette invitation expire dans 48 heures. Si vous ne l’attendiez pas, vous pouvez ignorer cet courriel."
   },
   "workspaceAdded": {
     "defaultWorkspace": "Espace de travail",
@@ -311,7 +311,7 @@
     "dataProcessed": "Données traitées : {value}",
     "location": "Lieu de traitement : {value}",
     "effective": "Date d’effet : {date}",
-    "objection": "Si vous vous opposez à ce changement, répondez à cet e-mail ou écrivez à <link>{email}</link> avant le <strong>{deadline}</strong>. Nous chercherons une solution avec vous ; à défaut, vous pourrez résilier le service concerné.",
+    "objection": "Si vous vous opposez à ce changement, répondez à cet courriel ou écrivez à <link>{email}</link> avant le <strong>{deadline}</strong>. Nous chercherons une solution avec vous ; à défaut, vous pourrez résilier le service concerné.",
     "noAction": "Aucune action n’est nécessaire si vous ne vous y opposez pas. La liste complète des sous-traitants est tenue à jour via le lien ci-dessous.",
     "button": "Voir la liste des sous-traitants",
     "footnote": "Envoyé aux clients abonnés aux avis de changement de sous-traitants.",

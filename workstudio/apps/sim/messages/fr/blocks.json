@@ -138,15 +138,15 @@
         "placeholder": "Saisissez un nombre de messages (ex. : 10)…"
       },
       "slidingWindowTokens": {
-        "title": "Nombre maximal de tokens",
-        "placeholder": "Saisissez le nombre maximal de tokens (ex. : 4000)…"
+        "title": "Nombre maximal de jetons",
+        "placeholder": "Saisissez le nombre maximal de jetons (ex. : 4000)…"
       },
       "temperature": {
         "title": "Température"
       },
       "maxTokens": {
-        "title": "Tokens de sortie maximum",
-        "placeholder": "Saisissez le nombre maximal de tokens (ex. : 4096)…"
+        "title": "Jetons de sortie maximum",
+        "placeholder": "Saisissez le nombre maximal de jetons (ex. : 4096)…"
       },
       "responseFormat": {
         "title": "Format de réponse",
@@ -172,7 +172,7 @@
   },
   "agentmail": {
     "name": "AgentMail",
-    "description": "Gérer boîtes de réception, fils et messages e-mail avec AgentMail"
+    "description": "Gérer boîtes de réception, fils et messages courriel avec AgentMail"
   },
   "agentphone": {
     "name": "AgentPhone",
@@ -744,8 +744,8 @@
         "title": "Actifs uniquement"
       },
       "invitee_email": {
-        "title": "E-mail de l'invité",
-        "placeholder": "Filtrer par e-mail de l'invité"
+        "title": "Courriel de l'invité",
+        "placeholder": "Filtrer par courriel de l'invité"
       },
       "min_start_time": {
         "title": "Début au plus tôt",
@@ -785,8 +785,8 @@
         "placeholder": "Motif de l'annulation (facultatif)"
       },
       "inviteeEmail": {
-        "title": "E-mail de l'invité",
-        "placeholder": "Adresse e-mail de la personne à inscrire"
+        "title": "Courriel de l'invité",
+        "placeholder": "Adresse courriel de la personne à inscrire"
       },
       "inviteeName": {
         "title": "Nom de l'invité",
@@ -836,8 +836,8 @@
         "canvasNoun": "un formulaire de routage"
       },
       "email": {
-        "title": "E-mail",
-        "placeholder": "Filtrer par e-mail de l'invité"
+        "title": "Courriel",
+        "placeholder": "Filtrer par courriel de l'invité"
       },
       "count": {
         "title": "Résultats par page",
@@ -1071,7 +1071,7 @@
   },
   "datagma": {
     "name": "Datagma",
-    "description": "Trouver des e-mails et mobiles B2B vérifiés et enrichir des profils de personnes ou d'entreprises"
+    "description": "Trouver des courriels et mobiles B2B vérifiés et enrichir des profils de personnes ou d'entreprises"
   },
   "daytona": {
     "name": "Daytona",
@@ -1103,7 +1103,7 @@
   },
   "dropcontact": {
     "name": "Dropcontact",
-    "description": "Enrichir des contacts B2B avec e-mail, téléphone et données d'entreprise vérifiés"
+    "description": "Enrichir des contacts B2B avec courriel, téléphone et données d'entreprise vérifiés"
   },
   "dspy": {
     "name": "DSPy",
@@ -1151,7 +1151,7 @@
   },
   "enrow": {
     "name": "Enrow",
-    "description": "Trouver et vérifier des adresses e-mail B2B"
+    "description": "Trouver et vérifier des adresses courriel B2B"
   },
   "evaluator": {
     "name": "Évaluateur",
@@ -1484,7 +1484,7 @@
           "private": "Privé (désactiver le lien)",
           "public": "Toute personne disposant du lien",
           "password": "Protégé par mot de passe",
-          "email": "Liste d'e-mails autorisés",
+          "email": "Liste de courriels autorisés",
           "sso": "SSO"
         }
       },
@@ -1493,8 +1493,8 @@
         "placeholder": "Mot de passe du lien public"
       },
       "shareAllowedEmails": {
-        "title": "E-mails autorisés",
-        "placeholder": "E-mails ou motifs @domaine, séparés par des virgules ou des retours à la ligne"
+        "title": "Courriels autorisés",
+        "placeholder": "Courriels ou motifs @domaine, séparés par des virgules ou des retours à la ligne"
       },
       "folderPath": {
         "title": "Dossier",
@@ -1635,7 +1635,7 @@
   },
   "findymail": {
     "name": "Findymail",
-    "description": "Trouver et vérifier e-mails, téléphones, salariés et données d'entreprise B2B"
+    "description": "Trouver et vérifier courriels, téléphones, salariés et données d'entreprise B2B"
   },
   "firecrawl": {
     "name": "Firecrawl",
@@ -1759,7 +1759,7 @@
       },
       "triggerInstructions": {
         "title": "Instructions de configuration",
-        "content": "<div class=\"mb-3\"><strong>1.</strong> Copiez l'URL du webhook et utilisez-la dans votre service externe ou votre API.</div><div class=\"mb-3\"><strong>2.</strong> Configurez votre service pour qu'il envoie ses webhooks à cette URL.</div><div class=\"mb-3\"><strong>3.</strong> Le webhook accepte POST. Activez « Accepter d'autres méthodes HTTP » pour accepter aussi GET, PUT, PATCH et DELETE, par exemple pour déclencher le workflow depuis un lien dans un e-mail.</div><div class=\"mb-3\"><strong>4.</strong> Les champs du corps sont disponibles dans votre workflow, et les paramètres d'URL sous « query » (par exemple « query.id »). Activez « Exposer les en-têtes de la requête » pour obtenir aussi « headers » (par exemple « headers.x-event-name »), et « Accepter d'autres méthodes HTTP » pour obtenir aussi « method ».</div><div class=\"mb-3\"><strong>5.</strong> L'authentification passe par un en-tête : elle ne fonctionne donc pas avec un simple lien. Si l'authentification est activée, placez le jeton dans l'en-tête secret que vous avez configuré, ou dans « Authorization: Bearer TOKEN » si vous l'avez laissé vide ; seul l'en-tête configuré est accepté, pas l'un ou l'autre.</div><div class=\"mb-3\"><strong>6.</strong> Pour dédoublonner les événements reçus, renseignez le champ de dédoublonnage avec le chemin en notation pointée d'un identifiant unique du contenu (par exemple « event.id »). Les valeurs en double reçues dans les 7 jours sont ignorées.</div><div class=\"mb-3\"><strong>7.</strong> N'activez « Vérifier les événements de test » que si le service émetteur a besoin d'une réponse 200 temporaire pour valider l'URL du webhook.</div>"
+        "content": "<div class=\"mb-3\"><strong>1.</strong> Copiez l'URL du webhook et utilisez-la dans votre service externe ou votre API.</div><div class=\"mb-3\"><strong>2.</strong> Configurez votre service pour qu'il envoie ses webhooks à cette URL.</div><div class=\"mb-3\"><strong>3.</strong> Le webhook accepte POST. Activez « Accepter d'autres méthodes HTTP » pour accepter aussi GET, PUT, PATCH et DELETE, par exemple pour déclencher le workflow depuis un lien dans un courriel.</div><div class=\"mb-3\"><strong>4.</strong> Les champs du corps sont disponibles dans votre workflow, et les paramètres d'URL sous « query » (par exemple « query.id »). Activez « Exposer les en-têtes de la requête » pour obtenir aussi « headers » (par exemple « headers.x-event-name »), et « Accepter d'autres méthodes HTTP » pour obtenir aussi « method ».</div><div class=\"mb-3\"><strong>5.</strong> L'authentification passe par un en-tête : elle ne fonctionne donc pas avec un simple lien. Si l'authentification est activée, placez le jeton dans l'en-tête secret que vous avez configuré, ou dans « Authorization: Bearer TOKEN » si vous l'avez laissé vide ; seul l'en-tête configuré est accepté, pas l'un ou l'autre.</div><div class=\"mb-3\"><strong>6.</strong> Pour dédoublonner les événements reçus, renseignez le champ de dédoublonnage avec le chemin en notation pointée d'un identifiant unique du contenu (par exemple « event.id »). Les valeurs en double reçues dans les 7 jours sont ignorées.</div><div class=\"mb-3\"><strong>7.</strong> N'activez « Vérifier les événements de test » que si le service émetteur a besoin d'une réponse 200 temporaire pour valider l'URL du webhook.</div>"
       },
       "samplePayload_generic_webhook": {
         "title": "Exemple de contenu d'événement"
@@ -1783,25 +1783,25 @@
   },
   "gmail_v2": {
     "name": "Gmail",
-    "description": "Envoyer, lire, rechercher et déplacer des e-mails Gmail ou déclencher des workflows à partir d'événements Gmail",
-    "defaultTitle": "Envoyer un e-mail",
+    "description": "Envoyer, lire, rechercher et déplacer des courriels Gmail ou déclencher des workflows à partir d'événements Gmail",
+    "defaultTitle": "Envoyer un courriel",
     "typeLabel": "Gmail",
     "operationRowTitle": "Action",
     "subBlocks": {
       "operation": {
         "title": "Opération",
         "options": {
-          "send_gmail": "Envoyer un e-mail",
-          "read_gmail": "Lire des e-mails",
+          "send_gmail": "Envoyer un courriel",
+          "read_gmail": "Lire des courriels",
           "draft_gmail": "Rédiger un brouillon",
           "edit_draft_gmail": "Modifier un brouillon",
-          "search_gmail": "Rechercher des e-mails",
-          "move_gmail": "Déplacer un e-mail",
+          "search_gmail": "Rechercher des courriels",
+          "move_gmail": "Déplacer un courriel",
           "mark_read_gmail": "Marquer comme lu",
           "mark_unread_gmail": "Marquer comme non lu",
-          "archive_gmail": "Archiver un e-mail",
-          "unarchive_gmail": "Désarchiver un e-mail",
-          "delete_gmail": "Supprimer un e-mail",
+          "archive_gmail": "Archiver un courriel",
+          "unarchive_gmail": "Désarchiver un courriel",
+          "delete_gmail": "Supprimer un courriel",
           "add_label_gmail": "Ajouter un libellé",
           "remove_label_gmail": "Retirer un libellé"
         }
@@ -1816,7 +1816,7 @@
       },
       "impersonateUserEmail": {
         "title": "Compte délégué",
-        "placeholder": "E-mail de l'utilisateur à représenter (pour les comptes de service)"
+        "placeholder": "Courriel de l'utilisateur à représenter (pour les comptes de service)"
       },
       "draftId": {
         "title": "ID du brouillon",
@@ -1825,17 +1825,17 @@
       },
       "to": {
         "title": "À",
-        "placeholder": "Adresse e-mail du destinataire",
+        "placeholder": "Adresse courriel du destinataire",
         "canvasNoun": "un destinataire"
       },
       "subject": {
         "title": "Objet",
-        "placeholder": "Objet de l'e-mail",
+        "placeholder": "Objet de le courriel",
         "canvasNoun": "un objet"
       },
       "body": {
         "title": "Corps",
-        "placeholder": "Contenu de l'e-mail"
+        "placeholder": "Contenu de le courriel"
       },
       "contentType": {
         "title": "Type de contenu",
@@ -1886,7 +1886,7 @@
       },
       "messageId": {
         "title": "ID du message",
-        "placeholder": "Lire un e-mail précis par ID (remplace le libellé/dossier)"
+        "placeholder": "Lire un courriel précis par ID (remplace le libellé/dossier)"
       },
       "query": {
         "title": "Requête de recherche",
@@ -1900,7 +1900,7 @@
       },
       "moveMessageId": {
         "title": "ID du message",
-        "placeholder": "ID de l'e-mail à déplacer",
+        "placeholder": "ID de le courriel à déplacer",
         "canvasNoun": "un ID de message"
       },
       "destinationLabel": {
@@ -1923,12 +1923,12 @@
       },
       "actionMessageId": {
         "title": "ID du message",
-        "placeholder": "ID de l'e-mail",
+        "placeholder": "ID de le courriel",
         "canvasNoun": "un ID de message"
       },
       "labelActionMessageId": {
         "title": "ID du message",
-        "placeholder": "ID de l'e-mail"
+        "placeholder": "ID de le courriel"
       },
       "labelSelector": {
         "title": "Libellé",
@@ -1945,7 +1945,7 @@
       },
       "labelIds": {
         "title": "Libellés Gmail à surveiller",
-        "placeholder": "Sélectionnez les libellés Gmail à surveiller pour les nouveaux e-mails",
+        "placeholder": "Sélectionnez les libellés Gmail à surveiller pour les nouveaux courriels",
         "canvasNoun": "un libellé"
       },
       "labelFilterBehavior": {
@@ -2028,7 +2028,7 @@
     },
     "triggerSentences": {
       "gmail_poller": {
-        "0": "Exécuter à la réception d'un e-mail",
+        "0": "Exécuter à la réception d'un courriel",
         "1": "dans",
         "2": "correspondant à"
       }
@@ -2093,7 +2093,7 @@
       },
       "impersonateUserEmail": {
         "title": "Compte dont l'identité est empruntée",
-        "placeholder": "E-mail de l'utilisateur dont emprunter l'identité (comptes de service)"
+        "placeholder": "Courriel de l'utilisateur dont emprunter l'identité (comptes de service)"
       },
       "calendarId": {
         "title": "Agenda",
@@ -2184,11 +2184,11 @@
         }
       },
       "attendees": {
-        "title": "Participants (e-mails séparés par des virgules)",
+        "title": "Participants (courriels séparés par des virgules)",
         "placeholder": "john@example.com, jane@example.com",
         "variants": {
           "NewAttendeescommaseparatedemails": {
-            "title": "Nouveaux participants (e-mails séparés par des virgules)",
+            "title": "Nouveaux participants (courriels séparés par des virgules)",
             "placeholder": "john@example.com, jane@example.com",
             "canvasNoun": "de nouveaux participants"
           }
@@ -2322,11 +2322,11 @@
         }
       },
       "scopeValue": {
-        "title": "Bénéficiaire (e-mail ou domaine)",
+        "title": "Bénéficiaire (courriel ou domaine)",
         "placeholder": "person@example.com"
       },
       "sendNotifications": {
-        "title": "Envoyer un e-mail de notification",
+        "title": "Envoyer un courriel de notification",
         "options": {
           "true": "Oui",
           "false": "Non"
@@ -2338,11 +2338,11 @@
         "canvasNoun": "un ID de règle ACL"
       },
       "sendUpdates": {
-        "title": "Envoyer des notifications par e-mail",
+        "title": "Envoyer des notifications par courriel",
         "options": {
           "all": "Tous les participants",
           "externalOnly": "Participants externes uniquement",
-          "none": "Aucun (pas d'e-mail envoyé)"
+          "none": "Aucun (pas de courriel envoyé)"
         }
       },
       "triggerCredentials": {
@@ -2500,7 +2500,7 @@
       },
       "impersonateUserEmail": {
         "title": "Compte dont l'identité est empruntée",
-        "placeholder": "E-mail de l'utilisateur dont emprunter l'identité (comptes de service)"
+        "placeholder": "Courriel de l'utilisateur dont emprunter l'identité (comptes de service)"
       },
       "documentId": {
         "title": "Sélectionner un document",
@@ -2765,7 +2765,7 @@
       },
       "impersonateUserEmail": {
         "title": "Compte emprunté",
-        "placeholder": "E-mail dont emprunter l'identité (pour les comptes de service)"
+        "placeholder": "Courriel dont emprunter l'identité (pour les comptes de service)"
       },
       "fileName": {
         "title": "Nom du fichier",
@@ -2974,8 +2974,8 @@
         "title": "Partager avec",
         "placeholder": "Destinataire du partage",
         "options": {
-          "user": "Utilisateur (e-mail)",
-          "group": "Groupe (e-mail)",
+          "user": "Utilisateur (courriel)",
+          "group": "Groupe (courriel)",
           "domain": "Domaine",
           "anyone": "Toute personne disposant du lien"
         }
@@ -2991,8 +2991,8 @@
         }
       },
       "email": {
-        "title": "Adresse e-mail",
-        "placeholder": "E-mail de l'utilisateur ou du groupe avec qui partager"
+        "title": "Adresse courriel",
+        "placeholder": "Courriel de l'utilisateur ou du groupe avec qui partager"
       },
       "domain": {
         "title": "Domaine",
@@ -3000,7 +3000,7 @@
       },
       "sendNotification": {
         "title": "Envoyer une notification",
-        "placeholder": "Envoyer une notification par e-mail",
+        "placeholder": "Envoyer une notification par courriel",
         "options": {
           "true": "Oui (par défaut)",
           "false": "Non"
@@ -3008,7 +3008,7 @@
       },
       "emailMessage": {
         "title": "Message personnalisé",
-        "placeholder": "Message personnalisé pour l'e-mail de notification (facultatif)"
+        "placeholder": "Message personnalisé pour le courriel de notification (facultatif)"
       },
       "unshareFileSelector": {
         "title": "Sélectionner un fichier",
@@ -3431,7 +3431,7 @@
       },
       "impersonateUserEmail": {
         "title": "Compte emprunté",
-        "placeholder": "E-mail dont emprunter l'identité (pour les comptes de service)"
+        "placeholder": "Courriel dont emprunter l'identité (pour les comptes de service)"
       },
       "spreadsheetId": {
         "title": "Sélectionner une feuille de calcul",
@@ -3770,7 +3770,7 @@
         "title": "Types de données personnelles à détecter",
         "options": {
           "PERSON": "Nom de personne",
-          "EMAIL_ADDRESS": "Adresse e-mail",
+          "EMAIL_ADDRESS": "Adresse courriel",
           "PHONE_NUMBER": "Numéro de téléphone",
           "CREDIT_CARD": "Numéro de carte bancaire",
           "IP_ADDRESS": "Adresse IP",
@@ -3868,7 +3868,7 @@
         "placeholder": "Saisissez l'ID de l'identifiant"
       },
       "contactId": {
-        "title": "ID ou e-mail du contact",
+        "title": "ID ou courriel du contact",
         "variants": {
           "ContactID": {
             "title": "ID du contact",
@@ -3876,7 +3876,7 @@
             "canvasNoun": "un ID de contact"
           }
         },
-        "canvasNoun": "un ID ou e-mail de contact"
+        "canvasNoun": "un ID ou courriel de contact"
       },
       "companyId": {
         "title": "ID ou domaine de l'entreprise",
@@ -3902,8 +3902,8 @@
         "placeholder": "Laissez vide pour lister toutes les notes"
       },
       "emailId": {
-        "title": "ID de l'e-mail",
-        "placeholder": "Laissez vide pour lister tous les e-mails"
+        "title": "ID de le courriel",
+        "placeholder": "Laissez vide pour lister tous les courriels"
       },
       "objectType": {
         "title": "Type d'objet",
@@ -4010,7 +4010,7 @@
       },
       "idProperty": {
         "title": "Propriété d'identification",
-        "placeholder": "Obligatoire si vous utilisez un e-mail ou un domaine (ex. : \"email\" ou \"domain\")"
+        "placeholder": "Obligatoire si vous utilisez un courriel ou un domaine (ex. : \"email\" ou \"domain\")"
       },
       "propertiesToSet": {
         "title": "Propriétés",
@@ -4041,7 +4041,7 @@
       },
       "query": {
         "title": "Requête de recherche",
-        "placeholder": "Terme de recherche (ex. : nom d'entreprise, e-mail de contact)"
+        "placeholder": "Terme de recherche (ex. : nom d'entreprise, courriel de contact)"
       },
       "filterGroups": {
         "title": "Groupes de filtres",
@@ -4207,16 +4207,16 @@
         "3": ", triées par"
       },
       "get_emails": {
-        "0": "Lire les e-mails",
+        "0": "Lire les courriels",
         "1": "correspondant à",
         "2": ", en renvoyant"
       },
       "create_email": {
-        "0": "Consigner un e-mail avec",
+        "0": "Consigner un courriel avec",
         "1": ", associé à"
       },
       "search_emails": {
-        "0": "Rechercher des e-mails",
+        "0": "Rechercher des courriels",
         "1": ", correspondant à",
         "2": ", filtrés par",
         "3": ", triés par"
@@ -4353,7 +4353,7 @@
       },
       "notification": {
         "title": "Notification (envoi de l'URL)",
-        "description": "Configurez des outils de notification pour prévenir les valideurs (par exemple Slack, e-mail)"
+        "description": "Configurez des outils de notification pour prévenir les valideurs (par exemple Slack, courriel)"
       },
       "inputFormat": {
         "title": "Formulaire de reprise",
@@ -4370,7 +4370,7 @@
   },
   "hunter": {
     "name": "Hunter.io",
-    "description": "Trouver et vérifier des adresses e-mail professionnelles"
+    "description": "Trouver et vérifier des adresses courriel professionnelles"
   },
   "iam": {
     "name": "AWS IAM",
@@ -4378,7 +4378,7 @@
   },
   "icypeas": {
     "name": "Icypeas",
-    "description": "Trouver et vérifier des adresses e-mail professionnelles"
+    "description": "Trouver et vérifier des adresses courriel professionnelles"
   },
   "identity_center": {
     "name": "AWS Identity Center",
@@ -4389,8 +4389,8 @@
     "description": "Générer des images"
   },
   "imap": {
-    "name": "E-mail IMAP",
-    "description": "Déclencher des workflows à l'arrivée de nouveaux e-mails via IMAP (compatible avec tout fournisseur de messagerie)"
+    "name": "Courriel IMAP",
+    "description": "Déclencher des workflows à l'arrivée de nouveaux courriels via IMAP (compatible avec tout fournisseur de messagerie)"
   },
   "incidentio": {
     "name": "incident.io",
@@ -4413,7 +4413,7 @@
   },
   "instantly": {
     "name": "Instantly",
-    "description": "Gérer prospects, campagnes, e-mails et listes de prospects Instantly"
+    "description": "Gérer prospects, campagnes, courriels et listes de prospects Instantly"
   },
   "intercom_v2": {
     "name": "Intercom",
@@ -4693,7 +4693,7 @@
       },
       "searchUsersQuery": {
         "title": "Requête de recherche",
-        "placeholder": "Saisissez l'adresse e-mail ou le nom d'affichage à rechercher",
+        "placeholder": "Saisissez l'adresse courriel ou le nom d'affichage à rechercher",
         "canvasNoun": "une requête de recherche"
       },
       "searchUsersMaxResults": {
@@ -5282,11 +5282,11 @@
   },
   "leadmagic": {
     "name": "LeadMagic",
-    "description": "Trouver et enrichir contacts, e-mails, mobiles et données d'entreprise B2B"
+    "description": "Trouver et enrichir contacts, courriels, mobiles et données d'entreprise B2B"
   },
   "lemlist": {
     "name": "Lemlist",
-    "description": "Gérer activités de prospection et prospects, et envoyer des e-mails via Lemlist"
+    "description": "Gérer activités de prospection et prospects, et envoyer des courriels via Lemlist"
   },
   "linear_v2": {
     "name": "Linear",
@@ -5321,7 +5321,7 @@
   },
   "loops": {
     "name": "Loops",
-    "description": "Gérer des contacts et envoyer des e-mails avec Loops"
+    "description": "Gérer des contacts et envoyer des courriels avec Loops"
   },
   "luma": {
     "name": "Luma",
@@ -5362,21 +5362,21 @@
         "placeholder": "Objet JSON avec from_name, from_email, subject, language"
       },
       "emailTypeOption": {
-        "title": "Choix du type d'e-mail",
+        "title": "Choix du type de courriel",
         "options": {
           "true": "Vrai",
           "false": "Faux"
         }
       },
       "subscriberEmail": {
-        "title": "E-mail de l'abonné",
-        "placeholder": "Adresse e-mail ou hachage MD5",
-        "canvasNoun": "un e-mail d'abonné"
+        "title": "Courriel de l'abonné",
+        "placeholder": "Adresse courriel ou hachage MD5",
+        "canvasNoun": "un courriel d'abonné"
       },
       "emailAddress": {
-        "title": "Adresse e-mail",
-        "placeholder": "Adresse e-mail du membre",
-        "canvasNoun": "une adresse e-mail"
+        "title": "Adresse courriel",
+        "placeholder": "Adresse courriel du membre",
+        "canvasNoun": "une adresse courriel"
       },
       "status": {
         "title": "Statut",
@@ -5467,8 +5467,8 @@
         "canvasNoun": "un ID de workflow"
       },
       "workflowEmailId": {
-        "title": "ID de l'e-mail du workflow",
-        "placeholder": "ID de l'e-mail du workflow"
+        "title": "ID de le courriel du workflow",
+        "placeholder": "ID de le courriel du workflow"
       },
       "segmentId": {
         "title": "ID du segment",
@@ -5680,15 +5680,15 @@
         "0": "Lire l'automatisation"
       },
       "start_automation": {
-        "0": "Démarrer tous les e-mails de l'automatisation"
+        "0": "Démarrer tous les courriels de l'automatisation"
       },
       "pause_automation": {
-        "0": "Mettre en pause tous les e-mails de l'automatisation"
+        "0": "Mettre en pause tous les courriels de l'automatisation"
       },
       "add_subscriber_to_automation": {
         "0": "Mettre en file d'attente",
         "1": "pour l'automatisation",
-        "2": ", sur l'e-mail"
+        "2": ", sur le courriel"
       },
       "get_templates": {
         "0": "Lister",
@@ -5877,7 +5877,7 @@
   },
   "mailgun": {
     "name": "Mailgun",
-    "description": "Envoyer des e-mails et gérer des listes de diffusion avec Mailgun"
+    "description": "Envoyer des courriels et gérer des listes de diffusion avec Mailgun"
   },
   "managed_agent": {
     "name": "Claude Managed Agents",
@@ -6577,7 +6577,7 @@
   },
   "millionverifier": {
     "name": "MillionVerifier",
-    "description": "Vérifier la délivrabilité des e-mails et consulter les crédits du compte"
+    "description": "Vérifier la délivrabilité des courriels et consulter les crédits du compte"
   },
   "mintlify": {
     "name": "Mintlify",
@@ -6664,7 +6664,7 @@
   },
   "neverbounce": {
     "name": "NeverBounce",
-    "description": "Vérifier la délivrabilité des e-mails et consulter les crédits du compte"
+    "description": "Vérifier la délivrabilité des courriels et consulter les crédits du compte"
   },
   "new_relic": {
     "name": "New Relic",
@@ -7375,25 +7375,25 @@
   },
   "outlook": {
     "name": "Outlook",
-    "description": "Envoyer, lire, rechercher, répondre, classer et gérer e-mails et calendrier Outlook",
+    "description": "Envoyer, lire, rechercher, répondre, classer et gérer courriels et calendrier Outlook",
     "defaultTitle": "Outlook",
     "subBlocks": {
       "operation": {
         "title": "Opération",
         "options": {
-          "send_outlook": "Envoyer un e-mail",
+          "send_outlook": "Envoyer un courriel",
           "draft_outlook": "Rédiger un brouillon",
-          "read_outlook": "Lire des e-mails",
-          "search_outlook": "Rechercher des e-mails",
-          "reply_outlook": "Répondre à un e-mail",
+          "read_outlook": "Lire des courriels",
+          "search_outlook": "Rechercher des courriels",
+          "reply_outlook": "Répondre à un courriel",
           "reply_all_outlook": "Répondre à tous",
-          "forward_outlook": "Transférer un e-mail",
-          "move_outlook": "Déplacer un e-mail",
-          "copy_outlook": "Copier un e-mail",
+          "forward_outlook": "Transférer un courriel",
+          "move_outlook": "Déplacer un courriel",
+          "copy_outlook": "Copier un courriel",
           "mark_read_outlook": "Marquer comme lu",
           "mark_unread_outlook": "Marquer comme non lu",
           "update_message_outlook": "Catégories et indicateur",
-          "delete_outlook": "Supprimer un e-mail",
+          "delete_outlook": "Supprimer un courriel",
           "list_folders_outlook": "Lister les dossiers",
           "create_folder_outlook": "Créer un dossier",
           "list_attachments_outlook": "Lister les pièces jointes",
@@ -7416,7 +7416,7 @@
       },
       "to": {
         "title": "À",
-        "placeholder": "Adresse e-mail du destinataire",
+        "placeholder": "Adresse courriel du destinataire",
         "canvasNoun": "un destinataire"
       },
       "messageId": {
@@ -7430,12 +7430,12 @@
       },
       "subject": {
         "title": "Objet",
-        "placeholder": "Objet de l'e-mail",
+        "placeholder": "Objet de le courriel",
         "canvasNoun": "un objet"
       },
       "body": {
         "title": "Corps",
-        "placeholder": "Contenu de l'e-mail"
+        "placeholder": "Contenu de le courriel"
       },
       "contentType": {
         "title": "Type de contenu",
@@ -7482,7 +7482,7 @@
       },
       "moveMessageId": {
         "title": "ID du message",
-        "placeholder": "ID de l'e-mail à déplacer",
+        "placeholder": "ID de le courriel à déplacer",
         "canvasNoun": "un ID de message"
       },
       "destinationFolder": {
@@ -7495,12 +7495,12 @@
       },
       "actionMessageId": {
         "title": "ID du message",
-        "placeholder": "ID de l'e-mail",
+        "placeholder": "ID de le courriel",
         "canvasNoun": "un ID de message"
       },
       "copyMessageId": {
         "title": "ID du message",
-        "placeholder": "ID de l'e-mail à copier",
+        "placeholder": "ID de le courriel à copier",
         "canvasNoun": "un ID de message"
       },
       "copyDestinationFolder": {
@@ -7634,7 +7634,7 @@
       },
       "calAttendees": {
         "title": "Participants",
-        "placeholder": "E-mails des participants (séparés par des virgules)"
+        "placeholder": "Courriels des participants (séparés par des virgules)"
       },
       "calTimeZone": {
         "title": "Fuseau horaire",
@@ -7670,7 +7670,7 @@
       },
       "folderIds": {
         "title": "Dossiers Outlook à surveiller",
-        "placeholder": "Sélectionnez les dossiers Outlook à surveiller pour les nouveaux e-mails",
+        "placeholder": "Sélectionnez les dossiers Outlook à surveiller pour les nouveaux courriels",
         "canvasNoun": "un dossier"
       },
       "folderFilterBehavior": {
@@ -7703,11 +7703,11 @@
       },
       "read_outlook": {
         "0": "Lire jusqu'à",
-        "0_after": "e-mails récents",
+        "0_after": "courriels récents",
         "1": "dans"
       },
       "search_outlook": {
-        "0": "Rechercher dans les e-mails",
+        "0": "Rechercher dans les courriels",
         "1": ", jusqu'à",
         "1_after": "résultats"
       },
@@ -7791,7 +7791,7 @@
     },
     "triggerSentences": {
       "default": {
-        "0": "Exécuter à la réception d'un e-mail",
+        "0": "Exécuter à la réception d'un courriel",
         "1": "filtré par"
       }
     }
@@ -7840,7 +7840,7 @@
           "create_deal": "Créer une affaire",
           "update_deal": "Mettre à jour une affaire",
           "get_files": "Obtenir les fichiers",
-          "get_mail_messages": "Obtenir les fils d'e-mails",
+          "get_mail_messages": "Obtenir les fils de courriels",
           "get_mail_thread": "Obtenir les messages d'un fil",
           "get_pipelines": "Obtenir les pipelines",
           "get_pipeline_deals": "Obtenir les affaires du pipeline",
@@ -7941,7 +7941,7 @@
       },
       "thread_id": {
         "title": "ID du fil",
-        "placeholder": "Saisissez l'ID du fil d'e-mails",
+        "placeholder": "Saisissez l'ID du fil de courriels",
         "canvasNoun": "un ID de fil"
       },
       "sort_by": {
@@ -7995,7 +7995,7 @@
           "meeting": "Réunion",
           "task": "Tâche",
           "deadline": "Échéance",
-          "email": "E-mail",
+          "email": "Courriel",
           "lunch": "Déjeuner"
         }
       },
@@ -8102,12 +8102,12 @@
         "1": ", jusqu'à"
       },
       "get_mail_messages": {
-        "0": "Lister les fils d'e-mails",
+        "0": "Lister les fils de courriels",
         "1": ", dans",
         "2": ", jusqu'à"
       },
       "get_mail_thread": {
-        "0": "Lire tous les messages du fil d'e-mails"
+        "0": "Lire tous les messages du fil de courriels"
       },
       "get_pipelines": {
         "0": "Lister les pipelines",
@@ -8212,7 +8212,7 @@
   },
   "quickbooks": {
     "name": "QuickBooks",
-    "description": "Gérer entreprise, transactions, rapports, e-mails, PDF et pièces jointes QuickBooks Online"
+    "description": "Gérer entreprise, transactions, rapports, courriels, PDF et pièces jointes QuickBooks Online"
   },
   "quiver_v2": {
     "name": "Quiver",
@@ -8252,7 +8252,7 @@
   },
   "resend": {
     "name": "Resend",
-    "description": "Envoyer des e-mails et gérer des contacts avec Resend."
+    "description": "Envoyer des courriels et gérer des contacts avec Resend."
   },
   "response": {
     "name": "Réponse",
@@ -8522,8 +8522,8 @@
         "placeholder": "Prénom"
       },
       "email": {
-        "title": "E-mail",
-        "placeholder": "E-mail"
+        "title": "Courriel",
+        "placeholder": "Courriel"
       },
       "title": {
         "title": "Fonction",
@@ -8695,7 +8695,7 @@
           "DateTime": "Date/heure",
           "Time": "Heure",
           "Phone": "Téléphone",
-          "Email": "E-mail",
+          "Email": "Courriel",
           "Url": "URL",
           "Picklist": "Liste de sélection",
           "MultiselectPicklist": "Liste de sélection (multiple)"
@@ -8881,11 +8881,11 @@
       "create_contact": {
         "0": "Créer le contact",
         "1": ", rattaché au compte",
-        "2": ", avec l'e-mail"
+        "2": ", avec le courriel"
       },
       "update_contact": {
         "0": "Mettre à jour le contact",
-        "1": ", avec l'e-mail",
+        "1": ", avec le courriel",
         "2": ", fonction"
       },
       "delete_contact": {
@@ -9197,7 +9197,7 @@
   },
   "sendgrid": {
     "name": "SendGrid",
-    "description": "Envoyer des e-mails et gérer contacts, listes et modèles avec SendGrid"
+    "description": "Envoyer des courriels et gérer contacts, listes et modèles avec SendGrid"
   },
   "sentry": {
     "name": "Sentry",
@@ -9213,7 +9213,7 @@
   },
   "ses": {
     "name": "AWS SES",
-    "description": "Envoyer des e-mails et gérer des modèles avec AWS Simple Email Service"
+    "description": "Envoyer des courriels et gérer des modèles avec AWS Simple Email Service"
   },
   "sftp_v2": {
     "name": "SFTP",
@@ -9638,7 +9638,7 @@
         "placeholder": "Saisissez une note de commande"
       },
       "orderEmail": {
-        "title": "E-mail du client",
+        "title": "Courriel du client",
         "placeholder": "customer@example.com"
       },
       "orderTags": {
@@ -9675,7 +9675,7 @@
         "canvasNoun": "un ID de client"
       },
       "customerEmail": {
-        "title": "E-mail",
+        "title": "Courriel",
         "placeholder": "customer@example.com"
       },
       "firstName": {
@@ -9816,7 +9816,7 @@
         }
       },
       "emailMarketingConsent": {
-        "title": "Consentement au marketing par e-mail",
+        "title": "Consentement au marketing par courriel",
         "placeholder": "CustomerEmailMarketingConsentInput avec marketingState, marketingOptInLevel, consentUpdatedAt"
       },
       "smsMarketingConsent": {
@@ -10007,7 +10007,7 @@
       },
       "shopify_update_order": {
         "0": "Mettre à jour la commande",
-        "1": ", avec l'e-mail",
+        "1": ", avec le courriel",
         "2": ", avec la note"
       },
       "shopify_cancel_order": {
@@ -10017,7 +10017,7 @@
       "shopify_create_customer": {
         "0": "Créer un client",
         "1": "nommé",
-        "2": "avec l'e-mail"
+        "2": "avec le courriel"
       },
       "shopify_get_customer": {
         "0": "Récupérer le client"
@@ -10030,7 +10030,7 @@
       },
       "shopify_update_customer": {
         "0": "Mettre à jour le client",
-        "1": ", avec l'e-mail",
+        "1": ", avec le courriel",
         "2": ", avec le téléphone"
       },
       "shopify_delete_customer": {
@@ -10364,7 +10364,7 @@
         "title": "Inclure les détails de la conversation"
       },
       "slack_lookup_user_by_email_email": {
-        "title": "E-mail"
+        "title": "Courriel"
       },
       "slack_list_user_conversations_user": {
         "title": "ID utilisateur"
@@ -11244,7 +11244,7 @@
         "0": "Ouvrir une conversation"
       },
       "lookup_user_by_email": {
-        "0": "Trouver un utilisateur par e-mail"
+        "0": "Trouver un utilisateur par courriel"
       },
       "list_user_conversations": {
         "0": "Lister les conversations d'un utilisateur"
@@ -11564,7 +11564,7 @@
   },
   "smtp": {
     "name": "SMTP",
-    "description": "Envoyer des e-mails via n'importe quel serveur SMTP"
+    "description": "Envoyer des courriels via n'importe quel serveur SMTP"
   },
   "snowflake": {
     "name": "Snowflake",
@@ -11609,7 +11609,7 @@
       },
       "runMetadata": {
         "title": "Ajouter les métadonnées d'exécution",
-        "description": "Expose sous <start.metadata> des métadonnées d'exécution fiables, injectées par le serveur : subject, workspaceId, workflowId, executionId, executionType, executionMode, startTime. Le champ subject identifie l'utilisateur Nexora authentifié, l'e-mail du chat ou l'utilisateur du fournisseur externe, sans exposer d'identifiants."
+        "description": "Expose sous <start.metadata> des métadonnées d'exécution fiables, injectées par le serveur : subject, workspaceId, workflowId, executionId, executionType, executionMode, startTime. Le champ subject identifie l'utilisateur Nexora authentifié, le courriel du chat ou l'utilisateur du fournisseur externe, sans exposer d'identifiants."
       }
     }
   },
@@ -11649,7 +11649,7 @@
         "canvasNoun": "un ID de client"
       },
       "email": {
-        "title": "E-mail",
+        "title": "Courriel",
         "placeholder": "customer@example.com"
       },
       "name": {
@@ -11766,7 +11766,7 @@
         "placeholder": "ex. : succeeded, pending"
       },
       "receipt_email": {
-        "title": "E-mail du reçu",
+        "title": "Courriel du reçu",
         "placeholder": "customer@example.com"
       },
       "cancellation_reason": {
@@ -11858,7 +11858,7 @@
       },
       "create_customer": {
         "0": "Créer un client nommé",
-        "1": ", avec l'e-mail"
+        "1": ", avec le courriel"
       },
       "retrieve_customer": {
         "0": "Obtenir le client"
@@ -11866,7 +11866,7 @@
       "update_customer": {
         "0": "Mettre à jour le client",
         "1": ", renommé en",
-        "2": ", avec l'e-mail"
+        "2": ", avec le courriel"
       },
       "delete_customer": {
         "0": "Supprimer le client"
@@ -11931,7 +11931,7 @@
         "0": "Annuler la facture"
       },
       "send_invoice": {
-        "0": "Envoyer par e-mail la facture",
+        "0": "Envoyer par courriel la facture",
         "0_after": "à son client"
       },
       "list_invoices": {
@@ -13694,11 +13694,11 @@
         }
       },
       "email": {
-        "title": "E-mail",
-        "placeholder": "Votre adresse e-mail Zendesk",
+        "title": "Courriel",
+        "placeholder": "Votre adresse courriel Zendesk",
         "variants": {
           "AdminEmail": {
-            "title": "E-mail de l'administrateur",
+            "title": "Courriel de l'administrateur",
             "placeholder": "admin@yourcompany.com"
           }
         }
@@ -13776,8 +13776,8 @@
         "canvasNoun": "un nom"
       },
       "userEmail": {
-        "title": "E-mail",
-        "placeholder": "E-mail de l'utilisateur"
+        "title": "Courriel",
+        "placeholder": "Courriel de l'utilisateur"
       },
       "users": {
         "title": "Utilisateurs",
@@ -13945,7 +13945,7 @@
       },
       "create_user": {
         "0": "Créer un utilisateur nommé",
-        "1": "avec l'e-mail",
+        "1": "avec le courriel",
         "2": ", dans l'organisation"
       },
       "create_users_bulk": {
@@ -13954,7 +13954,7 @@
       "update_user": {
         "0": "Mettre à jour l'utilisateur",
         "1": ", renommé en",
-        "2": ", avec l'e-mail"
+        "2": ", avec le courriel"
       },
       "update_users_bulk": {
         "0": "Mettre à jour des utilisateurs en masse"
@@ -14006,7 +14006,7 @@
   },
   "zerobounce": {
     "name": "ZeroBounce",
-    "description": "Valider la délivrabilité des e-mails et consulter les crédits du compte"
+    "description": "Valider la délivrabilité des courriels et consulter les crédits du compte"
   },
   "zoho_desk": {
     "name": "Zoho Desk",

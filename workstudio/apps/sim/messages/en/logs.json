@@ -11,6 +11,7 @@
     "date": "Date",
     "status": "Status",
     "cost": "Cost",
+    "tokens": "Tokens",
     "trigger": "Trigger",
     "duration": "Duration"
   },
@@ -67,6 +68,7 @@
   "list": {
     "searchPlaceholder": "Search logs...",
     "credits": "{count, plural, one {{formatted} credit} other {{formatted} credits}}",
+    "tokens": "{count, plural, one {{formatted} token} other {{formatted} tokens}}",
     "runStopped": "Run stopped",
     "stopRunFailed": "Failed to stop run",
     "retryStarted": "Retry started",

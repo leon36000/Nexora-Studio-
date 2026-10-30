@@ -29,8 +29,8 @@
       "description": "Renvoie le résultat final du workflow."
     },
     "email": {
-      "label": "Envoyer un e-mail",
-      "description": "Envoie un message par votre serveur d’e-mail."
+      "label": "Envoyer un courriel",
+      "description": "Envoie un message par votre serveur de courriel."
     },
     "slack": {
       "label": "Message Slack",
@@ -222,7 +222,7 @@
     "network": "Le service distant est injoignable. Vérifiez l’adresse et la connexion réseau.",
     "json": "La réponse reçue n’est pas dans le format attendu (JSON invalide).",
     "reference": "Cette étape lit une valeur qui n’existe pas : vérifiez les noms des étapes et des champs cités.",
-    "smtp": "Le serveur d’e-mail a refusé la connexion. Vérifiez-le dans Réglages › E-mail.",
+    "smtp": "Le serveur de courriel a refusé la connexion. Vérifiez-le dans Réglages › Courriel.",
     "unknown": "Une erreur inattendue est survenue dans cette étape."
   },
   "toolbar": {

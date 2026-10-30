@@ -130,7 +130,7 @@
     "noJudge": "Aucun juge",
     "targets": "Cibles à évaluer",
     "threshold": "Seuil d’alerte (% de réussite)",
-    "thresholdHint": "Une alerte apparaît sur la page, et part par e-mail si le serveur d’e-mail est configuré, quand une cible réussit moins que ce seuil.",
+    "thresholdHint": "Une alerte apparaît sur la page, et part par courriel si le serveur de courriel est configuré, quand une cible réussit moins que ce seuil.",
     "thresholdInvalid": "Saisissez un nombre entre 0 et 100.",
     "failed": "La planification n’a pas pu être enregistrée.",
     "saving": "Enregistrement…",

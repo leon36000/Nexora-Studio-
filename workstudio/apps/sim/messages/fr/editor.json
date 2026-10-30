@@ -27,8 +27,8 @@
     "delete": "Supprimer"
   },
   "triggerPaste": {
-    "legacyStartPaste": "Impossible de coller des blocs déclencheurs lorsqu'un ancien bloc Start existe.",
-    "legacyStartDuplicate": "Impossible de dupliquer des blocs déclencheurs lorsqu'un ancien bloc Start existe.",
+    "legacyStartPaste": "Impossible de coller des blocs déclencheurs lorsqu'un ancien bloc Démarrage existe.",
+    "legacyStartDuplicate": "Impossible de dupliquer des blocs déclencheurs lorsqu'un ancien bloc Démarrage existe.",
     "singleTriggerPaste": "Un workflow ne peut contenir qu'un seul bloc déclencheur {name}. Supprimez celui qui existe avant de coller.",
     "singleTriggerDuplicate": "Un workflow ne peut contenir qu'un seul bloc déclencheur {name}. Duplication impossible.",
     "singleBlockPaste": "Un workflow ne peut contenir qu'un seul bloc {name}. Supprimez celui qui existe avant de coller.",
@@ -45,7 +45,7 @@
     "locked": "Ce workflow est verrouillé",
     "lockedAskAdmin": "Ce workflow est verrouillé. Demandez à un administrateur de le déverrouiller.",
     "unlockWorkflow": "Déverrouiller le workflow",
-    "legacyStartAdd": "Impossible d'ajouter de nouveaux blocs déclencheurs lorsqu'un ancien bloc Start existe. Disponible dans les workflows plus récents.",
+    "legacyStartAdd": "Impossible d'ajouter de nouveaux blocs déclencheurs lorsqu'un ancien bloc Démarrage existe. Disponible dans les workflows plus récents.",
     "singleTriggerAdd": "Un workflow ne peut contenir qu'un seul bloc déclencheur {name}. Supprimez celui qui existe avant d'en ajouter un nouveau.",
     "singleGenericTriggerAdd": "Un workflow ne peut contenir qu'un seul bloc déclencheur de ce type. Supprimez celui qui existe avant d'en ajouter un nouveau.",
     "singleBlockAdd": "Un workflow ne peut contenir qu'un seul bloc {name}. Supprimez celui qui existe avant d'en ajouter un nouveau.",
@@ -388,8 +388,8 @@
         "titleRequired": "Le titre est obligatoire",
         "passwordRequired": "Un mot de passe est obligatoire avec la protection par mot de passe",
         "passwordWhitespace": "Le mot de passe ne peut pas contenir uniquement des espaces",
-        "emailsRequired": "Au moins une adresse e-mail ou un domaine est requis pour le contrôle d'accès par e-mail",
-        "emailsRequiredSso": "Au moins une adresse e-mail ou un domaine est requis pour le contrôle d'accès SSO",
+        "emailsRequired": "Au moins une adresse courriel ou un domaine est requis pour le contrôle d'accès par courriel",
+        "emailsRequiredSso": "Au moins une adresse courriel ou un domaine est requis pour le contrôle d'accès SSO",
         "outputRequired": "Sélectionnez au moins un bloc de sortie",
         "identifierPending": "Veuillez patienter pendant la validation de l'identifiant",
         "deleteFailed": "Une erreur inattendue est survenue lors de la suppression"
@@ -434,7 +434,7 @@
           "workspace": "Membres de l’espace",
           "public": "Public",
           "password": "Mot de passe",
-          "email": "E-mail",
+          "email": "Courriel",
           "sso": "SSO"
         },
         "password": "Mot de passe",
@@ -443,10 +443,10 @@
         "passwordHelperKeep": "Laissez vide pour conserver le mot de passe actuel",
         "passwordHelperRequired": "Ce mot de passe sera requis pour accéder à votre chat",
         "revealFailed": "Impossible de charger le mot de passe actuel",
-        "allowedEmails": "E-mails autorisés",
-        "allowedSsoEmails": "E-mails SSO autorisés",
-        "emailsPlaceholder": "Saisissez des e-mails ou des domaines",
-        "emailsPlaceholderWithTags": "Ajouter un e-mail ou un domaine"
+        "allowedEmails": "Courriels autorisés",
+        "allowedSsoEmails": "Courriels SSO autorisés",
+        "emailsPlaceholder": "Saisissez des courriels ou des domaines",
+        "emailsPlaceholderWithTags": "Ajouter un courriel ou un domaine"
       }
     },
     "mcp": {
@@ -471,7 +471,7 @@
       "descriptionDefault": "Par défaut, la description du workflow : {description}",
       "descriptionPlaceholder": "Décrivez le rôle de cet outil...",
       "parameters": "Paramètres ({count})",
-      "parametersHint": "Les descriptions reprennent par défaut les entrées de votre bloc Start ; modifiez-les pour les remplacer dans cet outil.",
+      "parametersHint": "Les descriptions reprennent par défaut les entrées de votre bloc Démarrage ; modifiez-les pour les remplacer dans cet outil.",
       "describeParameter": "Décrire {name}",
       "servers": "Serveurs",
       "searchServers": "Rechercher des serveurs...",
@@ -663,7 +663,7 @@
     "chat": {
       "dialogLabel": "Chat",
       "title": "Chat",
-      "addInputsTitle": "Ajouter les entrées du chat au bloc Start",
+      "addInputsTitle": "Ajouter les entrées du chat au bloc Démarrage",
       "addInputs": "Ajouter des entrées",
       "outputs": "Sorties",
       "chatActions": "Actions du chat",

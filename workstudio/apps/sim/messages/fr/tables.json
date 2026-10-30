@@ -435,7 +435,7 @@
     "noUpstreamColumns": "Aucune colonne en amont.",
     "selectedCount": "{count, plural, one {# sélectionnée} other {# sélectionnées}}",
     "workflowInputs": "Entrées du workflow",
-    "noStartInputs": "Ce workflow n’a aucune entrée de bloc Start."
+    "noStartInputs": "Ce workflow n’a aucune entrée de bloc Démarrage."
   },
   "workflowSidebar": {
     "titleCreate": "Ajouter un workflow",

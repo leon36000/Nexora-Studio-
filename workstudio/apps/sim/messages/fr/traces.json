@@ -79,7 +79,7 @@
   },
   "protectionEntities": {
     "IBAN_CODE": "IBAN",
-    "EMAIL_ADDRESS": "e-mail",
+    "EMAIL_ADDRESS": "courriel",
     "PHONE_NUMBER": "téléphone",
     "CREDIT_CARD": "carte bancaire",
     "PERSON": "nom de personne",
@@ -106,7 +106,7 @@
     "enabled": "Enregistrer les traces",
     "retention": "Conservation des traces (jours)",
     "redaction": "Masquage des données personnelles",
-    "redactionStandard": "Standard : e-mails, IBAN, téléphones, cartes, clés",
+    "redactionStandard": "Standard : courriels, IBAN, téléphones, cartes, clés",
     "redactionStrict": "Strict : ne conserver aucun contenu",
     "redactionNone": "Aucun masquage",
     "redactionNote": "Le masquage est fait avant l’enregistrement, par motifs : il ne remplace pas un contrôle des données très sensibles.",

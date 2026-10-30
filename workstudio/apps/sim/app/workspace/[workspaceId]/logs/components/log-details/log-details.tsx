@@ -45,7 +45,6 @@ import {
   Wrench,
   X,
 } from '@sim/emcn/icons'
-import { formatDuration } from '@sim/utils/formatting'
 import Link from 'next/link'
 import { useParams, useRouter } from 'next/navigation'
 import { useTranslations } from 'next-intl'
@@ -59,6 +58,7 @@ import { MothershipHandoffStorage } from '@/lib/core/utils/browser-storage'
 import { filterHiddenOutputKeys } from '@/lib/logs/execution/trace-spans/trace-spans'
 import type { TraceSpan } from '@/lib/logs/types'
 import { sendMothershipMessage } from '@/lib/mothership/events'
+import { formatLogDuration } from '@/lib/nexora/duration'
 /**
  * Deep imports on purpose: importing these back through the parent `logs/components`
  * barrel forms a parent->child cycle that would keep the barrel edge to the snapshot
@@ -279,6 +279,7 @@ export const WorkflowOutputSection = memo(
             >
               <DropdownMenuTrigger asChild>
                 <div
+                  role='button'
                   style={{
                     position: 'fixed',
                     left: `${contextMenuPosition.x}px`,
@@ -591,7 +592,7 @@ export function LogDetailsContent({ log, onActiveTabChange }: LogDetailsContentP
                 <div className='flex h-10 items-center justify-between px-3'>
                   <span className='text-[var(--text-tertiary)] text-caption'>{t('duration')}</span>
                   <span className='text-[var(--text-secondary)] text-caption tabular-nums'>
-                    {formatDuration(log.duration, { precision: 2 }) || '—'}
+                    {formatLogDuration(log.duration, locale) || '—'}
                   </span>
                 </div>
 
@@ -663,6 +664,22 @@ export function LogDetailsContent({ log, onActiveTabChange }: LogDetailsContentP
 
               {/* Files */}
               {log.files && log.files.length > 0 && <FileCards files={log.files} isExecutionFile />}
+
+              {/* A person billed by the site sees the tokens a run used, not a cost in WorkStudio credits */}
+              {viaSite &&
+                isWorkflowExecutionLog &&
+                costBreakdown &&
+                (costBreakdown.tokens.input > 0 || costBreakdown.tokens.output > 0) && (
+                  <div className='flex h-10 items-center justify-between overflow-hidden rounded-md border border-[var(--border)] bg-[var(--surface-2)] px-3 dark:bg-transparent'>
+                    <span className='text-[var(--text-tertiary)] text-caption'>{t('tokens')}</span>
+                    <span className='text-[var(--text-secondary)] text-caption tabular-nums'>
+                      {t('tokensInOut', {
+                        input: costBreakdown.tokens.input,
+                        output: costBreakdown.tokens.output,
+                      })}
+                    </span>
+                  </div>
+                )}
 
               {/* Cost Breakdown */}
               {hasCostInfo && costBreakdown && (
