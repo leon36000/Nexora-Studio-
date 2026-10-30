@@ -1,0 +1,23 @@
+import { chromium } from "playwright"
+const WS = process.env.WS, EMAIL = process.env.EMAIL, PW = process.env.PW
+const browser = await chromium.launch()
+const ctx = await browser.newContext({ viewport: { width: 1360, height: 860 }, locale: "fr-CA" })
+const page = await ctx.newPage()
+const errs=[]
+page.on("console", m => { if (m.type()==="error") errs.push(m.text().slice(0,200)) })
+page.on("response", r => { if (r.status()>=400) errs.push(r.status()+" "+r.url().slice(0,150)) })
+const t0=Date.now()
+await page.goto(`${WS}/login`, { waitUntil: "domcontentloaded", timeout: 60000 })
+await page.waitForTimeout(2500)
+await page.screenshot({ path: "/essais/01-login.png" })
+console.log("BODY login:", (await page.locator("body").innerText()).replace(/\s+/g," "))
+await page.getByRole("button", { name: /Nexora AI/i }).first().click()
+await page.waitForURL(/compte\/connexion/, { timeout: 60000 })
+await page.fill("#email", EMAIL); await page.fill("#password", PW)
+await Promise.all([page.waitForURL((u) => u.toString().startsWith(WS), { timeout: 90000 }), page.locator("form button[type=submit]").click()])
+await page.waitForTimeout(6000)
+console.log("URL", page.url().replace(/(code|state)=[^&]+/g,"$1=…"), "ms", Date.now()-t0)
+await page.screenshot({ path: "/essais/02-accueil.png" })
+await ctx.storageState({ path: "/essais/state.json" })
+console.log("ERR", errs.join("\n"))
+await browser.close()
