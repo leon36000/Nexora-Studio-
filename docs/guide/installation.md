@@ -5,7 +5,7 @@ Ce guide installe la plateforme complète : Nexora WorkStudio, Nexora API, Nexor
 ## Le plus simple : une commande
 
 ```bash
-git clone https://pc4.tail0c55ff.ts.net/root/nexora-workstudio.git && cd nexora-workstudio
+git clone https://gitlab-nexora.tail0c55ff.ts.net/nexora/nexora-workstudio.git && cd nexora-workstudio
 NEXORA_BUNDLE="$PWD" bash install.sh --from-source
 ```
 
