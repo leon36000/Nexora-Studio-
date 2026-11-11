@@ -28,7 +28,7 @@ default:
 
 bandit:
   stage: analyse
-  image: python:3.12-slim
+  image: python:3.12.10-slim-bookworm
   script:
     - pip install --quiet --no-cache-dir bandit==1.9.4
     - bandit -r services scripts deploy -x '*/tests/*,*/test_*.py' -f json -o bandit.json || true
@@ -41,7 +41,7 @@ bandit:
 trivy-critique:
   stage: analyse
   image:
-    name: aquasec/trivy:0.75.0
+    name: aquasec/trivy:0.76.2@sha256:8f6bb947dbc528902e11f2f5be52f7b519f6a39d5d148f41166f2040499768fb
     entrypoint: [""]
   variables:
     TRIVY_CACHE_DIR: .trivycache
