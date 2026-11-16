@@ -12,10 +12,10 @@ Ce dépôt contient la plateforme complète :
 
 ## Installation
 
-Les sources et les images vivent dans le **GitLab privé de Nexora** (plus rien sur GitHub). Il vous faut **Docker** (Compose v5.2 ou plus récent) et un jeton d'accès au dépôt :
+Les sources sont aussi disponibles dans le dépôt public [GitHub Nexora Studio](https://github.com/leon36000/Nexora-Studio-); le GitLab privé Nexora reste utilisé pour le développement interne. Pour l’installation depuis les sources, il vous faut **Docker** (Compose v5.2 ou plus récent) :
 
 ```bash
-git clone https://pc4.tail0c55ff.ts.net/root/nexora-workstudio.git && cd nexora-workstudio
+git clone https://github.com/leon36000/Nexora-Studio-.git && cd Nexora-Studio-
 NEXORA_BUNDLE="$PWD" bash install.sh --from-source     # ou la procédure avec images prêtes : docs/restauration.md
 ```
 
